@@ -1,0 +1,104 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    private static class FastScanner {
+        private final InputStream in;
+        private final byte[] buffer = new byte[1 << 16];
+        private int ptr = 0, len = 0;
+
+        FastScanner(InputStream is) {
+            this.in = is;
+        }
+
+        private int read() throws IOException {
+            if (ptr >= len) {
+                len = in.read(buffer);
+                ptr = 0;
+                if (len <= 0) return -1;
+            }
+            return buffer[ptr++];
+        }
+
+        int nextInt() throws IOException {
+            int c;
+            do {
+                c = read();
+            } while (c <= ' ' && c != -1);
+
+            int sign = 1;
+            if (c == '-') {
+                sign = -1;
+                c = read();
+            }
+
+            int val = 0;
+            while (c > ' ') {
+                val = val * 10 + (c - '0');
+                c = read();
+            }
+            return val * sign;
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        FastScanner fs = new FastScanner(System.in);
+
+        int n = fs.nextInt();
+        int m = fs.nextInt();
+
+        int v = n + 1;                     // vertices 0 .. n (prefix sums)
+        final long INF = (long) 1e15;
+        long[][] dist = new long[v][v];
+
+        for (int i = 0; i < v; i++) {
+            Arrays.fill(dist[i], INF);
+            dist[i][i] = 0;
+        }
+
+        // Constraint: p[i] - p[i-1] <= 1  (at most one new liar)
+        //             p[i-1] - p[i] <= 0  (cannot lose liars)
+        for (int i = 1; i <= n; i++) {
+            if (1 < dist[i - 1][i]) dist[i - 1][i] = 1;
+            if (0 < dist[i][i - 1]) dist[i][i - 1] = 0;
+        }
+
+        // Constraints from the M statements
+        for (int i = 0; i < m; i++) {
+            int a = fs.nextInt();
+            int b = fs.nextInt();
+            int c = fs.nextInt();
+
+            int u = a - 1;                 // p[a-1]
+            int w = b;                     // p[b]
+
+            // p[b] - p[a-1] <= c
+            if (c < dist[u][w]) dist[u][w] = c;
+
+            // p[a-1] - p[b] <= -c
+            if (-c < dist[w][u]) dist[w][u] = -c;
+        }
+
+        // Floyd-Warshall
+        for (int k = 0; k < v; k++) {
+            for (int i = 0; i < v; i++) {
+                long dik = dist[i][k];
+                if (dik >= INF) continue;
+                for (int j = 0; j < v; j++) {
+                    long nd = dik + dist[k][j];
+                    if (nd < dist[i][j]) {
+                        dist[i][j] = nd;
+                    }
+                }
+            }
+        }
+
+        // Minimum liars = -shortest path from N to 0
+        // Maximum liars =  shortest path from 0 to N
+        long lMin = -dist[n][0];
+        long lMax = dist[0][n];
+
+        System.out.println(lMin + " " + lMax);
+    }
+}
