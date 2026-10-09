@@ -1,0 +1,94 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+    public static long zero = 0L;
+    
+    static int findMex(HashSet<Integer> grundys){
+        int mex = 0;
+        while(grundys.contains(mex)){
+            mex++;
+        }
+        return mex;
+    }
+    
+    
+    static int getGrundy(long n, long[] s, Hashtable<Long, Integer> grundyVals){
+       
+        if (n == zero){
+            return 0;
+        }
+        else if (grundyVals.containsKey(n)){
+            return grundyVals.get(n);
+        }
+        else{
+            HashSet<Integer>nextPositions = new HashSet<Integer>();
+            for (int i = 0; i < s.length; i++){
+                if (n % s[i] == zero){
+                    long pilesize = n/s[i];
+                    int g = 0;
+                    if(s[i]%2L != 0L){
+                        g = getGrundy(pilesize, s, grundyVals);
+                    }
+                    
+                    nextPositions.add(g);
+                }
+            }
+            if(nextPositions.isEmpty()){
+                return 0;
+            }
+            else{
+                int mex = findMex(nextPositions);
+                grundyVals.put(n, mex);
+                return mex;
+            }
+        }
+    }
+    
+    static String stoneDivision(long n, long[] s) {
+        
+        Hashtable<Long, Integer> grundyVals = new Hashtable<Long, Integer>();
+        Arrays.sort(s);
+
+        
+        int grundy_val = getGrundy(n, s, grundyVals);
+        if (grundy_val == 0){
+            return new String("Second");
+        }
+        else{
+            return new String("First");
+        }
+       
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] nm = scanner.nextLine().split(" ");
+
+        long n = Long.parseLong(nm[0].trim());
+
+        int m = Integer.parseInt(nm[1].trim());
+
+        long[] s = new long[m];
+
+        String[] sItems = scanner.nextLine().split(" ");
+
+        for (int sItr = 0; sItr < m; sItr++) {
+            long sItem = Long.parseLong(sItems[sItr].trim());
+            s[sItr] = sItem;
+        }
+
+        String result = stoneDivision(n, s);
+
+        bufferedWriter.write(result);
+        bufferedWriter.newLine();
+
+        bufferedWriter.close();
+    }
+}
