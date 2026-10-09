@@ -1,0 +1,43 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        while (line != null && line.trim().isEmpty()) line = br.readLine();
+        int n = Integer.parseInt(line.trim());
+
+        int[] a = new int[n];
+        int idx = 0;
+        while (idx < n) {
+            line = br.readLine();
+            if (line == null) break;
+            StringTokenizer st = new StringTokenizer(line);
+            while (st.hasMoreTokens() && idx < n) {
+                a[idx++] = Integer.parseInt(st.nextToken());
+            }
+        }
+
+        List<Integer> res = new ArrayList<>();
+        res.add(a[0]);
+        for (int i = 1; i < n; i++) {
+            int val = a[i];
+            int lo = 0, hi = res.size();
+            while (lo < hi) {
+                int mid = (lo + hi) / 2;
+                if (res.get(mid) < val) {
+                    lo = mid + 1;
+                } else {
+                    hi = mid;
+                }
+            }
+            if (lo == res.size()) {
+                res.add(val);
+            } else {
+                res.set(lo, val);
+            }
+        }
+        System.out.println(res.size());
+    }
+}
