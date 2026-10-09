@@ -1,0 +1,32 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            String s1 = br.readLine().trim();
+            String s2 = br.readLine().trim();
+
+            boolean[] present = new boolean[26];
+
+            for (int i = 0; i < s1.length(); i++) {
+                present[s1.charAt(i) - 'a'] = true;
+            }
+
+            boolean shared = false;
+            for (int i = 0; i < s2.length(); i++) {
+                if (present[s2.charAt(i) - 'a']) {
+                    shared = true;
+                    break;
+                }
+            }
+
+            sb.append(shared ? "YES\n" : "NO\n");
+        }
+
+        System.out.print(sb);
+    }
+}
