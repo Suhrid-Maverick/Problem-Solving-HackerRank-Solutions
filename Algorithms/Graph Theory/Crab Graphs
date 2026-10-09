@@ -1,0 +1,104 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class Edge {
+        int to, rev, cap;
+        Edge(int to, int rev, int cap) {
+            this.to = to;
+            this.rev = rev;
+            this.cap = cap;
+        }
+    }
+
+    static List<Edge>[] graph;
+    static int[] level, iter;
+
+    static void addEdge(int from, int to, int cap) {
+        graph[from].add(new Edge(to, graph[to].size(), cap));
+        graph[to].add(new Edge(from, graph[from].size() - 1, 0));
+    }
+
+    static void bfs(int s) {
+        Arrays.fill(level, -1);
+        Queue<Integer> q = new ArrayDeque<>();
+        level[s] = 0;
+        q.add(s);
+        while (!q.isEmpty()) {
+            int v = q.poll();
+            for (Edge e : graph[v]) {
+                if (e.cap > 0 && level[e.to] == -1) {
+                    level[e.to] = level[v] + 1;
+                    q.add(e.to);
+                }
+            }
+        }
+    }
+
+    static int dfs(int v, int t, int f) {
+        if (v == t) return f;
+        for (; iter[v] < graph[v].size(); iter[v]++) {
+            Edge e = graph[v].get(iter[v]);
+            if (e.cap > 0 && level[v] < level[e.to]) {
+                int d = dfs(e.to, t, Math.min(f, e.cap));
+                if (d > 0) {
+                    e.cap -= d;
+                    graph[e.to].get(e.rev).cap += d;
+                    return d;
+                }
+            }
+        }
+        return 0;
+    }
+
+    static int maxFlow(int s, int t) {
+        int flow = 0;
+        while (true) {
+            bfs(s);
+            if (level[t] == -1) return flow;
+            Arrays.fill(iter, 0);
+            int f;
+            while ((f = dfs(s, t, Integer.MAX_VALUE)) > 0) {
+                flow += f;
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int C = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (C-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int N = Integer.parseInt(st.nextToken());
+            int T = Integer.parseInt(st.nextToken());
+            int M = Integer.parseInt(st.nextToken());
+
+            int total = 2 * N + 2;
+            int S = 0, sink = 2 * N + 1;
+
+            graph = new ArrayList[total];
+            for (int i = 0; i < total; i++) graph[i] = new ArrayList<>();
+
+            for (int i = 1; i <= N; i++) {
+                addEdge(S, i, T);
+                addEdge(N + i, sink, 1);
+            }
+
+            for (int i = 0; i < M; i++) {
+                st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken());
+                int v = Integer.parseInt(st.nextToken());
+                addEdge(u, N + v, 1);
+                addEdge(v, N + u, 1);
+            }
+
+            level = new int[total];
+            iter = new int[total];
+
+            sb.append(maxFlow(S, sink)).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
