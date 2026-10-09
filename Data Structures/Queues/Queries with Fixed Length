@@ -1,0 +1,82 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.regex.*;
+
+class Result {
+
+    public static List<Integer> solve(List<Integer> arr, List<Integer> queries) {
+        List<Integer> results = new ArrayList<>();
+        int n = arr.size();
+
+        for (int d : queries) {
+            Deque<Integer> dq = new LinkedList<>();
+            int minOfMax = Integer.MAX_VALUE;
+
+            for (int i = 0; i < n; i++) {
+                while (!dq.isEmpty() && dq.peekFirst() <= i - d) {
+                    dq.pollFirst();
+                }
+
+                while (!dq.isEmpty() && arr.get(dq.peekLast()) <= arr.get(i)) {
+                    dq.pollLast();
+                }
+
+                dq.offerLast(i);
+
+                if (i >= d - 1) {
+                    int currentMax = arr.get(dq.peekFirst());
+                    minOfMax = Math.min(minOfMax, currentMax);
+                }
+            }
+
+            results.add(minOfMax);
+        }
+
+        return results;
+    }
+}
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+
+        int n = Integer.parseInt(firstMultipleInput[0]);
+        int q = Integer.parseInt(firstMultipleInput[1]);
+
+        String[] arrTemp = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+        List<Integer> arr = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            int arrItem = Integer.parseInt(arrTemp[i]);
+            arr.add(arrItem);
+        }
+
+        List<Integer> queries = new ArrayList<>();
+        for (int i = 0; i < q; i++) {
+            int queriesItem = Integer.parseInt(bufferedReader.readLine().trim());
+            queries.add(queriesItem);
+        }
+
+        List<Integer> result = Result.solve(arr, queries);
+
+        for (int i = 0; i < result.size(); i++) {
+            bufferedWriter.write(String.valueOf(result.get(i)));
+            if (i != result.size() - 1) {
+                bufferedWriter.write("\n");
+            }
+        }
+
+        bufferedWriter.newLine();
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
