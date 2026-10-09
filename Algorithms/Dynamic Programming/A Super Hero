@@ -1,0 +1,89 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int INF = Integer.MAX_VALUE / 3;
+
+    static int[] dp0 = new int[1001];
+    static int[] dp1 = new int[1001];
+
+    static int minElement(int[] arr) {
+        int result = arr[0];
+        for (int x : arr) {
+            result = Math.min(result, x);
+        }
+        return result;
+    }
+
+    static int superHero(int[][] power, int[][] bullets) {
+        Arrays.fill(dp0, INF);
+        dp0[0] = 0;
+
+        for (int i = 0; i < power.length; i++) {
+            Arrays.fill(dp1, INF);
+            for (int j = 0; j < power[0].length; j++) {
+                for (int k = 0; k <= 1000; k++) {
+                    if (dp0[k] >= INF) {
+                        continue;
+                    }
+
+                    int nevoie = Math.max(0, power[i][j] - k);
+
+                    if (dp1[bullets[i][j]] > dp0[k] + nevoie) {
+                        dp1[bullets[i][j]] = dp0[k] + nevoie;
+                    }
+                }
+            }
+            int[] tmp = dp0;
+            dp0 = dp1;
+            dp1 = tmp;
+        }
+
+        return minElement(dp0);
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            st = new StringTokenizer(br.readLine());
+
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+
+            int[][] power = new int[n][m];
+
+            for (int i = 0; i < n; i++) {
+                st = new StringTokenizer(br.readLine());
+
+                for (int j = 0; j < m; j++) {
+                    int item = Integer.parseInt(st.nextToken());
+                    power[i][j] = item;
+                }
+            }
+
+            int[][] bullets = new int[n][m];
+
+            for (int i = 0; i < n; i++) {
+                st = new StringTokenizer(br.readLine());
+
+                for (int j = 0; j < m; j++) {
+                    int item = Integer.parseInt(st.nextToken());
+                    bullets[i][j] = item;
+                }
+            }
+
+            int result = superHero(power, bullets);
+            bw.write(String.valueOf(result));
+            bw.newLine();
+        }
+
+        bw.close();
+        br.close();
+    }
+}
