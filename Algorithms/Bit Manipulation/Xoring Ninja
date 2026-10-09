@@ -1,0 +1,48 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1_000_000_007;
+
+    static class FastScanner {
+        private final BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        private StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    static long modPow(long base, long exp) {
+        long result = 1;
+        base %= MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) result = (result * base) % MOD;
+            base = (base * base) % MOD;
+            exp >>= 1;
+        }
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int t = fs.nextInt();
+
+        while (t-- > 0) {
+            int n = fs.nextInt();
+            int orAll = 0;
+
+            for (int i = 0; i < n; i++) {
+                orAll |= fs.nextInt();
+            }
+
+            long ans = (orAll % MOD) * modPow(2, n - 1) % MOD;
+            System.out.println(ans);
+        }
+    }
+}
