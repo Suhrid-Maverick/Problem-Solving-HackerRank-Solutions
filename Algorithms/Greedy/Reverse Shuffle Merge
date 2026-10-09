@@ -1,0 +1,42 @@
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        String s = sc.next();
+        int n = s.length() / 2;
+        char[] sChars = s.toCharArray();
+        char[] result = new char[n];
+        reverseShuffleMerge(sChars, result, n);
+        System.out.println(new String(result));
+    }
+
+    static char[] reverseShuffleMerge(char[] s, char[] result, int n) {
+        int[] available = new int[26];
+        int[] required = new int[26];
+        for (char c : s) {
+            available[c - 'a']++;
+        }
+        for (int i = 0; i < 26; i++) {
+            required[i] = available[i] / 2;
+        }
+        int j = 0;
+        for (int i = s.length - 1; i >= 0; i--) {
+            char c = s[i];
+            int t = c - 'a';
+            if (required[t] == 0) {
+                available[t]--;
+                continue;
+            }
+            while (j > 0 && c < result[j - 1] &&
+                   available[result[j - 1] - 'a'] > required[result[j - 1] - 'a']) {
+                required[result[--j] - 'a']++;
+            }
+            result[j++] = c;
+            required[t]--;
+            available[t]--;
+            if (j == n) break;
+        }
+        return result;
+    }
+}
