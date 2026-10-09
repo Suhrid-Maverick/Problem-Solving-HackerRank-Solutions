@@ -1,0 +1,47 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        int[] A = new int[n];
+        int[] B = new int[n];
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            A[i] = Integer.parseInt(st.nextToken());
+        }
+
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            B[i] = Integer.parseInt(st.nextToken());
+        }
+
+        Map<Integer, Integer> freqA = new HashMap<>();
+        for (int x : A) {
+            freqA.put(x, freqA.getOrDefault(x, 0) + 1);
+        }
+
+        int pairs = 0;
+        for (int x : B) {
+            int count = freqA.getOrDefault(x, 0);
+            if (count > 0) {
+                pairs++;
+                if (count == 1) {
+                    freqA.remove(x);
+                } else {
+                    freqA.put(x, count - 1);
+                }
+            }
+        }
+
+        if (pairs == n) {
+            System.out.println(n - 1);
+        } else {
+            System.out.println(pairs + 1);
+        }
+    }
+}
