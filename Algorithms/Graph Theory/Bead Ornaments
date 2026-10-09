@@ -1,0 +1,67 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    private static final long MOD = 1_000_000_007L;
+
+    /** Fast modular exponentiation: (base ^ exp) % MOD */
+    private static long modPow(long base, long exp) {
+        long result = 1;
+        base %= MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) {
+                result = (result * base) % MOD;
+            }
+            base = (base * base) % MOD;
+            exp >>= 1;
+        }
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            // read n (number of colors)
+            int n = Integer.parseInt(br.readLine().trim());
+
+            int[] b = new int[n];
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                b[i] = Integer.parseInt(st.nextToken());
+            }
+
+            long sum = 0;
+            long product = 1;
+
+            for (int x : b) {
+                sum += x;
+                // For n >= 2, multiply b_i ^ (b_i - 1)
+                if (n >= 2) {
+                    product = (product * modPow(x, x - 1)) % MOD;
+                }
+            }
+
+            long ans;
+            if (n == 1) {
+                // Cayley's formula for a single color:
+                // number of labeled trees on b[0] vertices = b[0] ^ (b[0] - 2)
+                if (b[0] == 1) {
+                    ans = 1;                     // 1 ^ (-1) is taken as 1
+                } else {
+                    ans = modPow(b[0], b[0] - 2);
+                }
+            } else {
+                // Multiply by (sum) ^ (n - 2)
+                ans = (product * modPow(sum, n - 2)) % MOD;
+            }
+
+            sb.append(ans).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
