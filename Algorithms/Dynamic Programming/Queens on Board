@@ -1,0 +1,221 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static int n, m;
+    static String[] board;
+    static Map<String, Long> state1 = new HashMap<>(), state2 = new HashMap<>(), tmp;
+    static String[] rowConfigs;
+    static String clearAttackVector, clearRow;
+
+    static final long mod = (long) Math.pow(10, 9) + 7;
+
+    static long calcWays() {
+        state1.clear();
+        state2.clear();
+
+        int maxMask = (int) Math.pow(2, m) - 1;
+        rowConfigs = new String[maxMask + 1];
+
+        for (int i = 0; i <= maxMask; i++) {
+            rowConfigs[i] = createRowConfig(i);
+        }
+
+        clearAttackVector = "";
+        clearRow = "";
+
+        for (int i = 0; i < m; i++) {
+            clearAttackVector += "000";
+            clearRow += "0";
+        }
+
+        for (int row = 0; row < n; row++) {
+
+            for (int ndx = 1; ndx < rowConfigs.length; ndx++) {
+                if (isValidRowConfig(rowConfigs[ndx], row)) {
+                    String vect = generateAttackVector(clearAttackVector, rowConfigs[ndx], row);
+                    state2.put(vect, (state2.getOrDefault(vect, 0L) + 1) % mod);
+                }
+            }
+
+            for (int ndx = 0; ndx < rowConfigs.length; ndx++) {
+                if (isValidRowConfig(rowConfigs[ndx], row)) {
+                    for (String state : state1.keySet()) {
+                        if (compatible(rowConfigs[ndx], state)) {
+                            String vect = generateAttackVector(state, rowConfigs[ndx], row);
+                            long tot = state1.getOrDefault(state, 0L);
+                            tot += state2.getOrDefault(vect, 0L);
+                            tot %= mod;
+                            state2.put(vect, tot);
+                        }
+                    }
+                }
+            }
+
+            tmp = state1;
+            state1 = state2;
+            state2 = tmp;
+            state2.clear();
+        }
+
+        long result = 0;
+        for (String state : state1.keySet()) {
+            result += state1.get(state);
+            result %= mod;
+        }
+
+        return result;
+    }
+
+    public static void main(String[] args) {
+        Scanner s = new Scanner(System.in);
+
+        int t = s.nextInt();
+
+        for (int i = 0; i < t; i++) {
+            n = s.nextInt();
+            m = s.nextInt();
+
+            board = new String[n];
+
+            for (int j = 0; j < n; j++) {
+                board[j] = s.next();
+            }
+
+            System.out.println(calcWays());
+        }
+
+        s.close();
+    }
+
+    static String createRowConfig(int mask) {
+        String rowConfig = Integer.toString(mask, 2);
+
+        while (rowConfig.length() < m) {
+            rowConfig = "0" + rowConfig;
+        }
+
+        return rowConfig;
+    }
+
+    static boolean isValidRowConfig(String rowConf, int row) {
+        int count = 0;
+
+        for (int i = 0; i < m; i++) {
+            if (board[row].charAt(i) == '#') {
+                if (hasQueen(rowConf, i)) {
+                    return false;
+                }
+
+                count = 0;
+                continue;
+            }
+
+            if (hasQueen(rowConf, i)) {
+                if (++count > 1) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    static boolean compatible(String rowConf, String attVect) {
+        for (int i = 0; i < m; i++) {
+            if (!hasQueen(rowConf, i)) {
+                continue;
+            }
+
+            if (attackedFromUpperLeft(i, attVect) ||
+                attackedFromAbove(i, attVect) ||
+                attackedFromUpperRight(i, attVect)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static boolean isOpenSpace(int row, int col) {
+        if (row < 0 || row >= n) {
+            return false;
+        }
+
+        if (col < 0 || col >= m) {
+            return false;
+        }
+
+        return board[row].charAt(col) != '#';
+    }
+
+    static boolean hasQueen(String rowConf, int col) {
+        if (col < 0 || col >= m) {
+            return false;
+        }
+
+        return rowConf.charAt(col) == '1';
+    }
+
+    static boolean attackedFromUpperLeft(int col, String attVect) {
+        if (col <= 0) {
+            return false;
+        }
+
+        return attVect.charAt(col * 3) == '1';
+    }
+
+    static boolean attackedFromAbove(int col, String attVect) {
+        return attVect.charAt((col * 3) + 1) == '1';
+    }
+
+    static boolean attackedFromUpperRight(int col, String attVect) {
+        if (col >= m - 1) {
+            return false;
+        }
+
+        return attVect.charAt((col * 3) + 2) == '1';
+    }
+
+    static String generateAttackVector(String prevVect, String prevRowConf, int row) {
+        String vect = "";
+
+        for (int i = 0; i < m; i++) {
+
+            if (!isOpenSpace(row, i - 1)) {
+                vect += "0";
+            } else if (attackedFromUpperLeft(i - 1, prevVect) ||
+                       hasQueen(prevRowConf, i - 1)) {
+                vect += "1";
+            } else {
+                vect += "0";
+            }
+
+            if (!isOpenSpace(row, i)) {
+                vect += "0";
+            } else if (attackedFromAbove(i, prevVect) ||
+                       hasQueen(prevRowConf, i)) {
+                vect += "1";
+            } else {
+                vect += "0";
+            }
+
+            if (!isOpenSpace(row, i + 1)) {
+                vect += "0";
+            } else if (attackedFromUpperRight(i + 1, prevVect) ||
+                       hasQueen(prevRowConf, i + 1)) {
+                vect += "1";
+            } else {
+                vect += "0";
+            }
+
+        }
+
+        return vect;
+    }
+
+}
