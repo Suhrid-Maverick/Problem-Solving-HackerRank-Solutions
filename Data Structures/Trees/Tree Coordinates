@@ -1,0 +1,172 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+
+    static int n, m;
+    static List<Integer>[] graph;
+    static int[] depth;
+    static int[][] up;
+    static int LOG;
+
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner(System.in);
+
+        n = sc.nextInt();
+        m = sc.nextInt();
+
+        graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+
+        for (int i = 0; i < n - 1; i++) {
+            int u = sc.nextInt() - 1;
+            int v = sc.nextInt() - 1;
+            graph[u].add(v);
+            graph[v].add(u);
+        }
+
+        LOG = 1;
+        while ((1 << LOG) <= n) LOG++;
+        LOG++;
+
+        up = new int[n][LOG];
+        depth = new int[n];
+        for (int[] row : up) Arrays.fill(row, -1);
+
+        boolean[] visited = new boolean[n];
+        Deque<Integer> stack = new ArrayDeque<>();
+        stack.push(0);
+        up[0][0] = 0;
+        visited[0] = true;
+
+        while (!stack.isEmpty()) {
+            int u = stack.pop();
+            for (int v : graph[u]) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    depth[v] = depth[u] + 1;
+                    up[v][0] = u;
+                    stack.push(v);
+                }
+            }
+        }
+
+        for (int j = 1; j < LOG; j++) {
+            for (int i = 0; i < n; i++) {
+                up[i][j] = up[up[i][j - 1]][j - 1];
+            }
+        }
+
+        int[][] p = new int[m][2];
+        int[] sum = new int[m];
+        int h = 0;
+
+        for (int i = 0; i < m; i++) {
+            p[i][0] = sc.nextInt() - 1;
+            p[i][1] = sc.nextInt() - 1;
+            sum[i] = depth[p[i][0]] + depth[p[i][1]];
+            if (sum[i] > sum[h]) h = i;
+        }
+
+        int[][] l = new int[m][2];
+        Integer[] order = new Integer[m];
+
+        for (int i = 0; i < m; i++) {
+            l[i][0] = depth[lca(p[i][0], p[h][0])];
+            l[i][1] = depth[lca(p[i][1], p[h][1])];
+            order[i] = i;
+        }
+
+        Arrays.sort(order, (a, b) -> {
+            if (l[a][0] != l[b][0]) return Integer.compare(l[b][0], l[a][0]);
+            return Integer.compare(l[a][1], l[b][1]);
+        });
+
+        int treeSize = l[h][1] + 1;
+        int[] tree = new int[2 * treeSize];
+        Arrays.fill(tree, Integer.MIN_VALUE);
+
+        int ans = 0;
+        for (int i = 0; i < m; i++) {
+            int j = order[i];
+
+            int t = query(tree, treeSize, 0, l[j][1] + 1);
+            if (t != Integer.MIN_VALUE) {
+                ans = Math.max(ans, sum[j] - 2 * l[j][0] + t);
+            }
+            if (i > 0) {
+                ans = Math.max(ans, sum[h] + sum[j] - 2 * (l[j][0] + l[j][1]));
+            }
+
+            updateMax(tree, treeSize, l[j][1], sum[j] - 2 * l[j][1]);
+        }
+
+        System.out.println(ans);
+    }
+
+    static int lca(int u, int v) {
+        if (depth[u] < depth[v]) {
+            int t = u;
+            u = v;
+            v = t;
+        }
+        int diff = depth[u] - depth[v];
+        for (int i = 0; i < LOG; i++) {
+            if (((diff >> i) & 1) != 0) {
+                u = up[u][i];
+            }
+        }
+        if (u == v) return u;
+        for (int i = LOG - 1; i >= 0; i--) {
+            if (up[u][i] != up[v][i]) {
+                u = up[u][i];
+                v = up[v][i];
+            }
+        }
+        return up[u][0];
+    }
+
+    static void updateMax(int[] tree, int n, int i, int val) {
+        int idx = i + n;
+        if (tree[idx] >= val) return;
+        tree[idx] = val;
+        for (idx >>= 1; idx > 0; idx >>= 1) {
+            tree[idx] = Math.max(tree[2 * idx], tree[2 * idx + 1]);
+        }
+    }
+
+    static int query(int[] tree, int n, int l, int r) {
+        int res = Integer.MIN_VALUE;
+        l += n;
+        r += n;
+        while (l < r) {
+            if ((l & 1) != 0) res = Math.max(res, tree[l++]);
+            if ((r & 1) != 0) res = Math.max(res, tree[--r]);
+            l >>= 1;
+            r >>= 1;
+        }
+        return res;
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner(InputStream is) {
+            br = new BufferedReader(new InputStreamReader(is));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
