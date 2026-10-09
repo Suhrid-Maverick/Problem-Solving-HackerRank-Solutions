@@ -1,0 +1,112 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int N, K;
+    static int[] v;
+    static ArrayList<Integer>[] adj;
+    static int[] pairU, pairV, dist;
+    static final int INF = Integer.MAX_VALUE;
+
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner(System.in);
+        int T = sc.nextInt();
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            N = sc.nextInt();
+            K = sc.nextInt();
+            v = new int[N];
+            for (int i = 0; i < N; i++) v[i] = sc.nextInt();
+
+            // Build DAG: edge i -> j if i < j and |v[i] - v[j]| >= K
+            adj = new ArrayList[N];
+            for (int i = 0; i < N; i++) adj[i] = new ArrayList<>();
+            for (int i = 0; i < N; i++) {
+                for (int j = i + 1; j < N; j++) {
+                    if (Math.abs(v[i] - v[j]) >= K) {
+                        adj[i].add(j);
+                    }
+                }
+            }
+
+            // Minimum path cover = N - maximum bipartite matching
+            int matching = hopcroftKarp();
+            sb.append(N - matching).append('\n');
+        }
+        System.out.print(sb);
+    }
+
+    static int hopcroftKarp() {
+        pairU = new int[N];
+        pairV = new int[N];
+        dist = new int[N];
+        Arrays.fill(pairU, -1);
+        Arrays.fill(pairV, -1);
+
+        int matching = 0;
+        while (bfs()) {
+            for (int u = 0; u < N; u++) {
+                if (pairU[u] == -1 && dfs(u)) {
+                    matching++;
+                }
+            }
+        }
+        return matching;
+    }
+
+    static boolean bfs() {
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
+        for (int u = 0; u < N; u++) {
+            if (pairU[u] == -1) {
+                dist[u] = 0;
+                queue.add(u);
+            } else {
+                dist[u] = INF;
+            }
+        }
+        boolean found = false;
+        while (!queue.isEmpty()) {
+            int u = queue.poll();
+            for (int v : adj[u]) {
+                int pu = pairV[v];
+                if (pu == -1) {
+                    found = true;
+                } else if (dist[pu] == INF) {
+                    dist[pu] = dist[u] + 1;
+                    queue.add(pu);
+                }
+            }
+        }
+        return found;
+    }
+
+    static boolean dfs(int u) {
+        for (int v : adj[u]) {
+            int pu = pairV[v];
+            if (pu == -1 || (dist[pu] == dist[u] + 1 && dfs(pu))) {
+                pairU[u] = v;
+                pairV[v] = u;
+                return true;
+            }
+        }
+        dist[u] = INF;
+        return false;
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner(InputStream is) {
+            br = new BufferedReader(new InputStreamReader(is));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+    }
+}
