@@ -1,0 +1,44 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            String s = br.readLine();
+            sb.append(similaritySum(s)).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+
+    private static long similaritySum(String s) {
+        int n = s.length();
+        if (n == 0) return 0;
+
+        char[] c = s.toCharArray();
+        int[] z = new int[n];
+        z[0] = n;
+
+        long sum = n;
+        int l = 0, r = 0;
+
+        for (int i = 1; i < n; i++) {
+            if (i <= r) {
+                z[i] = Math.min(r - i + 1, z[i - l]);
+            }
+            while (i + z[i] < n && c[z[i]] == c[i + z[i]]) {
+                z[i]++;
+            }
+            if (i + z[i] - 1 > r) {
+                l = i;
+                r = i + z[i] - 1;
+            }
+            sum += z[i];
+        }
+
+        return sum;
+    }
+}
