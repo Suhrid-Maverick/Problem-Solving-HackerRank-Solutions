@@ -1,0 +1,42 @@
+import java.io.*;
+
+public class Solution {
+    static boolean isPalindrome(String s, int l, int r) {
+        while (l < r) {
+            if (s.charAt(l) != s.charAt(r)) return false;
+            l++;
+            r--;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            String s = br.readLine().trim();
+            int i = 0, j = s.length() - 1;
+
+            while (i < j && s.charAt(i) == s.charAt(j)) {
+                i++;
+                j--;
+            }
+
+            if (i >= j) {
+                sb.append("-1\n");
+            } else {
+                if (isPalindrome(s, i + 1, j)) {
+                    sb.append(i).append('\n');
+                } else if (isPalindrome(s, i, j - 1)) {
+                    sb.append(j).append('\n');
+                } else {
+                    sb.append("-1\n");
+                }
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
