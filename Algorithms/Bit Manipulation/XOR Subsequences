@@ -1,0 +1,117 @@
+import java.io.*;
+import java.util.Arrays;
+
+public class HR_xor_subsequence {
+
+    final static int bits = 16;
+
+    public static void solve(Input in, PrintWriter out) throws IOException {
+        int n = in.nextInt();
+        int prefixXor = 0;
+        long[] counts = new long[1 << bits];
+        counts[0]++;
+        for (int i = 0; i < n; ++i) {
+            prefixXor ^= in.nextInt();
+            counts[prefixXor]++;
+        }
+        long[] counts1 = new long[1 << bits];
+        square(counts, counts1, 0, counts.length, 0);
+        counts1[0] = 0;
+        for (int i = 0; i < 1 << bits; ++i) {
+            counts1[0] += counts[i] * (counts[i] - 1) / 2;
+        }
+        for (int i = 1; i < 1 << bits; ++i) {
+            counts1[i] /= 2;
+        }
+        int max = 0;
+        for (int i = 1; i < 1 << bits; ++i) {
+            if (counts1[max] < counts1[i]) {
+                max = i;
+            }
+        }
+        out.println(max + " " + counts1[max]);
+    }
+
+    static long[] buf = new long[1 << bits];
+    static int bufPointer = 0;
+
+    private static void square(long[] a, long[] b, int l, int r, int addTo) {
+        if (r - l <= 16) {
+            for (int i = 0; i < r - l; ++i) {
+                for (int j = 0; j < r - l; ++j) {
+                    b[addTo + (i ^ j)] += a[l + i] * a[l + j];
+                }
+            }
+            return;
+        }
+        int k = (r - l) / 2;
+        int bp = bufPointer;
+        Arrays.fill(buf, bp, bp + k, 0);
+        bufPointer += k;
+        square(a, buf, l, l + k, bp);
+        square(a, buf, l + k, r, bp);
+        for (int i = 0; i < k; ++i) {
+            a[l + k + i] += a[l + i];
+            b[addTo + i] += buf[bp + i];
+        }
+        square(a, b, l + k, r, addTo + k);
+        for (int i = 0; i < k; ++i) {
+            a[l + k + i] -= a[l + i];
+            b[addTo + k + i] -= buf[bp + i];
+        }
+        bufPointer -= k;
+    }
+
+    public static void main(String[] args) throws IOException {
+        PrintWriter out = new PrintWriter(System.out);
+        solve(new Input(new BufferedReader(new InputStreamReader(System.in))), out);
+        out.close();
+    }
+
+    static class Input {
+        BufferedReader in;
+        StringBuilder sb = new StringBuilder();
+
+        public Input(BufferedReader in) {
+            this.in = in;
+        }
+
+        public Input(String s) {
+            this.in = new BufferedReader(new StringReader(s));
+        }
+
+        public String next() throws IOException {
+            sb.setLength(0);
+            while (true) {
+                int c = in.read();
+                if (c == -1) {
+                    return null;
+                }
+                if (" \n\r\t".indexOf(c) == -1) {
+                    sb.append((char) c);
+                    break;
+                }
+            }
+            while (true) {
+                int c = in.read();
+                if (c == -1 || " \n\r\t".indexOf(c) != -1) {
+                    break;
+                }
+                sb.append((char) c);
+            }
+            return sb.toString();
+        }
+
+        public int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+
+        public long nextLong() throws IOException {
+            return Long.parseLong(next());
+        }
+
+        public double nextDouble() throws IOException {
+            return Double.parseDouble(next());
+        }
+    }
+}
