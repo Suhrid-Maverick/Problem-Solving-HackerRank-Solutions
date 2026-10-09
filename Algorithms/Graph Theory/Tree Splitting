@@ -1,0 +1,198 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static long x = 1;
+
+    // Xorshift random number generators
+    static long marsagliaXor32() {
+        x ^= x << 13;
+        x ^= x >> 17;
+        return x ^= x << 5;
+    }
+
+
+    static class Node {
+        int size = 1;
+        long pri = marsagliaXor32();
+        Node l = null;
+        Node r = null;
+        Node p = null;
+
+        Node mconcat() {
+            this.size = size(l) + 1 + size(r);
+            if (l != null) {
+                l.p = this;
+            }
+            if (r != null) {
+                r.p = this;
+            }
+            return this;
+        }
+    }
+
+    static int size(Node x) {
+        return x != null ? x.size : 0;
+    }
+
+    static Node root(Node x) {
+        while (x.p != null) {
+            x = x.p;
+        }
+        return x;
+    }
+
+    static long orderOf(Node x) {
+        long r = size(x.l);
+        while (x.p != null) {
+            if (x.p.r == x) {
+                r += size(x.p.l) + 1;
+            }
+            x = x.p;
+        }
+        return r;
+    }
+
+
+    static Node join(Node x, Node y) {
+        if (x == null) return y;
+        if (y == null) return x;
+        if (x.pri < y.pri) {
+            x.r = join(x.r, y);
+            return x.mconcat();
+        } else {
+            y.l = join(x, y.l);
+            return y.mconcat();
+        }
+    }
+
+    static long[] dep;
+    static List<Integer>[] es;
+    static Node[] pre;
+    static Node[] post;
+    static Node tr = null;
+
+    static class NodeDfs {
+        int u;
+        int p;
+        boolean start = true;
+
+        public NodeDfs(int u, int p) {
+            this.u = u;
+            this.p = p;
+        }
+    }
+
+    static void dfs(int u, int p) {
+        Deque<NodeDfs> queue = new LinkedList<>();
+        queue.add(new NodeDfs(u, p));
+        while (!queue.isEmpty()) {
+            NodeDfs node = queue.peek();
+            if (node.start) {
+                pre[node.u] = new Node();
+                tr = join(tr, pre[node.u]);
+                for (int v : es[node.u]) {
+                    if (v != node.p) {
+                        dep[v] = dep[node.u] + 1;
+                        queue.push(new NodeDfs(v, node.u));
+                    }
+                }
+                node.start = false;
+            } else {
+                post[node.u] = new Node();
+                tr = join(tr, post[node.u]);
+                queue.remove();
+            }
+        }
+    }
+
+    static Node[] split(Node x, long k, Node l, Node r) {
+        if (x == null) {
+            l = r = null;
+        } else {
+            long c = size(x.l) + 1;
+            if (k < c) {
+                Node[] res = split(x.l, k, l, x.l);
+                l = res[0];
+                x.l = res[1];
+                r = x;
+            } else {
+                Node[] res = split(x.r, k - c, x.r, r);
+                x.r = res[0];
+                r = res[1];
+                l = x;
+            }
+            x.mconcat();
+            x.p = null;
+        }
+        return new Node[]{l, r};
+    }
+
+    static void cut(int u, int v) {
+        if (dep[v] < dep[u]) {
+            int t = v;
+            v = u;
+            u = t;
+        }
+        long il = orderOf(pre[v]);
+        long ir = orderOf(post[v]) + 1;
+        Node y = root(pre[v]);
+        Node z = null;
+        Node[] res = split(y, ir, y, z);
+        y = res[0];
+        z = res[1];
+        Node x = null;
+        res = split(y, il, x, y);
+        x = res[0];
+        join(x, z);
+    }
+
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+
+        dep = new long[n];
+        es = new List[n];
+        pre = new Node[n];
+        post = new Node[n];
+
+        for (int i = 0; i < n; i++) {
+            es[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < n - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken()) - 1;
+            int v = Integer.parseInt(st.nextToken()) - 1;
+            es[u].add(v);
+            es[v].add(u);
+        }
+        dfs(0, -1);
+
+        st = new StringTokenizer(br.readLine());
+        int queriesCount = Integer.parseInt(st.nextToken());
+
+        int result = 0;
+        for (int i = 0; i < queriesCount; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            u = (result ^ u) - 1;
+            result = size(root(pre[u])) / 2;
+            bw.write(String.valueOf(result));
+            if (i != queriesCount - 1) {
+                bw.write("\n");
+                for (int v : es[u]) {
+                    cut(u, v);
+                }
+            }
+        }
+
+        bw.newLine();
+        bw.close();
+        br.close();
+    }
+}
