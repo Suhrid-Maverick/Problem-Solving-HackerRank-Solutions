@@ -1,0 +1,130 @@
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class Solution {
+
+    static class Team {
+        int sum = 0;
+        final List<Integer> p = new ArrayList<>();
+
+        void add(int power) {
+            p.add(power);
+            sum += power;
+        }
+
+        int member(int i) {
+            return p.get(i);
+        }
+
+        int members() {
+            return p.size();
+        }
+
+        void opt() {
+            p.sort(Integer::compareTo);
+        }
+    }
+
+    /*
+     * Complete the fightingPits function below.
+     */
+    static void fightingPits(int k, List<List<Integer>> teams, int[][] queries, BufferedWriter writer) throws IOException {
+
+        List<List<Integer>> powers = teams.stream().map(
+                t -> {
+                    t.sort(Integer::compareTo);
+
+                    List<Integer> res = new ArrayList<>();
+                    int acc = 0;
+                    for (int p : t) {
+                        acc += p;
+                        res.add(acc);
+                    }
+
+                    return res;
+                }
+        ).collect(Collectors.toList());
+
+        for (int[] q : queries) {
+            if (q[0] == 1) {
+                int tI = q[2] - 1;
+                List<Integer> p = powers.get(tI);
+                if (p.isEmpty()) {
+                    p.add(q[1]);
+                } else {
+                    p.add(p.get(p.size() - 1) + q[1]);
+                }
+            } else {
+                int xI = q[1] - 1, yI = q[2] - 1;
+                final List<Integer> x = powers.get(xI);
+                final List<Integer> y = powers.get(yI);
+
+                int xJ = x.size() - 1, yJ = y.size() - 1;
+                int winner;
+                while (true) {
+                    if (x.get(xJ) >= y.get(yJ)) {
+                        winner = xI + 1;
+                        break;
+                    }
+                    yJ -= x.get(xJ) - (xJ < 1 ? 0 : x.get(xJ - 1));
+                    if (yJ < 0) {
+                        winner = xI + 1;
+                        break;
+                    }
+                    if (x.get(xJ) <= y.get(yJ)) {
+                        winner = yI + 1;
+                        break;
+                    }
+                    xJ -= y.get(yJ) - (yJ < 1 ? 0 : y.get(yJ - 1));
+                    if (xJ < 0) {
+                        winner = yI + 1;
+                        break;
+                    }
+                }
+                writer.write(String.valueOf(winner));
+                writer.newLine();
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(System.out));
+        BufferedReader reader = new BufferedReader(new InputStreamReader(
+                System.in
+        ));
+
+        String[] nkq = reader.readLine().split(" ");
+
+        int n = Integer.parseInt(nkq[0].trim());
+
+        int k = Integer.parseInt(nkq[1].trim());
+
+        int q = Integer.parseInt(nkq[2].trim());
+
+        List<List<Integer>> teams = new ArrayList<>(k);
+
+        for (int i = 0; i < k; i++) teams.add(new LinkedList<>());
+
+        for (int fightersRowItr = 0; fightersRowItr < n; fightersRowItr++) {
+            String[] fightersRowItems = reader.readLine().split(" ");
+            teams.get(Integer.parseInt(fightersRowItems[1]) - 1).add(Integer.parseInt(fightersRowItems[0]));
+        }
+
+        int[][] queries = new int[q][3];
+
+        for (int queriesRowItr = 0; queriesRowItr < q; queriesRowItr++) {
+            String[] queriesRowItems = reader.readLine().split(" ");
+
+            for (int queriesColumnItr = 0; queriesColumnItr < 3; queriesColumnItr++) {
+                int queriesItem = Integer.parseInt(queriesRowItems[queriesColumnItr].trim());
+                queries[queriesRowItr][queriesColumnItr] = queriesItem;
+            }
+        }
+
+        fightingPits(k, teams, queries, writer);
+
+        reader.close();
+        writer.close();
+    }
+}
