@@ -1,0 +1,115 @@
+import java.util.*;
+
+import java.util.*;
+
+public class Solution {
+    private static class NimCounter {
+        final long[] nimCounter;
+
+        NimCounter(int splitVal) {
+            nimCounter  =  new long[splitVal];
+        }
+    }
+
+    private static long mod = 1000000007;
+    private static Map<Integer, Integer> k3nimberCache = new HashMap<>();
+
+    private static void split(int pile, int lastUsedVal, int k, List<Integer> currentSplit, List<List<Integer>> splittings) {
+        if (pile == 0 && currentSplit.size() > 1) {
+            splittings.add(new ArrayList<>(currentSplit));
+            return;
+        }
+
+        if (pile < lastUsedVal) return;
+
+        if (currentSplit.size() == k - 1) {
+            currentSplit.add(pile);
+            splittings.add(new ArrayList<>(currentSplit));
+            currentSplit.remove(currentSplit.size() - 1);
+        } else {
+            for (int i = lastUsedVal; i <= pile; ++i) {
+                currentSplit.add(i);
+                split(pile - i, i, k, currentSplit, splittings);
+                currentSplit.remove(currentSplit.size() - 1);
+            }
+        }
+    }
+
+    private static int mex(List<Integer> nimbers) {
+        Collections.sort(nimbers);
+        for (int i = 0; i < nimbers.size(); ++i) {
+            if (nimbers.get(i) != i) return i;
+        }
+        return nimbers.size();
+    }
+
+    private static int nimberk3(List<Integer> split, int k) {
+        int result = 0;
+        for (Integer i : split) {
+            result = result ^ nimValue(i, k);
+        }
+        return result;
+    }
+
+    private static int nimValue(int splitValue, int maxPilesNum) {
+        if (splitValue < 2) return 0;
+        if (maxPilesNum == 2) return 1 - (splitValue % 2);
+        if (maxPilesNum > 3) return splitValue - 1;
+
+        Integer cached = k3nimberCache.get(splitValue);
+        if (cached != null) return cached;
+
+        List<List<Integer>> splits = new ArrayList<>();
+        split(splitValue,1, maxPilesNum, new ArrayList<Integer>(), splits);
+
+        Set<Integer> nimbers = new HashSet<>();
+        for (List<Integer> aSplit : splits) {
+            nimbers.add(nimberk3(aSplit, maxPilesNum));
+        }
+
+        int result = mex(new ArrayList<>(nimbers));
+        k3nimberCache.put(splitValue, result);
+
+        return result;
+    }
+
+    private static long solve(int stones, int initialPilesNum, int splitPilesNum) {
+        NimCounter[][] nimCounters = new NimCounter[initialPilesNum + 1][stones + 1];
+        for (int i = 0; i <= initialPilesNum; ++i) {
+            for (int j = 0; j <= stones; ++j) nimCounters[i][j] = new NimCounter(stones);
+        }
+
+        for (int i = 1; i <= stones; ++i) {
+            ++nimCounters[1][i].nimCounter[nimValue(i, splitPilesNum)];
+        }
+
+        for (int splitInto = 2; splitInto <= initialPilesNum; ++splitInto) {
+            for (int splitValue = splitInto; splitValue <= stones; ++splitValue) {
+                NimCounter splitCounter = nimCounters[splitInto][splitValue];
+                for (int leaveAtPile = 1; leaveAtPile <= splitValue - splitInto + 1; ++leaveAtPile) {
+                    int nimAtPile = nimValue(leaveAtPile, splitPilesNum);
+                    NimCounter counter = nimCounters[splitInto - 1][splitValue - leaveAtPile];
+                    for (int cnt = 0; cnt < counter.nimCounter.length; ++cnt) {
+                        if (counter.nimCounter[cnt] > 0) {
+                            splitCounter.nimCounter[nimAtPile ^ cnt] += counter.nimCounter[cnt];
+                        }
+                    }
+                }
+            }
+        }
+
+        NimCounter counter = nimCounters[initialPilesNum][stones];
+        long result = 0;
+        for (int i = 1; i < counter.nimCounter.length; ++i) {
+            result = (result + counter.nimCounter[i]) % mod;
+        }
+
+        return result;
+    }
+
+    public static void main(String[] params) {
+        Scanner scanner = new Scanner(System.in);
+        String[] input = scanner.nextLine().split(" ");
+        System.out.println(solve(Integer.parseInt(input[0]), Integer.parseInt(input[1]), Integer.parseInt(input[2])));
+    }
+}
