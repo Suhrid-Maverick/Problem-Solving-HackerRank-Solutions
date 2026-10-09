@@ -1,0 +1,38 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+
+            int[] a = new int[n];
+            int[] b = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                a[i] = Integer.parseInt(br.readLine().trim());
+            }
+            for (int i = 0; i < n; i++) {
+                b[i] = Integer.parseInt(br.readLine().trim());
+            }
+
+            int nimber = 0;
+            for (int i = 0; i < n; i++) {
+                int heap = Math.abs(a[i] - b[i]) - 1;
+                nimber ^= heap;
+            }
+
+            if (nimber == 0) {
+                sb.append("player-1\n");
+            } else {
+                sb.append("player-2\n");
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
