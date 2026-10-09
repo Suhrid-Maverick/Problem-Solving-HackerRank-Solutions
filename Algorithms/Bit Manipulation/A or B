@@ -1,0 +1,116 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder output = new StringBuilder();
+
+        while (T-- > 0) {
+            long K = Long.parseLong(br.readLine().trim());
+            String A_hex = br.readLine().trim();
+            String B_hex = br.readLine().trim();
+            String C_hex = br.readLine().trim();
+
+            int maxLen = Math.max(A_hex.length(), Math.max(B_hex.length(), C_hex.length()));
+            int L = maxLen * 4;
+
+            boolean[] a = hexToBits(A_hex, L);
+            boolean[] b = hexToBits(B_hex, L);
+            boolean[] c = hexToBits(C_hex, L);
+
+            long[] prefMin = new long[L + 1];
+            prefMin[0] = 0;
+            for (int i = 0; i < L; i++) {
+                boolean ai = a[i], bi = b[i], ci = c[i];
+                int minc;
+                if (!ci) {
+                    minc = (ai ? 1 : 0) + (bi ? 1 : 0);
+                } else {
+                    int c1 = (ai ? 1 : 0) + (bi ? 0 : 1);
+                    int c2 = (ai ? 0 : 1) + (bi ? 1 : 0);
+                    int c3 = (ai ? 0 : 1) + (bi ? 0 : 1);
+                    minc = Math.min(c1, Math.min(c2, c3));
+                }
+                prefMin[i + 1] = prefMin[i] + minc;
+            }
+
+            if (prefMin[L] > K) {
+                output.append("-1\n");
+                continue;
+            }
+
+            boolean[] aRes = new boolean[L];
+            boolean[] bRes = new boolean[L];
+            long cost = 0;
+
+            for (int i = L - 1; i >= 0; i--) {
+                boolean ai = a[i], bi = b[i], ci = c[i];
+                if (!ci) {
+                    aRes[i] = false;
+                    bRes[i] = false;
+                    cost += (ai ? 1 : 0) + (bi ? 1 : 0);
+                } else {
+                    int costA0 = (ai ? 1 : 0) + (bi ? 0 : 1);
+                    long rem = prefMin[i];
+                    if (cost + costA0 + rem <= K) {
+                        aRes[i] = false;
+                        bRes[i] = true;
+                        cost += costA0;
+                    } else {
+                        aRes[i] = true;
+                        int costA1B0 = (ai ? 0 : 1) + (bi ? 1 : 0);
+                        if (cost + costA1B0 + rem <= K) {
+                            bRes[i] = false;
+                            cost += costA1B0;
+                        } else {
+                            bRes[i] = true;
+                            int costA1B1 = (ai ? 0 : 1) + (bi ? 0 : 1);
+                            cost += costA1B1;
+                        }
+                    }
+                }
+            }
+
+            output.append(bitsToHex(aRes, L)).append('\n');
+            output.append(bitsToHex(bRes, L)).append('\n');
+        }
+
+        System.out.print(output);
+    }
+
+    private static boolean[] hexToBits(String hex, int L) {
+        boolean[] bits = new boolean[L];
+        int pos = 0;
+        for (int i = hex.length() - 1; i >= 0; i--) {
+            char ch = hex.charAt(i);
+            int val;
+            if (ch >= '0' && ch <= '9') val = ch - '0';
+            else if (ch >= 'A' && ch <= 'F') val = ch - 'A' + 10;
+            else if (ch >= 'a' && ch <= 'f') val = ch - 'a' + 10;
+            else val = 0;
+            for (int j = 0; j < 4; j++) {
+                if (pos < L) {
+                    bits[pos++] = ((val >> j) & 1) == 1;
+                } else break;
+            }
+        }
+        return bits;
+    }
+
+    private static String bitsToHex(boolean[] bits, int L) {
+        StringBuilder hex = new StringBuilder();
+        for (int i = 0; i < L; i += 4) {
+            int val = 0;
+            for (int j = 0; j < 4 && i + j < L; j++) {
+                if (bits[i + j]) val |= (1 << j);
+            }
+            hex.append(Character.toUpperCase(Character.forDigit(val, 16)));
+        }
+        hex.reverse();
+        int start = 0;
+        while (start < hex.length() - 1 && hex.charAt(start) == '0') start++;
+        return hex.substring(start);
+    }
+}
