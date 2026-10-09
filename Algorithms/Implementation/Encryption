@@ -1,0 +1,26 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine().replace(" ", "");
+
+        int len = s.length();
+        int cols = (int) Math.ceil(Math.sqrt(len));
+        int rows = (int) Math.ceil((double) len / cols);
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int c = 0; c < cols; c++) {
+            if (c > 0) sb.append(' ');
+            for (int r = 0; r < rows; r++) {
+                int idx = r * cols + c;
+                if (idx < len) {
+                    sb.append(s.charAt(idx));
+                }
+            }
+        }
+
+        System.out.println(sb.toString());
+    }
+}
