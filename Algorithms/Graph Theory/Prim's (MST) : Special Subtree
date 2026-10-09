@@ -1,0 +1,64 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+
+        int n = fs.nextInt();
+        int m = fs.nextInt();
+
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) adj[i] = new ArrayList<>();
+
+        for (int i = 0; i < m; i++) {
+            int u = fs.nextInt();
+            int v = fs.nextInt();
+            int w = fs.nextInt();
+            adj[u].add(new int[]{v, w});
+            adj[v].add(new int[]{u, w});
+        }
+
+        int start = fs.nextInt();
+
+        boolean[] visited = new boolean[n + 1];
+        PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> Integer.compare(a[0], b[0]));
+
+        pq.add(new int[]{0, start});
+        long totalWeight = 0;
+
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int w = cur[0];
+            int u = cur[1];
+
+            if (visited[u]) continue;
+            visited[u] = true;
+            totalWeight += w;
+
+            for (int[] edge : adj[u]) {
+                int v = edge[0];
+                int wt = edge[1];
+                if (!visited[v]) {
+                    pq.add(new int[]{wt, v});
+                }
+            }
+        }
+
+        System.out.println(totalWeight);
+    }
+}
