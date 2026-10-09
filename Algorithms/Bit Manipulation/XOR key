@@ -1,0 +1,130 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner input = new Scanner(System.in);
+        int test, array_size, cases;
+        short result;
+        short array[];
+        BitTree bt = new BitTree();
+        test = input.nextInt();
+        StringBuffer sb = new StringBuffer();
+        for (int t = 0; t < test; t++) {
+            array_size = input.nextInt();
+            array = new short[array_size];
+            cases = input.nextInt();
+            for (int i = 0; i < array_size; i++) {
+                array[i] = input.nextShort();
+            }
+
+            bt.createTree(array);
+            if (t > 0)
+                sb.append("\n");
+            result = bt.xorMax(input.nextShort(), input.nextInt() - 1, input.nextInt() - 1);
+            sb.append(result);
+            for (int i = 1; i < cases; i++) {
+                result = bt.xorMax(input.nextShort(), input.nextInt() - 1, input.nextInt() - 1);
+                sb.append("\n" + result);
+            }
+        }
+        System.out.println(sb);
+    }
+
+    public static class BitTree {
+        public short[] power_of_two;
+        Node root;
+
+        public BitTree() {
+            power_of_two = new short[16];
+            for (int i = 0; i < 16; i++) {
+                power_of_two[i] = (short) (1 << i);
+            }
+        }
+
+        public void createTree(short array[]) {
+            root = new Node();
+            short val;
+            Node iter = root;
+
+            for (int i = 0; i < array.length; i++) {
+                val = array[i];
+                iter = root;
+                for (int j = 14; j >= 0; j--) {
+                    if ((val & power_of_two[j]) == 0) {
+                        if (iter.zero == null)
+                            iter.zero = new Node();
+                        iter = iter.zero;
+                    } else { // the bit == 1
+                        if (iter.one == null)
+                            iter.one = new Node();
+                        iter = iter.one;
+                    }
+                    iter.addIndex(i);
+                }
+            }
+        }
+
+        public short xorMax(short val, int min, int max) {
+            short xor = 0, temp;
+            Node iter = root;
+            for (int i = 14; i >= 0; i--) {
+                temp = (short) (val & power_of_two[i]);
+                if (temp == 0) { // you want to go to 1
+                    if (iter.one != null && ((iter.zero == null) || iter.one.isInRange(min, max))) {
+                        xor += power_of_two[i];
+                        iter = iter.one;
+                    } else {
+                        iter = iter.zero;
+                    }
+                } else {
+                    if (iter.zero != null && ((iter.one == null) || iter.zero.isInRange(min, max))) {
+                        xor += power_of_two[i];
+                        iter = iter.zero;
+                    } else {
+                        iter = iter.one;
+                    }
+                }
+            }
+            return xor;
+        }
+    }
+
+    private static class Node {
+        public Node one;
+        public Node zero;
+        public int array[]; // Make it large because fuck having to remake the array
+        public int size;
+        public int max_size;
+
+        public Node() {
+            array = new int[20];
+            size = 0;
+            max_size = 20;
+        }
+
+        public void addIndex(int index) {
+            if (size == max_size) {
+                max_size *= 2;
+                int temp[] = new int[max_size];
+                for (int i = 0; i < (max_size / 2); i++) {
+                    temp[i] = array[i];
+                }
+                array = temp;
+            }
+            array[size++] = index;
+        }
+
+        public boolean isInRange(int min, int max) { // inclusive
+            int min_index = Arrays.binarySearch(array, 0, size, min);
+            int max_index = Arrays.binarySearch(array, 0, size, max);
+            if (min_index >= 0 || max_index >= 0)
+                return true;
+
+            if (max_index == min_index)
+                return false;
+            return true;
+        }
+    }
+}
