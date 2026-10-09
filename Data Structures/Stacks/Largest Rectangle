@@ -1,0 +1,106 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+
+    public static long solveSimpleIterativeWithStack(List<Integer> h) {
+        int n = h.size();
+
+        Stack<Integer> stack = new Stack<>();
+        long maxArea = 0;
+
+        for (int i = 0; i <= n; i++) {
+            long curHeight = ((i == n) ? 0 : h.get(i));
+            while (!stack.isEmpty() && curHeight < h.get(stack.peek())) {
+                int height = h.get(stack.pop());
+                int width = (stack.isEmpty() ? i : (i - stack.peek() - 1));
+                maxArea = Math.max(maxArea, (long) height * width);
+            }
+            stack.push(i);
+        }
+
+        return maxArea;
+    }
+
+    private static long solveDivNCnqRecursive(List<Integer> h, int start, int end) {
+        if (start > end) {
+            return 0;
+        }
+
+        int minIndex = start;
+        for (int i = (start + 1); i <= end; i++) {
+            if (h.get(i) < h.get(minIndex)) {
+                minIndex = i;
+            }
+        }
+
+        long areaWithMin = (long) (h.get(minIndex) * (end - start + 1));
+
+        long leftArea = solveDivNCnqRecursive(h, start, minIndex - 1);
+        long rightArea = solveDivNCnqRecursive(h, minIndex + 1, end);
+
+        return Math.max(areaWithMin, Math.max(leftArea, rightArea));
+    }
+
+    public static long solveDivNCnqIterative(List<Integer> h) {
+        long maxArea = 0;
+
+        Stack<int[]> stack = new Stack<>();
+        stack.push(new int[]{0, h.size() - 1});
+
+        while (!stack.isEmpty()) {
+            int[] range = stack.pop();
+            int start = range[0], end = range[1];
+            if (start > end) continue;
+
+            int minIndex = start;
+            for (int i = start + 1; i <= end; i++) {
+                if (h.get(i) < h.get(minIndex)) {
+                    minIndex = i;
+                }
+            }
+
+            long areaWithMin = (long) h.get(minIndex) * (end - start + 1);
+            maxArea = Math.max(maxArea, areaWithMin);
+
+            stack.push(new int[]{start, minIndex - 1});
+            stack.push(new int[]{minIndex + 1, end});
+        }
+
+        return maxArea;
+    }
+
+    public static long largestRectangle(List<Integer> h) {
+        return solveSimpleIterativeWithStack(h);
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = Integer.parseInt(bufferedReader.readLine().trim());
+
+        List<Integer> h = Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+            .map(Integer::parseInt)
+            .collect(toList());
+
+        long result = Result.largestRectangle(h);
+
+        bufferedWriter.write(String.valueOf(result));
+        bufferedWriter.newLine();
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
