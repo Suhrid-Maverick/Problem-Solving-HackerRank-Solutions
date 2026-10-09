@@ -1,0 +1,102 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+
+    private static final long MODULUS = 1_000_000_007;
+
+    private static long commonSubsequenceCount(String a, String b) {
+        char[] sa = a.toCharArray();
+        char[] sb = b.toCharArray();
+        int n = sa.length;
+        int m = sb.length;
+        if (n == 0) {
+            return 0;
+        }
+        if (m == 0) {
+            return 0;
+        }
+        long[][] c = new long[n][m];
+        if (sa[0] == sb[0]) {
+            c[0][0] = 1;
+        } else {
+            c[0][0] = 0;
+        }
+        for (int j = 1; j < m; j++) {
+            if (sa[0] == sb[j]) {
+                c[0][j] = 1 + c[0][j - 1];
+                c[0][j] %= MODULUS;
+            } else {
+                c[0][j] = c[0][j - 1];
+            }
+        }
+        for (int i = 1; i < n; i++) {
+            if (sa[i] == sb[0]) {
+                c[i][0] = 1 + c[i - 1][0];
+                c[i][0] %= MODULUS;
+            } else {
+                c[i][0] = c[i - 1][0];
+            }
+            for (int j = 1; j < m; j++) {
+                if (sa[i] == sb[j]) {
+                    c[i][j] = 1 + c[i - 1][j] + c[i][j - 1];
+                    c[i][j] %= MODULUS;
+                } else {
+                    c[i][j] = c[i - 1][j] + c[i][j - 1] + MODULUS - c[i - 1][j - 1];
+                    c[i][j] %= MODULUS;
+                }
+            }
+        }
+        return c[n - 1][m - 1];
+    }
+
+    public static int squareSubsequences(String s) {
+        int n = s.length();
+        char[] c = s.toCharArray();
+        long count = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < i; j++) {
+                if (c[i] == c[j]) {
+                    count += commonSubsequenceCount(s.substring(j + 1, i), s.substring(i + 1)) + 1;
+                    count %= MODULUS;
+                }
+            }
+        }
+        return (int) count;
+    }
+
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = Integer.parseInt(bufferedReader.readLine().trim());
+
+        IntStream.range(0, t).forEach(tItr -> {
+            try {
+                String s = bufferedReader.readLine();
+
+                int result = Result.squareSubsequences(s);
+
+                bufferedWriter.write(String.valueOf(result));
+                bufferedWriter.newLine();
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
