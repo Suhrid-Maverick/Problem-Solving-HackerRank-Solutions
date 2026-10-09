@@ -1,0 +1,41 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        if (line == null) return;
+        StringTokenizer st = new StringTokenizer(line);
+        int[] L = new int[4];
+        for (int i = 0; i < 4; i++) {
+            L[i] = Integer.parseInt(st.nextToken());
+        }
+        Arrays.sort(L);
+        int L1 = L[0], L2 = L[1], L3 = L[2], L4 = L[3];
+
+        int maxXor = 1 << 18; // 262144, safe for values up to 10^5
+        int[] cnt = new int[maxXor];
+        long totalQuad = 0;
+        long ansZero = 0;
+        long totalPairs = 0;
+
+        for (int c = 1; c <= L3; c++) {
+            if (c <= L2) {
+                int maxA = Math.min(c, L1);
+                for (int a = 1; a <= maxA; a++) {
+                    int x = a ^ c;
+                    cnt[x]++;
+                    totalPairs++;
+                }
+            }
+            for (int d = c; d <= L4; d++) {
+                int x = c ^ d;
+                ansZero += cnt[x];
+                totalQuad += totalPairs;
+            }
+        }
+
+        System.out.println(totalQuad - ansZero);
+    }
+}
