@@ -1,0 +1,41 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int grundy(long n, long k) {
+        if (n == 1) return 1;
+        if (k >= n) {
+            long m = n - 1;
+            if (m == 1) return 0;
+            return (m % 2 == 0) ? 1 : 2;
+        } else {
+            if (k == 1) {
+                return (int)(n % 2);
+            } else {
+                long x0 = n - k - 1;
+                long q = x0 / k;
+                long r = x0 % k;
+                long odd_count = (q % 2 == 0) ? (k - r) : r;
+                return (odd_count % 2 == 0) ? 1 : 2;
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            int N = Integer.parseInt(br.readLine().trim());
+            int xor = 0;
+            for (int i = 0; i < N; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                long n = Long.parseLong(st.nextToken());
+                long k = Long.parseLong(st.nextToken());
+                xor ^= grundy(n, k);
+            }
+            sb.append(xor != 0 ? "BOB\n" : "BEN\n");
+        }
+        System.out.print(sb);
+    }
+}
