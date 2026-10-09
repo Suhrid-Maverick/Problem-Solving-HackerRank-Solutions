@@ -1,0 +1,134 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class SegTree {
+        int n;
+        int[] maxConst, maxPlus, maxMinus;
+        static final int NEG = Integer.MIN_VALUE / 4;
+
+        SegTree(int n) {
+            this.n = n;
+            maxConst = new int[4 * n];
+            maxPlus = new int[4 * n];
+            maxMinus = new int[4 * n];
+            Arrays.fill(maxConst, NEG);
+            Arrays.fill(maxPlus, NEG);
+            Arrays.fill(maxMinus, NEG);
+        }
+
+        void updateConst(int node, int l, int r, int ql, int qr, int val) {
+            if (ql <= l && r <= qr) {
+                if (val > maxConst[node]) maxConst[node] = val;
+                return;
+            }
+            int mid = (l + r) >> 1;
+            if (ql <= mid) updateConst(node << 1, l, mid, ql, qr, val);
+            if (qr > mid) updateConst(node << 1 | 1, mid + 1, r, ql, qr, val);
+        }
+
+        void updatePlus(int node, int l, int r, int ql, int qr, int b) {
+            if (ql <= l && r <= qr) {
+                if (b > maxPlus[node]) maxPlus[node] = b;
+                return;
+            }
+            int mid = (l + r) >> 1;
+            if (ql <= mid) updatePlus(node << 1, l, mid, ql, qr, b);
+            if (qr > mid) updatePlus(node << 1 | 1, mid + 1, r, ql, qr, b);
+        }
+
+        void updateMinus(int node, int l, int r, int ql, int qr, int b) {
+            if (ql <= l && r <= qr) {
+                if (b > maxMinus[node]) maxMinus[node] = b;
+                return;
+            }
+            int mid = (l + r) >> 1;
+            if (ql <= mid) updateMinus(node << 1, l, mid, ql, qr, b);
+            if (qr > mid) updateMinus(node << 1 | 1, mid + 1, r, ql, qr, b);
+        }
+
+        int query(int x) {
+            int node = 1, l = 0, r = n - 1;
+            int bestConst = NEG, bestPlus = NEG, bestMinus = NEG;
+            while (true) {
+                if (maxConst[node] > bestConst) bestConst = maxConst[node];
+                if (maxPlus[node] > bestPlus) bestPlus = maxPlus[node];
+                if (maxMinus[node] > bestMinus) bestMinus = maxMinus[node];
+                if (l == r) break;
+                int mid = (l + r) >> 1;
+                if (x <= mid) { node = node << 1; r = mid; }
+                else { node = node << 1 | 1; l = mid + 1; }
+            }
+            int res = bestConst;
+            if (bestPlus != NEG) res = Math.max(res, x + bestPlus);
+            if (bestMinus != NEG) res = Math.max(res, -x + bestMinus);
+            return res;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        if (line == null) return;
+        int n = Integer.parseInt(line.trim());
+        String s = br.readLine().trim();
+
+        int len = 2 * n;
+        char[] T = new char[2 * len + 1];
+        T[0] = '#';
+        for (int i = 0; i < len; i++) {
+            T[2 * i + 1] = s.charAt(i % n);
+            T[2 * i + 2] = '#';
+        }
+        int N = T.length;
+
+        int[] p = new int[N];
+        int c = 0, r = 0;
+        for (int i = 0; i < N; i++) {
+            int mirror = 2 * c - i;
+            if (i < r) p[i] = Math.min(r - i, p[mirror]);
+            while (i - p[i] - 1 >= 0 && i + p[i] + 1 < N && T[i - p[i] - 1] == T[i + p[i] + 1]) p[i]++;
+            if (i + p[i] > r) { c = i; r = i + p[i]; }
+        }
+
+        int XMAX = 4 * n;
+        SegTree treeOdd = new SegTree(XMAX + 1);
+        SegTree treeEven = new SegTree(XMAX + 1);
+
+        for (int cc = 0; cc < N; cc++) {
+            int g = p[cc];
+            if (g == 0) continue;
+            SegTree tree = (cc % 2 == 1) ? treeOdd : treeEven;
+            if (g >= n) {
+                int l1 = Math.max(0, cc - n);
+                int r1 = Math.min(XMAX, cc);
+                if (l1 <= r1) tree.updatePlus(1, 0, XMAX, l1, r1, n - cc);
+                int l2 = Math.max(0, cc);
+                int r2 = Math.min(XMAX, cc + n);
+                if (l2 <= r2) tree.updateMinus(1, 0, XMAX, l2, r2, n + cc);
+            } else {
+                int lc = Math.max(0, cc - (n - g));
+                int rc = Math.min(XMAX, cc + (n - g));
+                if (lc <= rc) tree.updateConst(1, 0, XMAX, lc, rc, g);
+                int l1 = Math.max(0, cc - n);
+                int r1 = Math.min(XMAX, cc - (n - g));
+                if (l1 <= r1) tree.updatePlus(1, 0, XMAX, l1, r1, n - cc);
+                int l2 = Math.max(0, cc + (n - g));
+                int r2 = Math.min(XMAX, cc + n);
+                if (l2 <= r2) tree.updateMinus(1, 0, XMAX, l2, r2, n + cc);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            int x = 2 * i + n;
+            int R_odd = treeOdd.query(x);
+            int R_even = treeEven.query(x);
+            int L_odd = R_odd + ((R_odd % 2 == 0) ? 1 : 0);
+            int L_even = R_even + ((R_even % 2 == 1) ? 1 : 0);
+            int ans = Math.max(L_odd, L_even);
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
