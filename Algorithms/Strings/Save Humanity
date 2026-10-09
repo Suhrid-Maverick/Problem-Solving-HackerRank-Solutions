@@ -1,0 +1,78 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder output = new StringBuilder();
+        while (t-- > 0) {
+            String[] parts = br.readLine().trim().split("\\s+");
+            String p = parts[0];
+            String v = parts[1];
+            List<Integer> result = virusIndices(p, v);
+            if (result.isEmpty()) {
+                output.append("No Match!\n");
+            } else {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < result.size(); i++) {
+                    if (i > 0) sb.append(' ');
+                    sb.append(result.get(i));
+                }
+                output.append(sb).append('\n');
+            }
+        }
+        System.out.print(output);
+    }
+
+    static List<Integer> virusIndices(String p, String v) {
+        List<Integer> res = new ArrayList<>();
+        int n = p.length(), m = v.length();
+        if (m > n) return res;
+
+        // Z-array for  v + '#' + p  (LCP of v with each suffix of p)
+        String s1 = v + "#" + p;
+        int[] z1 = zAlgorithm(s1);
+
+        // Z-array for  reverse(v) + '#' + reverse(p)  (LCS of v with each suffix of p)
+        String rv = new StringBuilder(v).reverse().toString();
+        String rp = new StringBuilder(p).reverse().toString();
+        String s2 = rv + "#" + rp;
+        int[] z2 = zAlgorithm(s2);
+
+        for (int i = 0; i <= n - m; i++) {
+            int lcp = z1[m + 1 + i];                // longest common prefix of v and p[i..]
+            if (lcp >= m) {
+                res.add(i);                         // exact match
+            } else {
+                // longest common suffix of v and p[i..i+m-1]
+                int revIndex = n - i - m;
+                int lcs = z2[m + 1 + revIndex];
+                if (lcp + lcs + 1 >= m) {           // one mismatch allowed
+                    res.add(i);
+                }
+            }
+        }
+        return res;
+    }
+
+    static int[] zAlgorithm(String s) {
+        int n = s.length();
+        int[] z = new int[n];
+        int l = 0, r = 0;
+        for (int i = 1; i < n; i++) {
+            if (i <= r) {
+                z[i] = Math.min(r - i + 1, z[i - l]);
+            }
+            while (i + z[i] < n && s.charAt(z[i]) == s.charAt(i + z[i])) {
+                z[i]++;
+            }
+            if (i + z[i] - 1 > r) {
+                l = i;
+                r = i + z[i] - 1;
+            }
+        }
+        return z;
+    }
+}
