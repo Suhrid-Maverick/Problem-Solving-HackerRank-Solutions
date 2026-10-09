@@ -1,0 +1,147 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // ---------- Fast Input ----------
+    static class FastScanner {
+        private final InputStream in;
+        private final byte[] buf = new byte[1 << 16];
+        private int ptr = 0, len = 0;
+
+        FastScanner(InputStream is) { in = is; }
+
+        int read() {
+            if (ptr >= len) {
+                try {
+                    len = in.read(buf);
+                    ptr = 0;
+                } catch (IOException e) {
+                    return -1;
+                }
+                if (len <= 0) return -1;
+            }
+            return buf[ptr++];
+        }
+
+        int nextInt() {
+            int c, x = 0;
+            do { c = read(); } while (c <= ' ');
+            while (c > ' ') {
+                x = x * 10 + c - '0';
+                c = read();
+            }
+            return x;
+        }
+    }
+
+    // ---------- Edge ----------
+    static class Edge {
+        int to, rev, cap;
+        Edge(int to, int rev, int cap) {
+            this.to = to;
+            this.rev = rev;
+            this.cap = cap;
+        }
+    }
+
+    static List<Edge>[] graph;
+    static int[] level, iter;
+
+    static void addEdge(int from, int to, int cap) {
+        graph[from].add(new Edge(to, graph[to].size(), cap));
+        graph[to].add(new Edge(from, graph[from].size() - 1, 0));
+    }
+
+    static void bfs(int s) {
+        Arrays.fill(level, -1);
+        level[s] = 0;
+        int[] queue = new int[level.length];
+        int head = 0, tail = 0;
+        queue[tail++] = s;
+        while (head < tail) {
+            int v = queue[head++];
+            for (Edge e : graph[v]) {
+                if (e.cap > 0 && level[e.to] < 0) {
+                    level[e.to] = level[v] + 1;
+                    queue[tail++] = e.to;
+                }
+            }
+        }
+    }
+
+    static int dfs(int v, int t, int f) {
+        if (v == t) return f;
+        for (; iter[v] < graph[v].size(); iter[v]++) {
+            Edge e = graph[v].get(iter[v]);
+            if (e.cap > 0 && level[v] < level[e.to]) {
+                int d = dfs(e.to, t, Math.min(f, e.cap));
+                if (d > 0) {
+                    e.cap -= d;
+                    graph[e.to].get(e.rev).cap += d;
+                    return d;
+                }
+            }
+        }
+        return 0;
+    }
+
+    static int maxFlow(int s, int t) {
+        int flow = 0;
+        while (true) {
+            bfs(s);
+            if (level[t] < 0) return flow;
+            Arrays.fill(iter, 0);
+            int f;
+            while ((f = dfs(s, t, Integer.MAX_VALUE)) > 0) {
+                flow += f;
+            }
+        }
+    }
+
+    // ---------- Main ----------
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner(System.in);
+
+        int M = sc.nextInt();   // number of skill sets
+        int T = sc.nextInt();   // number of wizards
+
+        int totalNodes = M + T + 2;
+        int source = M + T;
+        int sink = M + T + 1;
+
+        graph = new ArrayList[totalNodes];
+        for (int i = 0; i < totalNodes; i++) {
+            graph[i] = new ArrayList<Edge>();
+        }
+
+        // Read initial people counts for each skill
+        for (int i = 0; i < M; i++) {
+            int c = sc.nextInt();
+            if (c > 0) {
+                addEdge(source, i, c);
+            }
+            addEdge(i, sink, 1);
+        }
+
+        // Read wizards
+        for (int w = 0; w < T; w++) {
+            int numA = sc.nextInt();
+            for (int j = 0; j < numA; j++) {
+                int a = sc.nextInt() - 1;
+                addEdge(a, M + w, 1);
+            }
+            int numB = sc.nextInt();
+            for (int j = 0; j < numB; j++) {
+                int b = sc.nextInt() - 1;
+                addEdge(M + w, b, 1);
+            }
+        }
+
+        level = new int[totalNodes];
+        iter = new int[totalNodes];
+
+        System.out.println(maxFlow(source, sink));
+    }
+}
