@@ -1,0 +1,50 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine();
+        if (s == null || s.isEmpty()) {
+            System.out.println(0);
+            return;
+        }
+        s = s.trim();
+        int n = s.length();
+        char[] ch = s.toCharArray();
+
+        int[] L = new int[n];      // L[k] = LPS of prefix s[0..k]
+        int[] R = new int[n];      // R[i] = LPS of suffix s[i..n-1]
+        int[] prev = new int[n];   // previous row in DP
+
+        for (int i = n - 1; i >= 0; i--) {
+            int[] cur = new int[n];
+            cur[i] = 1;
+            for (int j = i + 1; j < n; j++) {
+                if (ch[i] == ch[j]) {
+                    if (i + 1 <= j - 1) {
+                        cur[j] = prev[j - 1] + 2;
+                    } else {
+                        cur[j] = 2;
+                    }
+                } else {
+                    cur[j] = Math.max(prev[j], cur[j - 1]);
+                }
+            }
+            R[i] = cur[n - 1];
+            if (i == 0) {
+                L = cur;
+            }
+            prev = cur;
+        }
+
+        long maxScore = 0;
+        for (int k = 0; k < n - 1; k++) {
+            long prod = (long) L[k] * R[k + 1];
+            if (prod > maxScore) {
+                maxScore = prod;
+            }
+        }
+
+        System.out.println(maxScore);
+    }
+}
