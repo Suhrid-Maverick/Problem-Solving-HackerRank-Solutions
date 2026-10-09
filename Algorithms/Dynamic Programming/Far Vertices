@@ -1,0 +1,137 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static int[][] dist;
+    static int[] parent;
+    static ArrayList<ArrayList<Integer>> neighbours;
+
+    static int farVertices(int n, int k, int[][] edges) {
+        neighbours = new ArrayList<ArrayList<Integer>>();
+
+        int fr, to;
+        parent = new int[n];
+        dist = new int[n][n];
+
+        for (int i = 0; i < n; i++) {
+            neighbours.add(new ArrayList<Integer>());
+            Arrays.fill(dist[i], -1);
+            dist[i][i] = 0;
+            parent[i] = -1;
+        }
+
+        for (int[] edge : edges) {
+            fr = edge[0] - 1;
+            to = edge[1] - 1;
+            dist[fr][to] = 1;
+            dist[to][fr] = 1;
+            neighbours.get(fr).add(to);
+            neighbours.get(to).add(fr);
+        }
+
+        parent[0] = -2;
+        setParents(0);
+
+        int p = -1;
+        for (int i = 0; i < n; i++) {
+            p = parent[i];
+            int d = 1;
+            while (p != -1 && p != -2) {
+                dist[p][i] = d;
+                dist[i][p] = d;
+                d += 1;
+                p = parent[p];
+            }
+        }
+
+        int max = 0, num = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = i + 1; j < n; j++) {
+                if (distance(i, j) == k) {
+                    if ((num = count(i, j, n, k)) > max) {
+                        max = num;
+                    }
+                }
+            }
+        }
+
+        return max == 0 ? 0 : n - max;
+    }
+
+    static int count(int i, int j, int n, int k) {
+        int total = 0;
+        for (int m = 0; m < n; m++) {
+            if (distance(m, i) <= k && distance(m, j) <= k) {
+                total += 1;
+            }
+        }
+        return total;
+    }
+
+    static int distance(int fr, int to) {
+        if (dist[fr][to] != -1) {
+            return dist[fr][to];
+        }
+
+        int p = parent[fr];
+        int d = 1;
+        while (p != -2 && dist[p][to] == -1) {
+            d += 1;
+            p = parent[p];
+        }
+
+        dist[fr][to] = d + dist[p][to];
+        dist[to][fr] = dist[fr][to];
+        return dist[fr][to];
+    }
+
+    private static void setParents(int i) {
+        ArrayList<Integer> tocheck = new ArrayList<Integer>();
+        for (int child : neighbours.get(i)) {
+            if (parent[child] == -1) {
+                parent[child] = i;
+                tocheck.add(child);
+            }
+        }
+
+        for (int child : tocheck) {
+            setParents(child);
+        }
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] nk = scanner.nextLine().split(" ");
+        scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+        int n = Integer.parseInt(nk[0]);
+        int k = Integer.parseInt(nk[1]);
+
+        int[][] edges = new int[n - 1][2];
+
+        for (int edgesRowItr = 0; edgesRowItr < n - 1; edgesRowItr++) {
+            String[] edgesRowItems = scanner.nextLine().split(" ");
+            scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+            for (int edgesColumnItr = 0; edgesColumnItr < 2; edgesColumnItr++) {
+                int edgesItem = Integer.parseInt(edgesRowItems[edgesColumnItr]);
+                edges[edgesRowItr][edgesColumnItr] = edgesItem;
+            }
+        }
+
+        int result = farVertices(n, k, edges);
+
+        bufferedWriter.write(String.valueOf(result));
+        bufferedWriter.newLine();
+
+        bufferedWriter.close();
+        scanner.close();
+    }
+}
