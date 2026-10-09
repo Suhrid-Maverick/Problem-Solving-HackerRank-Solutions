@@ -1,0 +1,33 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+        while (t-- > 0) {
+            st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int[] q = new int[n];
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                q[i] = Integer.parseInt(st.nextToken());
+            }
+            int bribes = 0;
+            boolean chaotic = false;
+            for (int i = n - 1; i >= 0; i--) {
+                if (q[i] - (i + 1) > 2) {
+                    chaotic = true;
+                    break;
+                }
+                for (int j = Math.max(0, q[i] - 2); j < i; j++) {
+                    if (q[j] > q[i]) {
+                        bribes++;
+                    }
+                }
+            }
+            System.out.println(chaotic ? "Too chaotic" : bribes);
+        }
+    }
+}
