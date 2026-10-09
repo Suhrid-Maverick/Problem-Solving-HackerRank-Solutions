@@ -1,0 +1,59 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int[] icecreamParlor(int m, int[] cost) {
+        Map<Integer, Integer> seen = new HashMap<>();
+
+        for (int i = 0; i < cost.length; i++) {
+            int need = m - cost[i];
+
+            if (seen.containsKey(need)) {
+                return new int[]{seen.get(need) + 1, i + 1};
+            }
+
+            seen.putIfAbsent(cost[i], i);
+        }
+
+        return new int[0];
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) {
+                st = new StringTokenizer(br.readLine());
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        StringBuilder sb = new StringBuilder();
+
+        int t = fs.nextInt();
+
+        while (t-- > 0) {
+            int m = fs.nextInt();
+            int n = fs.nextInt();
+
+            int[] cost = new int[n];
+            for (int i = 0; i < n; i++) {
+                cost[i] = fs.nextInt();
+            }
+
+            int[] ans = icecreamParlor(m, cost);
+            sb.append(ans[0]).append(' ').append(ans[1]).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
