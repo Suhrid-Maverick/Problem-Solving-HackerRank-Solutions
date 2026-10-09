@@ -1,0 +1,100 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int matrixLand(int[][] grid) {
+        int m = grid[0].length;
+        int[][] dp = new int[grid.length][m];
+        int[] msl = new int[m];
+        int[] msr = new int[m];
+        int[] mslit = new int[m];
+        int[] msrit = new int[m];
+
+        for (int i = 0; i < grid.length; i++) {
+            Arrays.fill(msl, Math.max(grid[i][0], 0));
+            for (int j = 1; j < m; j++) {
+                msl[j] = Math.max(msl[j - 1] + grid[i][j], 0);
+            }
+
+            Arrays.fill(msr, Math.max(grid[i][m - 1], 0));
+            for (int j = 1; j < m; j++) {
+                msr[m - 1 - j] = Math.max(msr[m - j] + grid[i][m - 1 - j], 0);
+            }
+
+            Arrays.fill(mslit, grid[i][0]);
+            if (i > 0) {
+                mslit[0] += dp[i - 1][0];
+            }
+            dp[i][0] = mslit[0] + msr[1];
+
+            for (int j = 1; j < m; j++) {
+                int top = i == 0 ? 0 : dp[i - 1][j];
+
+                mslit[j] = Math.max(mslit[j - 1], top + msl[j - 1]) + grid[i][j];
+
+                int val = j + 2 > m ? 0 : msr[j + 1];
+                dp[i][j] = mslit[j] + val;
+            }
+
+            Arrays.fill(msrit, grid[i][m - 1]);
+            if (i > 0) {
+                msrit[m - 1] += dp[i - 1][m - 1];
+            }
+
+            dp[i][m - 1] = Math.max(dp[i][m - 1], msrit[m - 1] + msl[m - 2]);
+            for (int j = 1; j < m; j++) {
+                int top = i == 0 ? 0 : dp[i - 1][m - 1 - j];
+                msrit[m - 1 - j] = Math.max(msrit[m - j], top + msr[m - j]) + grid[i][m - 1 - j];
+
+                int val = j + 2 > m ? 0 : msl[m - 1 - j - 1];
+                dp[i][m - 1 - j] = Math.max(dp[i][m - 1 - j], msrit[m - 1 - j] + val);
+            }
+        }
+
+        int result = dp[grid.length - 1][0];
+        for (int j = 1; j < m; j++) {
+            result = Math.max(result, dp[grid.length - 1][j]);
+        }
+
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        if (m == 1) {
+            int result = 0;
+            for (int i = 0; i < n; i++) {
+                st = new StringTokenizer(br.readLine());
+                int item = Integer.parseInt(st.nextToken());
+                result += item;
+            }
+            bw.write(String.valueOf(result));
+        } else {
+            int[][] a = new int[n][m];
+
+            for (int i = 0; i < n; i++) {
+                st = new StringTokenizer(br.readLine());
+
+                for (int j = 0; j < m; j++) {
+                    int item = Integer.parseInt(st.nextToken());
+                    a[i][j] = item;
+                }
+            }
+
+            int result = matrixLand(a);
+
+            bw.write(String.valueOf(result));
+        }
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
