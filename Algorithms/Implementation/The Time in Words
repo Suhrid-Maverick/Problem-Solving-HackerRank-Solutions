@@ -1,0 +1,49 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int h = Integer.parseInt(br.readLine().trim());
+        int m = Integer.parseInt(br.readLine().trim());
+
+        String[] hourWords = {"", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve"};
+        String[] minWords = new String[30];
+        String[] base = {"", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen"};
+
+        minWords[0] = "";
+        for (int i = 1; i <= 19; i++) {
+            minWords[i] = base[i];
+        }
+        minWords[20] = "twenty";
+        for (int i = 21; i <= 29; i++) {
+            minWords[i] = "twenty " + minWords[i - 20];
+        }
+
+        String result;
+
+        if (m == 0) {
+            result = hourWords[h] + " o' clock";
+        } else if (m == 15) {
+            result = "quarter past " + hourWords[h];
+        } else if (m == 30) {
+            result = "half past " + hourWords[h];
+        } else if (m == 45) {
+            int nextH = h % 12 + 1;
+            result = "quarter to " + hourWords[nextH];
+        } else if (m == 1) {
+            result = "one minute past " + hourWords[h];
+        } else if (m < 30) {
+            result = minWords[m] + " minutes past " + hourWords[h];
+        } else {
+            int minsTo = 60 - m;
+            int nextH = h % 12 + 1;
+            if (minsTo == 1) {
+                result = "one minute to " + hourWords[nextH];
+            } else {
+                result = minWords[minsTo] + " minutes to " + hourWords[nextH];
+            }
+        }
+
+        System.out.println(result);
+    }
+}
