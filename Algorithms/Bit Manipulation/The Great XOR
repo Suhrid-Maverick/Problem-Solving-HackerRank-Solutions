@@ -1,0 +1,31 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            long x = Long.parseLong(br.readLine().trim());
+
+            if (x == 0) {
+                sb.append(0).append('\n');
+                continue;
+            }
+
+            // Number of bits needed to represent x
+            int bits = 64 - Long.numberOfLeadingZeros(x);
+
+            // All 1s in those bit positions, e.g. x = 10 (1010) -> 1111 = 15
+            long allOnes = (1L << bits) - 1;
+
+            // Answer = allOnes XOR x
+            long ans = allOnes ^ x;
+            sb.append(ans).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
