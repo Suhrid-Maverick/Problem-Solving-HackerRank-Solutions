@@ -1,0 +1,75 @@
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int q = sc.nextInt();
+
+        List<Integer> arr_p = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            arr_p.add(sc.nextInt());
+        }
+
+        List<Integer> result = waiter(arr_p, q);
+        for (int x : result) {
+            System.out.println(x);
+        }
+
+        sc.close();
+    }
+
+    static List<Integer> waiter(List<Integer> arr_p, int q) {
+        List<Integer> primes = generatePrimes(q);
+        List<Integer> answers = new ArrayList<>();
+
+        for (int i = 0; i < q; i++) {
+            int prime = primes.get(i);
+            List<Integer> A = new ArrayList<>();
+            List<Integer> B = new ArrayList<>();
+
+            while (!arr_p.isEmpty()) {
+                int plate = arr_p.remove(arr_p.size() - 1);
+                if (plate % prime == 0) {
+                    B.add(plate);
+                } else {
+                    A.add(plate);
+                }
+            }
+
+            for (int j = B.size() - 1; j >= 0; j--) {
+                answers.add(B.get(j));
+            }
+
+            arr_p = A;
+        }
+
+        for (int j = arr_p.size() - 1; j >= 0; j--) {
+            answers.add(arr_p.get(j));
+        }
+
+        return answers;
+    }
+
+    static List<Integer> generatePrimes(int q) {
+        List<Integer> primes = new ArrayList<>();
+        int num = 2;
+
+        while (primes.size() < q) {
+            boolean isPrime = true;
+            for (int p : primes) {
+                if (num % p == 0) {
+                    isPrime = false;
+                    break;
+                }
+            }
+            if (isPrime) {
+                primes.add(num);
+            }
+            num++;
+        }
+
+        return primes;
+    }
+}
