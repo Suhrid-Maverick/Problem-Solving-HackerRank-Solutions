@@ -1,0 +1,120 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int copy(List<Character> sorg, char[] dest, int startSorg, int endSorg, int startDest) {
+        for (int j = startSorg; j < endSorg; j++) {
+            dest[startDest++] = sorg.get(j);
+        }
+        return startDest;
+    }
+
+    static int copy(char[] sorg, char[] dest, int startSorg, int endSorg, int startDest) {
+        for (int j = startSorg; j < endSorg; j++) {
+            dest[startDest++] = sorg[j];
+        }
+        return startDest;
+    }
+
+    static char[] create(List<Character> sorg, int startSorg, int endSorg) {
+        char[] dest = new char[endSorg - startSorg];
+        copy(sorg, dest, startSorg, endSorg, 0);
+        return dest;
+    }
+
+    static int solve(char[] s) {
+        int res = 0;
+        char prev1 = 0;
+        List<Character> t = new ArrayList<>();
+        char a = s[0];
+        for (char c : s) {
+            if (c != prev1) {
+                t.add(c);
+            }
+            prev1 = c;
+            if (a > c) {
+                a = c;
+            }
+        }
+        if (t.size() > 0 && t.get(0) == a) {
+            if (t.size() == 1) {
+                return 0;
+            }
+            return solve(create(t, 1, t.size()));
+        }
+        List<char[]> parts = new ArrayList<>();
+        int prev = -1;
+        res = 0;
+        for (int i = 0; i < t.size(); i++) {
+            if (t.get(i) != a) {
+                continue;
+            }
+            parts.add(create(t, prev + 1, i));
+            res++;
+            prev = i;
+        }
+        char[] v = new char[t.size() - (prev + 1) + parts.get(0).length];
+        int start = copy(t, v, prev + 1, t.size(), 0);
+        copy(parts.get(0), v, 0, parts.get(0).length, start);
+        parts.set(0, v);
+        int bi = -1;
+        int bq = 0;
+        for (int i = 0; i < parts.size(); i++) {
+            char b = parts.get(i)[0];
+            int h = i > 0 ? i - 1 : parts.size() - 1;
+            char z = parts.get(h)[parts.get(h).length - 1];
+            char c = 0;
+            int ii = i;
+            int jj = 0;
+            while (true) {
+                jj++;
+                if (jj == parts.get(ii).length) {
+                    ii = (ii + 1) % parts.size();
+                    jj = 0;
+                }
+                if (ii == i && jj == 0) {
+                    break;
+                }
+                if (parts.get(ii)[jj] != b) {
+                    c = parts.get(ii)[jj];
+                    break;
+                }
+            }
+            if (c == 0) {
+                c = b;
+            }
+            int q = (((int) b) * 1024) + ((z != b ? 0 : 1) * 256) - ((int) c);
+            if (bi == -1 || q < bq) {
+                bq = q;
+                bi = i;
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = bi; i < parts.size(); i++) {
+            sb.append(parts.get(i));
+        }
+        for (int i = 0; i < bi; i++) {
+            sb.append(parts.get(i));
+        }
+        if (sb.length() == 0) {
+            return res;
+        }
+        return res + solve(sb.toString().toCharArray());
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int q = Integer.parseInt(st.nextToken());
+
+        for (int qItr = 0; qItr < q; qItr++) {
+            String s = br.readLine();
+
+            System.out.println(solve(s.toCharArray()));
+        }
+
+        br.close();
+    }
+}
