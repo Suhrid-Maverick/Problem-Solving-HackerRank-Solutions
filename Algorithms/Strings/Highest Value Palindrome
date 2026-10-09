@@ -1,0 +1,63 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+        char[] s = br.readLine().trim().toCharArray();
+
+        boolean[] changed = new boolean[n / 2];
+        int minChanges = 0;
+
+        // First pass: make the string a palindrome with minimum changes
+        for (int i = 0; i < n / 2; i++) {
+            int j = n - 1 - i;
+            if (s[i] != s[j]) {
+                char max = (char) Math.max(s[i], s[j]);
+                s[i] = max;
+                s[j] = max;
+                minChanges++;
+                changed[i] = true;
+            }
+        }
+
+        if (minChanges > k) {
+            System.out.println("-1");
+            return;
+        }
+
+        int extra = k - minChanges;
+
+        // Second pass: maximize the palindrome
+        for (int i = 0; i < n / 2; i++) {
+            int j = n - 1 - i;
+            if (s[i] == '9') continue;
+
+            if (changed[i]) {
+                // Already spent 1 change to make them equal; needs 1 more to become '9'
+                if (extra >= 1) {
+                    s[i] = '9';
+                    s[j] = '9';
+                    extra--;
+                }
+            } else {
+                // Equal originally; needs 2 changes to become '9'
+                if (extra >= 2) {
+                    s[i] = '9';
+                    s[j] = '9';
+                    extra -= 2;
+                }
+            }
+        }
+
+        // Handle middle character for odd length
+        if (n % 2 == 1 && extra >= 1) {
+            s[n / 2] = '9';
+        }
+
+        System.out.println(new String(s));
+    }
+}
