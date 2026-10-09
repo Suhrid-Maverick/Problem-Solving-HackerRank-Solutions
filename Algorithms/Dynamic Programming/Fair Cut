@@ -1,0 +1,87 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static long fairCut(int k, int[] arr) {
+
+        Arrays.sort(arr);
+
+        int n = arr.length;
+
+        if (k * 2 > n)
+            k = n - k;
+
+        long res = 0;
+
+        if ((n - 2 * k) % 2 == 0) {
+            res = helper(arr, (n - 2 * k) / 2 + 1, k);
+        } else {
+            res = Math.min(helper(arr, (n - 2 * k) / 2, k), helper(arr, (n - 2 * k) / 2 + 1, k));
+        }
+
+        return res;
+    }
+
+    static long helper(int[] arr, int start, int k) {
+        int n = arr.length;
+        Set<Integer> aIdx = new HashSet<>();
+        for (int i = start, j = 0; j < k; j++, i += 2)
+            aIdx.add(i);
+
+        List<Integer> a = new ArrayList<>();
+        List<Integer> b = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            if (aIdx.contains(i))
+                a.add(arr[i]);
+            else
+                b.add(arr[i]);
+        }
+
+        return calc(a, b);
+    }
+
+    static long calc(List<Integer> a, List<Integer> b) {
+        long res = 0;
+
+        for (int aa : a) {
+            for (int bb : b) {
+                res += Math.abs(aa - bb);
+            }
+        }
+
+        return res;
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] nk = scanner.nextLine().split(" ");
+
+        int n = Integer.parseInt(nk[0].trim());
+
+        int k = Integer.parseInt(nk[1].trim());
+
+        int[] arr = new int[n];
+
+        String[] arrItems = scanner.nextLine().split(" ");
+
+        for (int arrItr = 0; arrItr < n; arrItr++) {
+            int arrItem = Integer.parseInt(arrItems[arrItr].trim());
+            arr[arrItr] = arrItem;
+        }
+
+        long result = fairCut(k, arr);
+
+        bufferedWriter.write(String.valueOf(result));
+        bufferedWriter.newLine();
+
+        bufferedWriter.close();
+    }
+}
