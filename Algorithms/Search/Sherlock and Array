@@ -1,0 +1,58 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static String balancedSums(int[] arr) {
+        long total = 0;
+        for (int x : arr) total += x;
+
+        long left = 0;
+
+        for (int x : arr) {
+            long right = total - left - x;
+
+            if (left == right) return "YES";
+
+            left += x;
+        }
+
+        return "NO";
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) {
+                st = new StringTokenizer(br.readLine());
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        StringBuilder sb = new StringBuilder();
+
+        int t = fs.nextInt();
+
+        while (t-- > 0) {
+            int n = fs.nextInt();
+
+            int[] arr = new int[n];
+            for (int i = 0; i < n; i++) {
+                arr[i] = fs.nextInt();
+            }
+
+            sb.append(balancedSums(arr)).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
