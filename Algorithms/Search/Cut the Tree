@@ -1,0 +1,68 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+
+        int[] data = new int[n + 1];
+        long total = 0;
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 1; i <= n; i++) {
+            data[i] = Integer.parseInt(st.nextToken());
+            total += data[i];
+        }
+
+        List<Integer>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) adj[i] = new ArrayList<>();
+
+        for (int i = 0; i < n - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            adj[u].add(v);
+            adj[v].add(u);
+        }
+
+        if (n == 1) {
+            System.out.println(0);
+            return;
+        }
+
+        int[] parent = new int[n + 1];
+        int[] order = new int[n];
+        int idx = 0;
+
+        Stack<Integer> stack = new Stack<>();
+        stack.push(1);
+        parent[1] = -1;
+
+        while (!stack.isEmpty()) {
+            int u = stack.pop();
+            order[idx++] = u;
+            for (int v : adj[u]) {
+                if (v != parent[u]) {
+                    parent[v] = u;
+                    stack.push(v);
+                }
+            }
+        }
+
+        long[] subSum = new long[n + 1];
+        for (int i = 1; i <= n; i++) subSum[i] = data[i];
+
+        long minDiff = Long.MAX_VALUE;
+
+        for (int i = n - 1; i >= 0; i--) {
+            int u = order[i];
+            if (parent[u] != -1) {
+                long diff = Math.abs(total - 2 * subSum[u]);
+                if (diff < minDiff) minDiff = diff;
+                subSum[parent[u]] += subSum[u];
+            }
+        }
+
+        System.out.println(minDiff);
+    }
+}
