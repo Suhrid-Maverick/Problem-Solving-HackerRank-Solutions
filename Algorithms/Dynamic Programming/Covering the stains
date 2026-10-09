@@ -1,0 +1,143 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final long PRIME = 1000000007L;
+
+    static long[] extEuclid(long a, long b) {
+        if (b == 0) {
+            return new long[]{1, 0};
+        }
+        long[] r = extEuclid(b, a % b);
+        return new long[]{r[1], r[0] - (a / b) * r[1]};
+    }
+
+    static long comp(int n, int k) {
+        if (k < 0 || n < k) {
+            return 0;
+        }
+        if (n - k < k) {
+            k = n - k;
+        }
+        long result = 1;
+        for (int t = n - k + 1; t <= n; t++) {
+            result = result * t % PRIME;
+        }
+        long divide = 1;
+        for (int t = 1; t <= k; t++) {
+            divide = divide * t % PRIME;
+        }
+        long u = extEuclid(PRIME, divide)[1];
+        while (u < 0) {
+            u += PRIME;
+        }
+        result = result * u % PRIME;
+        return result;
+    }
+
+    static boolean checker(int[] p, int x0, int x1, int y0, int y1) {
+        return p[0] == x0 || p[0] == x1 || p[1] == y0 || p[1] == y1;
+    }
+
+    static int counter(int[][] points, int n, int x0, int x1, int y0, int y1) {
+        int result = 0;
+        for (int i = 0; i < n; i++) {
+            if (checker(points[i], x0, x1, y0, y1)) {
+                result++;
+            }
+        }
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[][] points = new int[n][2];
+        int minx = 100000, maxx = 0;
+        int miny = 100000, maxy = 0;
+
+        for (int i = 0; i < n; i++) {
+            st = new StringTokenizer(br.readLine());
+            int a = Integer.parseInt(st.nextToken());
+            int b = Integer.parseInt(st.nextToken());
+            points[i][0] = a;
+            points[i][1] = b;
+            minx = Math.min(a, minx);
+            maxx = Math.max(a, maxx);
+            miny = Math.min(b, miny);
+            maxy = Math.max(b, maxy);
+        }
+
+        long answer = 0;
+        int m;
+
+        // left
+        m = counter(points, n, -1, -1, miny, -1);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // right
+        m = counter(points, n, -1, -1, -1, maxy);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // up
+        m = counter(points, n, minx, -1, -1, -1);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // down
+        m = counter(points, n, -1, maxx, -1, -1);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // left + right
+        m = counter(points, n, -1, -1, miny, maxy);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // left + up
+        m = counter(points, n, minx, -1, miny, -1);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // left + down
+        m = counter(points, n, -1, maxx, miny, -1);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // right + up
+        m = counter(points, n, minx, -1, -1, maxy);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // right + down
+        m = counter(points, n, -1, maxx, -1, maxy);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // up + down
+        m = counter(points, n, minx, maxx, -1, -1);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        // left + right + up
+        m = counter(points, n, minx, -1, miny, maxy);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // left + right + down
+        m = counter(points, n, -1, maxx, miny, maxy);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // left + up + down
+        m = counter(points, n, minx, maxx, miny, -1);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // right + up + down
+        m = counter(points, n, minx, maxx, -1, maxy);
+        answer = (answer + comp(n - m, k - m)) % PRIME;
+
+        // all
+        m = counter(points, n, minx, maxx, miny, maxy);
+        answer = (answer - comp(n - m, k - m)) % PRIME;
+
+        while (answer < 0) {
+            answer += PRIME;
+        }
+        System.out.println(answer % PRIME);
+    }
+}
