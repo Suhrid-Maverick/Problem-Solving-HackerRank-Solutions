@@ -1,0 +1,48 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int[] a = new int[n];
+        st = new StringTokenizer(br.readLine());
+        int max = 0;
+        for (int i = 0; i < n; i++) {
+            a[i] = Integer.parseInt(st.nextToken());
+            if (a[i] > max) max = a[i];
+        }
+
+        // If all numbers are zero, no K >= 0 can satisfy M(B) >= 2^K
+        if (max == 0) {
+            System.out.println(-1);
+            return;
+        }
+
+        // Highest bit index of the maximum number
+        int maxBit = 31 - Integer.numberOfLeadingZeros(max);
+        int ans = -1;
+
+        // Check bits from highest to lowest
+        for (int bit = maxBit; bit >= 0; bit--) {
+            Map<Integer, Integer> freq = new HashMap<>();
+            boolean valid = true;
+            for (int x : a) {
+                int prefix = x >> bit;
+                int cnt = freq.getOrDefault(prefix, 0) + 1;
+                if (cnt > n / 2) {  // more than half share this prefix
+                    valid = false;
+                    break;
+                }
+                freq.put(prefix, cnt);
+            }
+            if (valid) {
+                ans = bit;
+                break;
+            }
+        }
+
+        System.out.println(ans);
+    }
+}
