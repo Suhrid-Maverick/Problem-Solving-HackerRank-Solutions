@@ -1,0 +1,117 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static long gcd(long a, long b) {
+        if (b == 0)
+            return a;
+        return gcd(b, a % b);
+    }
+
+    static int[] longestModPath(int[][] corridor, int[][] queries) {
+        HashMap<Integer, HashMap<Integer, Integer>> adj = new HashMap<Integer, HashMap<Integer, Integer>>();
+        HashMap<Integer, long[]> toCycle = new HashMap<Integer, long[]>();
+        HashMap<Integer, long[]> cycle = new HashMap<Integer, long[]>();
+        HashSet<Integer> leaf = new HashSet<Integer>();
+        long cyclesum = 0;
+        for (int i = 0; i < corridor.length; i++)
+            adj.put(i, new HashMap<Integer, Integer>());
+        for (int i = 0; i < corridor.length; i++) {
+            int temp1 = corridor[i][0] - 1;
+            int temp2 = corridor[i][1] - 1;
+            if (adj.get(temp1).keySet().contains(temp2))
+                cyclesum = Math.abs(adj.get(temp2).get(temp1) + corridor[i][2]);
+            adj.get(temp1).put(temp2, corridor[i][2]);
+            adj.get(temp2).put(temp1, -corridor[i][2]);
+        }
+        HashSet<Integer> used = new HashSet<Integer>();
+        HashMap<Integer, Integer> parent = new HashMap<Integer, Integer>();
+        Queue<Integer> stuff = new LinkedList<Integer>();
+        stuff.add(0);
+        used.add(0);
+        long[] distances = new long[corridor.length];
+        while (stuff.size() > 0) {
+            int temp = stuff.remove();
+            for (int child : adj.get(temp).keySet()) {
+                if (used.contains(child) && parent.get(temp) != child)
+                    cyclesum = distances[temp] - distances[child] + adj.get(temp).get(child);
+                else if (!used.contains(child)) {
+                    stuff.add(child);
+                    used.add(child);
+                    distances[child] = distances[temp] + adj.get(temp).get(child);
+                    parent.put(child, temp);
+                }
+            }
+        }
+        int[] answers = new int[queries.length];
+        for (int i = 0; i < queries.length; i++) {
+            long k = gcd(cyclesum, (long) queries[i][2]);
+            if (k == 1)
+                answers[i] = queries[i][2] - 1;
+            else {
+                int S = queries[i][0] - 1;
+                int E = queries[i][1] - 1;
+                int mod = queries[i][2];
+                answers[i] = (int) ((distances[E] - distances[S]) % mod + mod) % mod;
+                answers[i] = answers[i] + (int) ((mod - answers[i] - 1) / k * k);
+            }
+        }
+        return answers;
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = scanner.nextInt();
+        scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+        int[][] corridor = new int[n][3];
+
+        for (int corridorRowItr = 0; corridorRowItr < n; corridorRowItr++) {
+            String[] corridorRowItems = scanner.nextLine().split(" ");
+            scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+            for (int corridorColumnItr = 0; corridorColumnItr < 3; corridorColumnItr++) {
+                int corridorItem = Integer.parseInt(corridorRowItems[corridorColumnItr]);
+                corridor[corridorRowItr][corridorColumnItr] = corridorItem;
+            }
+        }
+
+        int q = scanner.nextInt();
+        scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+        int[][] queries = new int[q][3];
+
+        for (int queriesRowItr = 0; queriesRowItr < q; queriesRowItr++) {
+            String[] queriesRowItems = scanner.nextLine().split(" ");
+            scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+            for (int queriesColumnItr = 0; queriesColumnItr < 3; queriesColumnItr++) {
+                int queriesItem = Integer.parseInt(queriesRowItems[queriesColumnItr]);
+                queries[queriesRowItr][queriesColumnItr] = queriesItem;
+            }
+        }
+
+        int[] result = longestModPath(corridor, queries);
+
+        for (int resultItr = 0; resultItr < result.length; resultItr++) {
+            bufferedWriter.write(String.valueOf(result[resultItr]));
+
+            if (resultItr != result.length - 1) {
+                bufferedWriter.write("\n");
+            }
+        }
+
+        bufferedWriter.newLine();
+
+        bufferedWriter.close();
+
+        scanner.close();
+    }
+}
