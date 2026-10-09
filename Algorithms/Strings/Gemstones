@@ -1,0 +1,21 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+
+        int common = (1 << 26) - 1;
+
+        for (int i = 0; i < n; i++) {
+            String s = br.readLine().trim();
+            int mask = 0;
+            for (int j = 0; j < s.length(); j++) {
+                mask |= 1 << (s.charAt(j) - 'a');
+            }
+            common &= mask;
+        }
+
+        System.out.println(Integer.bitCount(common));
+    }
+}
