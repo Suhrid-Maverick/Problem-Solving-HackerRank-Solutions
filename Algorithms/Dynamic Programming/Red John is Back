@@ -1,0 +1,53 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        int[] queries = new int[T];
+        int maxN = 0;
+
+        for (int i = 0; i < T; i++) {
+            queries[i] = Integer.parseInt(br.readLine().trim());
+            if (queries[i] > maxN) maxN = queries[i];
+        }
+
+        // f[n] = number of ways to tile a 4 x n wall
+        int[] f = new int[maxN + 1];
+        f[0] = 1;
+        if (maxN >= 1) f[1] = 1;
+        if (maxN >= 2) f[2] = 1;
+        if (maxN >= 3) f[3] = 1;
+        for (int i = 4; i <= maxN; i++) {
+            f[i] = f[i - 1] + f[i - 4];
+        }
+
+        int maxF = f[maxN];
+
+        // Sieve of Eratosthenes up to maxF
+        boolean[] isPrime = new boolean[maxF + 1];
+        Arrays.fill(isPrime, true);
+        if (maxF >= 0) isPrime[0] = false;
+        if (maxF >= 1) isPrime[1] = false;
+        for (int i = 2; i * i <= maxF; i++) {
+            if (isPrime[i]) {
+                for (int j = i * i; j <= maxF; j += i) {
+                    isPrime[j] = false;
+                }
+            }
+        }
+
+        // Prefix count of primes
+        int[] primeCount = new int[maxF + 1];
+        for (int i = 1; i <= maxF; i++) {
+            primeCount[i] = primeCount[i - 1] + (isPrime[i] ? 1 : 0);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int n : queries) {
+            sb.append(primeCount[f[n]]).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
