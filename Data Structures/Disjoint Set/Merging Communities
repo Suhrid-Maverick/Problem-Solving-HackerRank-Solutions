@@ -1,0 +1,96 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class DisjointSet {
+        private final int[] parent;
+        private final int[] size;
+
+        public DisjointSet(int n) {
+            parent = new int[n + 1];
+            size = new int[n + 1];
+            for (int i = 0; i <= n; i++) {
+                parent[i] = i;
+                size[i] = 1;
+            }
+        }
+
+        public int find(int x) {
+            if (parent[x] != x) {
+                parent[x] = find(parent[x]);
+            }
+            return parent[x];
+        }
+
+        public void union(int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+
+            if (rootX != rootY) {
+                if (size[rootX] < size[rootY]) {
+                    int tmp = rootX;
+                    rootX = rootY;
+                    rootY = tmp;
+                }
+
+                parent[rootY] = rootX;
+                size[rootX] += size[rootY];
+            }
+        }
+
+        public int getSize(int x) {
+            return size[find(x)];
+        }
+    }
+
+    static List<Integer> solve(int N, List<String[]> queries) {
+        DisjointSet ds = new DisjointSet(N);
+        List<Integer> output = new ArrayList<>();
+
+        for (String[] query : queries) {
+            if (query[0].equals("M")) {
+                int a = Integer.parseInt(query[1]);
+                int b = Integer.parseInt(query[2]);
+                ds.union(a, b);
+            } else if (query[0].equals("Q")) {
+                int x = Integer.parseInt(query[1]);
+                output.add(ds.getSize(x));
+            }
+        }
+
+        return output;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        String line = br.readLine();
+        if (line == null || line.trim().isEmpty()) {
+            br.close();
+            return;
+        }
+
+        StringTokenizer st = new StringTokenizer(line);
+        int N = Integer.parseInt(st.nextToken());
+        int Q = Integer.parseInt(st.nextToken());
+
+        List<String[]> queries = new ArrayList<>();
+
+        for (int i = 0; i < Q; i++) {
+            String qLine = br.readLine();
+            if (qLine == null) break;
+            queries.add(qLine.trim().split(" "));
+        }
+
+        List<Integer> result = solve(N, queries);
+
+        for (int v : result) {
+            sb.append(v).append("\n");
+        }
+
+        System.out.print(sb);
+        br.close();
+    }
+}
