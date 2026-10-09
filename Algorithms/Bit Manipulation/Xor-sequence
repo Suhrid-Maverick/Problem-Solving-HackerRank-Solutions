@@ -1,0 +1,45 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Returns XOR of A[0] ^ A[1] ^ ... ^ A[n]
+    // where A[i] = 1 ^ 2 ^ ... ^ i  (and A[0] = 0)
+    static long prefixXor(long n) {
+        if (n < 0) return 0;
+        int m = (int)(n % 8);
+        switch (m) {
+            case 0:
+            case 1:
+                return n;
+            case 2:
+            case 3:
+                return 2;
+            case 4:
+            case 5:
+                return n + 2;
+            case 6:
+            case 7:
+                return 0;
+        }
+        return 0;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            long l = Long.parseLong(st.nextToken());
+            long r = Long.parseLong(st.nextToken());
+
+            // XOR sum of A[l..r] = prefixXor(r) ^ prefixXor(l - 1)
+            long ans = prefixXor(r) ^ prefixXor(l - 1);
+            sb.append(ans).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
