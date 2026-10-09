@@ -1,0 +1,144 @@
+import java.io.OutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.util.HashMap;
+import java.io.IOException;
+import java.io.Reader;
+import java.io.InputStreamReader;
+import java.util.TreeSet;
+import java.util.TreeMap;
+import java.util.StringTokenizer;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.io.Writer;
+import java.io.OutputStreamWriter;
+import java.io.BufferedReader;
+import java.io.InputStream;
+
+/**
+ * Built using CHelper plug-in
+ * Actual solution is at the top
+ */
+public class Solution {
+    public static void main(String[] args) {
+        InputStream inputStream = System.in;
+        OutputStream outputStream = System.out;
+        InputReader in = new InputReader(inputStream);
+        OutputWriter out = new OutputWriter(outputStream);
+        InversedRMQ solver = new InversedRMQ();
+        solver.solve(1, in, out);
+        out.close();
+    }
+
+    static class InversedRMQ {
+        public void solve(int testNumber, InputReader in, OutputWriter out) {
+            int n = in.readInt();
+            int k = 2 * n - 1;
+            final Map<Integer, Integer> count = new TreeMap<>();
+            for (int i = 0; i < k; i++) {
+                int x = in.readInt();
+                count.put(x, count.getOrDefault(x, 0) + 1);
+            }
+            final TreeSet<Integer>[] types = new TreeSet[k + 1];
+            final Map<Integer, Integer> result = new HashMap<>();
+            for (int i = 0; i < types.length; i++) {
+                types[i] = new TreeSet<>();
+            }
+            int log = 0, n_ = n;
+            while (n_ > 0) {
+                n_ >>= 1;
+                log++;
+            }
+            types[log].add(1);
+            for (Map.Entry<Integer, Integer> entry : count.entrySet()) {
+                if (types[entry.getValue()].isEmpty()) {
+                    out.printLine("NO");
+                    return;
+                }
+                int wh = types[entry.getValue()].pollFirst();
+                result.put(entry.getKey(), wh);
+                for (int i = 0; i < entry.getValue() - 1; i++) {
+                    types[entry.getValue() - i - 1].add(wh * 2 + 1);
+                    wh <<= 1;
+                }
+            }
+            final int[] ans = new int[k + 1];
+            for (Map.Entry<Integer, Integer> entry : result.entrySet()) {
+                int wh = entry.getValue(), value = entry.getKey();
+                while (wh <= k) {
+                    ans[wh] = value;
+                    wh <<= 1;
+                }
+            }
+            out.printLine("YES");
+            for (int i = 1; i <= k; i++) {
+                out.print(ans[i], ' ');
+            }
+            out.printLine();
+        }
+
+    }
+
+    static class OutputWriter {
+        private PrintWriter writer;
+
+        public OutputWriter(Writer writer) {
+            this.writer = new PrintWriter(writer);
+        }
+
+        public OutputWriter(OutputStream stream) {
+            this(new OutputStreamWriter(stream));
+        }
+
+        public void print(Object... args) {
+            for (Object arg : args) {
+                writer.print(arg);
+            }
+        }
+
+        public void printLine(Object... args) {
+            print(args);
+            writer.println();
+        }
+
+        void close() {
+            writer.close();
+        }
+
+    }
+
+    static class InputReader {
+        private BufferedReader reader;
+        private StringTokenizer tokenizer;
+
+        public InputReader(Reader reader) {
+            this.reader = new BufferedReader(reader);
+        }
+
+        public InputReader(InputStream stream) {
+            this(new InputStreamReader(stream));
+        }
+
+        public String nextLine() {
+            try {
+                return reader.readLine();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        public String readWord() {
+            while (tokenizer == null || !tokenizer.hasMoreTokens()) {
+                tokenizer = new StringTokenizer(nextLine());
+            }
+            return tokenizer.nextToken();
+        }
+
+        public int readInt() {
+            return Integer.parseInt(readWord());
+        }
+
+    }
+}
