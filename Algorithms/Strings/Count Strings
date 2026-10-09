@@ -1,0 +1,271 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1000000007;
+
+    // ---------- AST Nodes ----------
+    static abstract class Node {}
+    static class CharNode extends Node {
+        char c;
+        CharNode(char c) { this.c = c; }
+    }
+    static class ConcatNode extends Node {
+        Node left, right;
+        ConcatNode(Node l, Node r) { left = l; right = r; }
+    }
+    static class UnionNode extends Node {
+        Node left, right;
+        UnionNode(Node l, Node r) { left = l; right = r; }
+    }
+    static class StarNode extends Node {
+        Node child;
+        StarNode(Node c) { child = c; }
+    }
+
+    // ---------- Parser ----------
+    static class Parser {
+        String s;
+        int pos;
+        Parser(String s) { this.s = s; this.pos = 0; }
+        Node parse() { return parseExpr(); }
+
+        Node parseExpr() {
+            if (s.charAt(pos) == '(') {
+                pos++; // skip '('
+                Node left = parseExpr();
+                if (s.charAt(pos) == '|') {
+                    pos++; // skip '|'
+                    Node right = parseExpr();
+                    pos++; // skip ')'
+                    return new UnionNode(left, right);
+                } else if (s.charAt(pos) == '*') {
+                    pos++; // skip '*'
+                    pos++; // skip ')'
+                    return new StarNode(left);
+                } else if (s.charAt(pos) == ')') {
+                    pos++; // skip ')'
+                    return left;
+                } else {
+                    // concatenation
+                    Node right = parseExpr();
+                    pos++; // skip ')'
+                    return new ConcatNode(left, right);
+                }
+            } else {
+                char c = s.charAt(pos);
+                pos++;
+                return new CharNode(c);
+            }
+        }
+    }
+
+    // ---------- NFA ----------
+    static class NFA {
+        int numStates = 0;
+        List<List<Integer>> epsilon = new ArrayList<>();
+        List<List<Integer>> transA = new ArrayList<>();
+        List<List<Integer>> transB = new ArrayList<>();
+
+        int newState() {
+            epsilon.add(new ArrayList<>());
+            transA.add(new ArrayList<>());
+            transB.add(new ArrayList<>());
+            return numStates++;
+        }
+
+        static class Fragment {
+            int start, end;
+            Fragment(int s, int e) { start = s; end = e; }
+        }
+
+        Fragment build(Node node) {
+            if (node instanceof CharNode) {
+                char c = ((CharNode) node).c;
+                int s = newState();
+                int e = newState();
+                if (c == 'a') transA.get(s).add(e);
+                else transB.get(s).add(e);
+                return new Fragment(s, e);
+            } else if (node instanceof ConcatNode) {
+                ConcatNode cn = (ConcatNode) node;
+                Fragment left = build(cn.left);
+                Fragment right = build(cn.right);
+                epsilon.get(left.end).add(right.start);
+                return new Fragment(left.start, right.end);
+            } else if (node instanceof UnionNode) {
+                UnionNode un = (UnionNode) node;
+                Fragment left = build(un.left);
+                Fragment right = build(un.right);
+                int s = newState();
+                int e = newState();
+                epsilon.get(s).add(left.start);
+                epsilon.get(s).add(right.start);
+                epsilon.get(left.end).add(e);
+                epsilon.get(right.end).add(e);
+                return new Fragment(s, e);
+            } else if (node instanceof StarNode) {
+                StarNode sn = (StarNode) node;
+                Fragment child = build(sn.child);
+                int s = newState();
+                int e = newState();
+                epsilon.get(s).add(child.start);
+                epsilon.get(s).add(e);
+                epsilon.get(child.end).add(child.start);
+                epsilon.get(child.end).add(e);
+                return new Fragment(s, e);
+            }
+            return null;
+        }
+    }
+
+    // ---------- Epsilon Closure ----------
+    static BitSet epsilonClosure(NFA nfa, BitSet states) {
+        BitSet closure = (BitSet) states.clone();
+        Stack<Integer> stack = new Stack<>();
+        for (int i = states.nextSetBit(0); i >= 0; i = states.nextSetBit(i + 1)) {
+            stack.push(i);
+        }
+        while (!stack.isEmpty()) {
+            int s = stack.pop();
+            for (int next : nfa.epsilon.get(s)) {
+                if (!closure.get(next)) {
+                    closure.set(next);
+                    stack.push(next);
+                }
+            }
+        }
+        return closure;
+    }
+
+    // ---------- Matrix Operations ----------
+    static long[][] multiply(long[][] A, long[][] B) {
+        int n = A.length;
+        long[][] C = new long[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int k = 0; k < n; k++) {
+                if (A[i][k] == 0) continue;
+                for (int j = 0; j < n; j++) {
+                    C[i][j] = (C[i][j] + A[i][k] * B[k][j]) % MOD;
+                }
+            }
+        }
+        return C;
+    }
+
+    static long[][] matrixPower(long[][] M, long N) {
+        int n = M.length;
+        long[][] res = new long[n][n];
+        for (int i = 0; i < n; i++) res[i][i] = 1;
+        while (N > 0) {
+            if ((N & 1) == 1) res = multiply(res, M);
+            M = multiply(M, M);
+            N >>= 1;
+        }
+        return res;
+    }
+
+    // ---------- Main ----------
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            String line = br.readLine().trim();
+            int spaceIdx = line.lastIndexOf(' ');
+            String regex = line.substring(0, spaceIdx);
+            long N = Long.parseLong(line.substring(spaceIdx + 1));
+
+            // Parse regex
+            Parser parser = new Parser(regex);
+            Node root = parser.parse();
+
+            // Build NFA
+            NFA nfa = new NFA();
+            NFA.Fragment frag = nfa.build(root);
+            int nfaStart = frag.start;
+            int nfaAccept = frag.end;
+
+            // Subset construction (NFA -> DFA)
+            Map<BitSet, Integer> dfaStateMap = new HashMap<>();
+            List<BitSet> dfaStates = new ArrayList<>();
+            List<Integer> nextA = new ArrayList<>();
+            List<Integer> nextB = new ArrayList<>();
+            List<Boolean> accepting = new ArrayList<>();
+
+            BitSet startSet = new BitSet();
+            startSet.set(nfaStart);
+            BitSet startClosure = epsilonClosure(nfa, startSet);
+
+            Queue<BitSet> queue = new LinkedList<>();
+            queue.add(startClosure);
+            dfaStateMap.put(startClosure, 0);
+            dfaStates.add(startClosure);
+
+            while (!queue.isEmpty()) {
+                BitSet current = queue.poll();
+                int idx = dfaStateMap.get(current);
+
+                // compute nextA
+                BitSet nextASet = new BitSet();
+                for (int i = current.nextSetBit(0); i >= 0; i = current.nextSetBit(i + 1)) {
+                    for (int next : nfa.transA.get(i)) {
+                        nextASet.set(next);
+                    }
+                }
+                BitSet nextAClosure = epsilonClosure(nfa, nextASet);
+                if (!dfaStateMap.containsKey(nextAClosure)) {
+                    dfaStateMap.put(nextAClosure, dfaStates.size());
+                    dfaStates.add(nextAClosure);
+                    queue.add(nextAClosure);
+                }
+                int nextAIdx = dfaStateMap.get(nextAClosure);
+
+                // compute nextB
+                BitSet nextBSet = new BitSet();
+                for (int i = current.nextSetBit(0); i >= 0; i = current.nextSetBit(i + 1)) {
+                    for (int next : nfa.transB.get(i)) {
+                        nextBSet.set(next);
+                    }
+                }
+                BitSet nextBClosure = epsilonClosure(nfa, nextBSet);
+                if (!dfaStateMap.containsKey(nextBClosure)) {
+                    dfaStateMap.put(nextBClosure, dfaStates.size());
+                    dfaStates.add(nextBClosure);
+                    queue.add(nextBClosure);
+                }
+                int nextBIdx = dfaStateMap.get(nextBClosure);
+
+                while (nextA.size() <= idx) {
+                    nextA.add(-1);
+                    nextB.add(-1);
+                    accepting.add(false);
+                }
+                nextA.set(idx, nextAIdx);
+                nextB.set(idx, nextBIdx);
+                accepting.set(idx, current.get(nfaAccept));
+            }
+
+            int D = dfaStates.size();
+            long[][] M = new long[D][D];
+            for (int i = 0; i < D; i++) {
+                int a = nextA.get(i);
+                int b = nextB.get(i);
+                M[i][a] = (M[i][a] + 1) % MOD;
+                M[i][b] = (M[i][b] + 1) % MOD;
+            }
+
+            long[][] powered = matrixPower(M, N);
+            int startDFA = 0;
+            long ans = 0;
+            for (int j = 0; j < D; j++) {
+                if (accepting.get(j)) {
+                    ans = (ans + powered[startDFA][j]) % MOD;
+                }
+            }
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
