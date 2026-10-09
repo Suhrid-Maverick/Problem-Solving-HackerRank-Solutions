@@ -1,0 +1,17 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        long t = Long.parseLong(br.readLine().trim());
+
+        long start = 3;
+
+        while (t > start) {
+            t -= start;
+            start <<= 1;
+        }
+
+        System.out.println(start - t + 1);
+    }
+}
