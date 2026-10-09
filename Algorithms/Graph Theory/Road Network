@@ -1,0 +1,140 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MOD = 1_000_000_007;
+
+    static class Edge {
+        int v;
+        int c;
+        Edge next = null;
+        Edge twain = null;
+
+        public Edge(int v, int c, Edge next) {
+            this.v = v;
+            this.c = c;
+            this.next = next;
+        }
+    }
+
+    static Edge[] es;
+    static boolean[] vis;
+
+    static void dfs(int u) {
+        vis[u] = true;
+        for (Edge e = es[u]; e != null; e = e.next) {
+            if (e.c > 0 && !vis[e.v]) {
+                dfs(e.v);
+            }
+        }
+    }
+
+    static int[] h;
+    static int[] nh;
+
+    static int augment(int n, int u, int d, int src, int sink) {
+        if (u == sink) {
+            return d;
+        }
+        int old = d, mn = n - 1;
+        for (Edge e = es[u]; e != null; e = e.next) {
+            if (e.c > 0) {
+                if (h[e.v] + 1 == h[u]) {
+                    int dd = augment(n, e.v, Math.min(d, e.c), src, sink);
+                    e.c -= dd;
+                    e.twain.c += dd;
+                    if ((d -= dd) == 0) return old - d;
+                    if (h[src] >= n) break;
+                }
+                mn = Math.min(mn, h[e.v]);
+            }
+        }
+        if (old == d) {
+            if ((--nh[h[u]]) == 0) {
+                h[src] = n;
+            }
+            nh[h[u] = mn + 1]++;
+        }
+        return old - d;
+    }
+
+    static int maxFlow(int n, int src, int sink) {
+        Arrays.fill(h, 0);
+        Arrays.fill(nh, 0);
+        int flow = augment(n, src, Integer.MAX_VALUE, src, sink);
+        while (h[src] < n) {
+            flow += augment(n, src, Integer.MAX_VALUE, src, sink);
+        }
+        return flow;
+    }
+
+    static void gomoryHu(Edge[] pool, int[][] cut, int n, int m) {
+        int[] p = new int[n];
+        for (int i = 0; i < n; i++) {
+            Arrays.fill(cut[i], 0, n, Integer.MAX_VALUE);
+        }
+        vis = new boolean[n];
+        h = new int[n];
+        nh = new int[n + 1];
+        for (int i = 1; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                int t = pool[2 * j].c + pool[2 * j + 1].c >> 1;
+                pool[2 * j].c = pool[2 * j + 1].c = t;
+            }
+            int flow = maxFlow(n, i, p[i]);
+            Arrays.fill(vis, false);
+            dfs(i);
+            for (int j = i + 1; j < n; j++) {
+                if (vis[j] && p[j] == p[i]) {
+                    p[j] = i;
+                }
+            }
+            cut[i][p[i]] = cut[p[i]][i] = flow;
+            for (int j = 0; j < i; j++) {
+                cut[j][i] = cut[i][j] = Math.min(flow, cut[p[i]][j]);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int roadNodes = Integer.parseInt(st.nextToken());
+        int roadEdges = Integer.parseInt(st.nextToken());
+
+        Edge[] pool = new Edge[2 * roadEdges];
+        es = new Edge[roadNodes];
+
+        for (int i = 0; i < roadEdges; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken()) - 1;
+            int v = Integer.parseInt(st.nextToken()) - 1;
+            int w = Integer.parseInt(st.nextToken());
+            Edge e1 = new Edge(v, w, es[u]);
+            Edge e2 = new Edge(u, w, es[v]);
+            e1.twain = e2;
+            e2.twain = e1;
+            pool[2 * i] = e1;
+            pool[2 * i + 1] = e2;
+            es[u] = e1;
+            es[v] = e2;
+        }
+        int[][] cut = new int[roadNodes][roadNodes];
+        gomoryHu(pool, cut, roadNodes, roadEdges);
+        long result = 1;
+        for (int i = 0; i < roadNodes; i++) {
+            for (int j = i + 1; j < roadNodes; j++) {
+                result = (result * cut[i][j]) % MOD;
+            }
+        }
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
