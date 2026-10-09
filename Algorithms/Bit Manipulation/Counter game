@@ -1,0 +1,18 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            long n = Long.parseLong(br.readLine().trim());
+            // Number of moves = popcount(n - 1)
+            // Louise wins if moves are odd, otherwise Richard wins.
+            sb.append((Long.bitCount(n - 1) & 1) == 1 ? "Louise" : "Richard").append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
