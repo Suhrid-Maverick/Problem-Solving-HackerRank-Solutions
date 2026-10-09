@@ -1,0 +1,61 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static String cipher(int k, String s) {
+        int n = s.length();
+        int sz = n - k + 1;
+        StringBuilder message = new StringBuilder();
+        char p = s.charAt(0);
+        message.append(p);
+        int j = 1;
+
+        if (k <= sz) {
+            while (j < k) {
+                char l = s.charAt(j);
+                message.append(p == '0' ? l : inv(l));
+                p = l;
+                j++;
+            }
+            while (j < sz) {
+                char l = xor(s.charAt(j), s.charAt(j - 1));
+                char decBit = message.charAt(j - k);
+                message.append(decBit == '0' ? l : inv(l));
+                j++;
+            }
+        } else {
+            while (j < sz) {
+                char l = xor(s.charAt(j), s.charAt(j - 1));
+                message.append(l);
+                j++;
+            }
+        }
+
+        return message.toString();
+    }
+
+    static char inv(char l) {
+        return l == '0' ? '1' : '0';
+    }
+
+    static char xor(char a, char b) {
+        return (a == '0' && b == '0') || (a == '1' && b == '1') ? '0' : '1';
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+        String s = br.readLine();
+
+        String result = cipher(k, s);
+
+        bw.write(result + "\n");
+        bw.close();
+        br.close();
+    }
+}
