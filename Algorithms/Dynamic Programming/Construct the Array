@@ -1,0 +1,54 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final long MOD = 1000000007L;
+
+    static long[][] multiply(long[][] a, long[][] b) {
+        long[][] c = new long[2][2];
+        for (int i = 0; i < 2; i++) {
+            for (int j = 0; j < 2; j++) {
+                c[i][j] = (a[i][0] * b[0][j] + a[i][1] * b[1][j]) % MOD;
+            }
+        }
+        return c;
+    }
+
+    static long[][] matrixPower(long[][] mat, long exp) {
+        long[][] res = {{1, 0}, {0, 1}};
+        while (exp > 0) {
+            if ((exp & 1) == 1) res = multiply(res, mat);
+            mat = multiply(mat, mat);
+            exp >>= 1;
+        }
+        return res;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        long n = Long.parseLong(st.nextToken());
+        long k = Long.parseLong(st.nextToken());
+        long x = Long.parseLong(st.nextToken());
+
+        if (n == 1) {
+            System.out.println(x == 1 ? 1 : 0);
+            return;
+        }
+
+        long kMod = k % MOD;
+        long[][] M = new long[2][2];
+        M[0][0] = 0;
+        M[0][1] = 1;
+        M[1][0] = (kMod - 1 + MOD) % MOD;
+        M[1][1] = (kMod - 2 + MOD) % MOD;
+
+        long[][] P = matrixPower(M, n - 1);
+
+        long v0 = (x == 1) ? 1 : 0;
+        long v1 = (x == 1) ? 0 : 1;
+
+        long ans = (P[0][0] * v0 + P[0][1] * v1) % MOD;
+        System.out.println(ans);
+    }
+}
