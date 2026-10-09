@@ -1,0 +1,20 @@
+import java.util.*;
+
+public class Solution {
+    public static String chessboardGame(int x, int y) {
+        boolean xBad = (x % 4 == 1 || x % 4 == 2);
+        boolean yBad = (y % 4 == 1 || y % 4 == 2);
+        return (xBad && yBad) ? "Second" : "First";
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int t = sc.nextInt();
+        while (t-- > 0) {
+            int x = sc.nextInt();
+            int y = sc.nextInt();
+            System.out.println(chessboardGame(x, y));
+        }
+        sc.close();
+    }
+}
