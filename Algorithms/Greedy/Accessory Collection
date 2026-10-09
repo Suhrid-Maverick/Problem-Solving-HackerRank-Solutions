@@ -1,0 +1,65 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static String acessoryCollection(long L, long A, long N, long D) {
+        long max = 0;
+        if (D > N || N > L) {
+            return "SAD";
+        } else if (D == 1) {
+            return String.valueOf(A * L);
+        } else {
+            long cmid = (N - 1) / (D - 1);
+            for (long mid = cmid; mid >= 1; mid--) {
+                long clarge = N + (mid - 1) - ((D - 1) * mid);
+                long n = (L - clarge) / mid;
+                long csmall = (L - clarge) % mid;
+                if (n > A - 1 || (csmall > 0 && n == A - 1)) {
+                    break;
+                }
+
+                long sum = clarge * A + csmall * (A - n - 1) + (((A - 1 + A - n) * (n) * mid) / 2);
+                if (sum < max) {
+                    break;
+                }
+                max = sum;
+            }
+        }
+        if (max == 0) {
+            return "SAD";
+        } else {
+            return String.valueOf(max);
+        }
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int T = Integer.parseInt(scanner.nextLine().trim());
+
+        for (int TItr = 0; TItr < T; TItr++) {
+            String[] LAND = scanner.nextLine().split(" ");
+
+            long L = Long.parseLong(LAND[0].trim());
+
+            long A = Long.parseLong(LAND[1].trim());
+
+            long N = Long.parseLong(LAND[2].trim());
+
+            long D = Long.parseLong(LAND[3].trim());
+
+            String result = acessoryCollection(L, A, N, D);
+
+            bufferedWriter.write(result);
+            bufferedWriter.newLine();
+        }
+
+        bufferedWriter.close();
+    }
+}
