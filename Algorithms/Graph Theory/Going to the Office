@@ -1,0 +1,263 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Edge {
+        int v;
+        long w;
+
+        public Edge(int v, long w) {
+            this.v = v;
+            this.w = w;
+        }
+    }
+
+    static class Node implements Comparable<Node> {
+        long d;
+        int v;
+
+        public Node(long d, int v) {
+            this.d = d;
+            this.v = v;
+        }
+
+        @Override
+        public int compareTo(Node o) {
+            if (d == o.d) return 0;
+            return d > o.d ? 1 : -1;
+        }
+    }
+
+    static int[] nxt;
+    static Edge[] succ;
+    static int[] ptr;
+    static int index = 1;
+
+    static void add(int u, int v, long w) {
+        nxt[index] = ptr[u];
+        ptr[u] = index;
+        succ[index++] = new Edge(v, w);
+
+        nxt[index] = ptr[v];
+        ptr[v] = index;
+        succ[index++] = new Edge(u, w);
+    }
+
+    static int time = 0;
+    static int[] disc;
+    static int[] low;
+    static boolean[] vis;
+    static long[] dis;
+    static int[] parent;
+
+    static class NodeDfs {
+        int u;
+        int p;
+        boolean start = true;
+
+        public NodeDfs(int u, int p) {
+            this.u = u;
+            this.p = p;
+        }
+    }
+
+    static class HEdge {
+        int u;
+        int v;
+
+        public HEdge(int u, int v) {
+            if (u > v) {
+                int tmp = u;
+                u = v;
+                v = tmp;
+            }
+            this.u = u;
+            this.v = v;
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = 1;
+            result = prime * result + u;
+            result = prime * result + v;
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) return true;
+            if (obj == null) return false;
+            if (getClass() != obj.getClass()) return false;
+            HEdge other = (HEdge) obj;
+            if (u != other.u) return false;
+            if (v != other.v) return false;
+            return true;
+        }
+    }
+
+    static Set<HEdge> bridges = new HashSet<>();
+
+    static void bridgeDfs(int s) {
+        Deque<NodeDfs> queue = new LinkedList<>();
+        queue.add(new NodeDfs(s, -1));
+        while (!queue.isEmpty()) {
+            NodeDfs node = queue.peekLast();
+            if (node.start) {
+                if (!vis[node.u]) {
+                    vis[node.u] = true;
+                    disc[node.u] = low[node.u] = ++time;
+
+                    for (int i = ptr[node.u]; i > 0; i = nxt[i]) {
+                        parent[succ[i].v] = node.u;
+                        queue.add(new NodeDfs(succ[i].v, node.u));
+                    }
+
+                    node.start = false;
+                } else {
+                    if (node.u != parent[node.p]) {
+                        low[node.p] = Math.min(low[node.p], disc[node.u]);
+                    }
+                    queue.removeLast();
+                }
+            } else {
+                if (node.p >= 0) {
+                    low[node.p] = Math.min(low[node.p], low[node.u]);
+
+                    if (low[node.u] > disc[node.p]) {
+                        bridges.add(new HEdge(node.p, node.u));
+                    }
+                }
+                queue.removeLast();
+            }
+        }
+    }
+
+    static void dijkstra1(int src) {
+        dis[src] = 0;
+        PriorityQueue<Node> queue = new PriorityQueue<>();
+        queue.add(new Node(0, src));
+        while (!queue.isEmpty()) {
+            Node x = queue.poll();
+            if (vis[x.v]) {
+                continue;
+            }
+            vis[x.v] = true;
+
+            for (int i = ptr[x.v]; i > 0; i = nxt[i]) {
+                Edge e = succ[i];
+
+                if (x.d + e.w < dis[e.v]) {
+                    queue.add(new Node(dis[e.v] = x.d + e.w, e.v));
+                    parent[e.v] = x.v;
+                }
+            }
+        }
+    }
+
+    static long dijkstra2(int src, int des, int uBlocked, int vBlocked) {
+        dis[src] = 0;
+        PriorityQueue<Node> queue = new PriorityQueue<>();
+        queue.add(new Node(0, src));
+        while (!queue.isEmpty()) {
+            Node node = queue.poll();
+            if (vis[node.v]) {
+                continue;
+            }
+            vis[node.v] = true;
+
+            for (int i = ptr[node.v]; i > 0; i = nxt[i]) {
+                Edge e = succ[i];
+                if ((node.v == uBlocked && e.v == vBlocked) || (node.v == vBlocked && e.v == uBlocked)) {
+                    continue;
+                }
+                if (node.d + e.w < dis[e.v]) {
+                    queue.add(new Node(dis[e.v] = node.d + e.w, e.v));
+                }
+            }
+            if (node.v == des) {
+                return dis[des];
+            }
+        }
+        return -1;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        ptr = new int[n];
+        parent = new int[n];
+        nxt = new int[2 * m + 1];
+        succ = new Edge[2 * m + 1];
+
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int w = Integer.parseInt(st.nextToken());
+
+            add(u, v, w);
+        }
+
+        st = new StringTokenizer(br.readLine());
+        int s = Integer.parseInt(st.nextToken());
+        int d = Integer.parseInt(st.nextToken());
+
+        vis = new boolean[n];
+        disc = new int[n];
+        low = new int[n];
+        bridgeDfs(s);
+
+        dis = new long[n];
+        Arrays.fill(dis, Long.MAX_VALUE / 3);
+        Arrays.fill(vis, false);
+        dijkstra1(s);
+
+        boolean[] b = new boolean[n];
+        b[d] = true;
+        b[s] = true;
+        int p = d;
+        while ((p = parent[p]) != s) {
+            b[p] = true;
+        }
+
+        st = new StringTokenizer(br.readLine());
+        int q = Integer.parseInt(st.nextToken());
+
+        long nope = dis[d];
+
+        for (int i = 0; i < q; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+
+            long result = nope;
+            if ((parent[u] == v || parent[v] == u) && b[u] && b[v]) {
+                if (bridges.contains(new HEdge(u, v))) {
+                    result = -1;
+                } else {
+                    Arrays.fill(dis, Long.MAX_VALUE / 3);
+                    Arrays.fill(vis, false);
+                    result = dijkstra2(s, d, u, v);
+                }
+            }
+
+            if (result >= 0) {
+                bw.write(result + "\n");
+            } else {
+                bw.write("Infinity\n");
+            }
+        }
+
+        bw.newLine();
+
+        br.close();
+        bw.close();
+    }
+}
