@@ -1,0 +1,57 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            long N = Long.parseLong(br.readLine().trim());
+
+            // Compute XOR of Grundy numbers for piles 1..N
+            // Grundy number of pile i is bit length of i.
+            long X = 0;
+            for (int L = 1; ; L++) {
+                long low = 1L << (L - 1);
+                if (low > N) break;
+                long high = Math.min(N, (1L << L) - 1);
+                long count = high - low + 1;
+                if ((count & 1) == 1) {
+                    X ^= L;
+                }
+            }
+
+            if (X == 0) {
+                sb.append("0\n");
+                continue;
+            }
+
+            long ans = Long.MAX_VALUE;
+
+            // Try each possible Grundy value 'a' for the pile we modify.
+            // The smallest pile with Grundy 'a' is i = 2^(a-1).
+            for (int a = 1; ; a++) {
+                long i = 1L << (a - 1);
+                if (i > N) break;
+
+                long b = X ^ a;
+                if (b < a) { // winning move exists
+                    long max_j;
+                    if (b == 0) {
+                        max_j = 0;
+                    } else {
+                        max_j = (1L << b) - 1;
+                    }
+                    long half = i / 2;
+                    if (max_j > half) max_j = half;
+
+                    long k = i - max_j;
+                    if (k < ans) ans = k;
+                }
+            }
+
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
