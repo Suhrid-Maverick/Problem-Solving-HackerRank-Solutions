@@ -1,0 +1,198 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in), 1 << 20);
+        
+        // Read all input at once to handle any line wrapping
+        StringBuilder inputSb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            inputSb.append(line).append('\n');
+        }
+        StringTokenizer all = new StringTokenizer(inputSb.toString());
+        
+        int n = Integer.parseInt(all.nextToken());
+        
+        String[] genes = new String[n];
+        int totalGeneLen = 0;
+        for (int i = 0; i < n; i++) {
+            genes[i] = all.nextToken();
+            totalGeneLen += genes[i].length();
+        }
+        
+        int[] health = new int[n];
+        for (int i = 0; i < n; i++) {
+            health[i] = Integer.parseInt(all.nextToken());
+        }
+        
+        int maxNodes = totalGeneLen + 1;
+        int[] next = new int[maxNodes * 26];
+        Arrays.fill(next, -1);
+        int[] fail = new int[maxNodes];
+        int[] geneNode = new int[n];
+        int nodeCount = 1;
+        
+        for (int i = 0; i < n; i++) {
+            String g = genes[i];
+            int cur = 0;
+            for (int j = 0; j < g.length(); j++) {
+                int c = g.charAt(j) - 'a';
+                int idx = cur * 26 + c;
+                if (next[idx] == -1) next[idx] = nodeCount++;
+                cur = next[idx];
+            }
+            geneNode[i] = cur;
+        }
+        
+        // Allocate go based on actual nodeCount
+        int[] go = new int[nodeCount * 26];
+        int[] queue = new int[nodeCount];
+        int qh = 0, qt = 0;
+        
+        for (int c = 0; c < 26; c++) {
+            if (next[c] != -1) {
+                go[c] = next[c];
+                queue[qt++] = next[c];
+            } else {
+                go[c] = 0;
+            }
+        }
+        
+        while (qh < qt) {
+            int u = queue[qh++];
+            int uBase = u * 26;
+            int fBase = fail[u] * 26;
+            for (int c = 0; c < 26; c++) {
+                int v = next[uBase + c];
+                if (v != -1) {
+                    go[uBase + c] = v;
+                    fail[v] = go[fBase + c];
+                    queue[qt++] = v;
+                } else {
+                    go[uBase + c] = go[fBase + c];
+                }
+            }
+        }
+        
+        // Build failure tree as linked lists
+        int[] childHead = new int[nodeCount];
+        int[] childNext = new int[nodeCount];
+        int[] childTo = new int[nodeCount];
+        Arrays.fill(childHead, -1);
+        int edgeCount = 0;
+        for (int v = 1; v < nodeCount; v++) {
+            int p = fail[v];
+            childTo[edgeCount] = v;
+            childNext[edgeCount] = childHead[p];
+            childHead[p] = edgeCount;
+            edgeCount++;
+        }
+        
+        // Genes per node (linked list)
+        int[] geneHead = new int[nodeCount];
+        int[] geneLink = new int[n];
+        Arrays.fill(geneHead, -1);
+        for (int i = 0; i < n; i++) {
+            int u = geneNode[i];
+            geneLink[i] = geneHead[u];
+            geneHead[u] = i;
+        }
+        
+        int m = Integer.parseInt(all.nextToken());
+        
+        int[] strandFirst = new int[m];
+        int[] strandLast = new int[m];
+        String[] dnas = new String[m];
+        int totalQ = 0;
+        for (int s = 0; s < m; s++) {
+            strandFirst[s] = Integer.parseInt(all.nextToken());
+            strandLast[s] = Integer.parseInt(all.nextToken());
+            dnas[s] = all.nextToken();
+            totalQ += dnas[s].length();
+        }
+        
+        // Queries grouped by AC node
+        int[] qHead = new int[nodeCount];
+        Arrays.fill(qHead, -1);
+        int[] qStrand = new int[totalQ];
+        int[] qFirst = new int[totalQ];
+        int[] qLast = new int[totalQ];
+        int[] qNext = new int[totalQ];
+        int qIdx = 0;
+        
+        for (int s = 0; s < m; s++) {
+            String d = dnas[s];
+            int cur = 0;
+            for (int i = 0; i < d.length(); i++) {
+                cur = go[cur * 26 + (d.charAt(i) - 'a')];
+                qStrand[qIdx] = s;
+                qFirst[qIdx] = strandFirst[s];
+                qLast[qIdx] = strandLast[s];
+                qNext[qIdx] = qHead[cur];
+                qHead[cur] = qIdx;
+                qIdx++;
+            }
+        }
+        
+        // Iterative DFS on failure tree with BIT
+        long[] totalHealth = new long[m];
+        long[] bit = new long[n + 1];
+        
+        int stackSize = 2 * nodeCount + 5;
+        int[] stack = new int[stackSize];
+        int[] stateStack = new int[stackSize];
+        int top = 0;
+        stack[top] = 0;
+        stateStack[top] = 0;
+        top++;
+        
+        while (top > 0) {
+            top--;
+            int u = stack[top];
+            int sFlag = stateStack[top];
+            if (sFlag == 0) {
+                // Enter node u: add its genes to BIT
+                for (int g = geneHead[u]; g != -1; g = geneLink[g]) {
+                    int h = health[g];
+                    for (int k = g + 1; k <= n; k += k & -k) {
+                        bit[k] += h;
+                    }
+                }
+                // Answer queries at u
+                for (int qi = qHead[u]; qi != -1; qi = qNext[qi]) {
+                    long sum = 0;
+                    for (int k = qLast[qi] + 1; k > 0; k -= k & -k) sum += bit[k];
+                    for (int k = qFirst[qi]; k > 0; k -= k & -k) sum -= bit[k];
+                    totalHealth[qStrand[qi]] += sum;
+                }
+                // Push exit state, then children
+                stack[top] = u;
+                stateStack[top] = 1;
+                top++;
+                for (int e = childHead[u]; e != -1; e = childNext[e]) {
+                    stack[top] = childTo[e];
+                    stateStack[top] = 0;
+                    top++;
+                }
+            } else {
+                // Exit node u: remove its genes from BIT
+                for (int g = geneHead[u]; g != -1; g = geneLink[g]) {
+                    int h = health[g];
+                    for (int k = g + 1; k <= n; k += k & -k) {
+                        bit[k] -= h;
+                    }
+                }
+            }
+        }
+        
+        long minH = Long.MAX_VALUE, maxH = Long.MIN_VALUE;
+        for (int s = 0; s < m; s++) {
+            if (totalHealth[s] < minH) minH = totalHealth[s];
+            if (totalHealth[s] > maxH) maxH = totalHealth[s];
+        }
+        
+        System.out.println(minH + " " + maxH);
+    }
+}
