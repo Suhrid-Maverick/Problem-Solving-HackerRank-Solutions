@@ -1,0 +1,74 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int[] tree;
+    static int[] lazy;
+    static int maxD;
+
+    static void build(int node, int l, int r) {
+        if (l == r) {
+            tree[node] = -l;
+            return;
+        }
+        int mid = (l + r) >>> 1;
+        build(node << 1, l, mid);
+        build(node << 1 | 1, mid + 1, r);
+        tree[node] = Math.max(tree[node << 1], tree[node << 1 | 1]);
+    }
+
+    static void push(int node) {
+        if (lazy[node] != 0) {
+            tree[node << 1] += lazy[node];
+            lazy[node << 1] += lazy[node];
+            tree[node << 1 | 1] += lazy[node];
+            lazy[node << 1 | 1] += lazy[node];
+            lazy[node] = 0;
+        }
+    }
+
+    static void update(int node, int l, int r, int ql, int qr, int val) {
+        if (ql <= l && r <= qr) {
+            tree[node] += val;
+            lazy[node] += val;
+            return;
+        }
+        push(node);
+        int mid = (l + r) >>> 1;
+        if (ql <= mid) update(node << 1, l, mid, ql, qr, val);
+        if (qr > mid) update(node << 1 | 1, mid + 1, r, ql, qr, val);
+        tree[node] = Math.max(tree[node << 1], tree[node << 1 | 1]);
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+
+        int[] D = new int[T];
+        int[] M = new int[T];
+        int maxDeadline = 0;
+
+        for (int i = 0; i < T; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            D[i] = Integer.parseInt(st.nextToken());
+            M[i] = Integer.parseInt(st.nextToken());
+            if (D[i] > maxDeadline) {
+                maxDeadline = D[i];
+            }
+        }
+
+        maxD = maxDeadline;
+        tree = new int[4 * maxD + 5];
+        lazy = new int[4 * maxD + 5];
+        build(1, 1, maxD);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < T; i++) {
+            update(1, 1, maxD, D[i], maxD, M[i]);
+            int ans = Math.max(0, tree[1]);
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
