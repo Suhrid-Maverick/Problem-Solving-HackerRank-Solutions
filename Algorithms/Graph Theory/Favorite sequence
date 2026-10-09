@@ -1,0 +1,130 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner();
+        int N = sc.nextInt();
+        List<int[]> seqs = new ArrayList<>();
+        boolean[] seen = new boolean[1000001];
+
+        for (int i = 0; i < N; i++) {
+            int K = sc.nextInt();
+            int[] arr = new int[K];
+            for (int j = 0; j < K; j++) {
+                arr[j] = sc.nextInt();
+                seen[arr[j]] = true;
+            }
+            seqs.add(arr);
+        }
+
+        int[] idxOf = new int[1000001];
+        Arrays.fill(idxOf, -1);
+        int[] val = new int[1000000];
+        int M = 0;
+        for (int num = 1; num <= 1000000; num++) {
+            if (seen[num]) {
+                idxOf[num] = M;
+                val[M++] = num;
+            }
+        }
+
+        HashSet<Long> edgeSet = new HashSet<>();
+        List<int[]> edges = new ArrayList<>();
+        for (int[] arr : seqs) {
+            for (int i = 0; i + 1 < arr.length; i++) {
+                int u = idxOf[arr[i]];
+                int v = idxOf[arr[i + 1]];
+                long key = ((long) u << 20) | v;
+                if (edgeSet.add(key)) {
+                    edges.add(new int[]{u, v});
+                }
+            }
+        }
+
+        int E = edges.size();
+        int[] head = new int[M];
+        Arrays.fill(head, -1);
+        int[] nxt = new int[E];
+        int[] to = new int[E];
+        int[] indeg = new int[M];
+
+        for (int i = 0; i < E; i++) {
+            int u = edges.get(i)[0];
+            int v = edges.get(i)[1];
+            to[i] = v;
+            nxt[i] = head[u];
+            head[u] = i;
+            indeg[v]++;
+        }
+
+        int[] heap = new int[M];
+        int heapSize = 0;
+        for (int i = 0; i < M; i++) {
+            if (indeg[i] == 0) {
+                int pos = heapSize++;
+                while (pos > 0) {
+                    int parent = (pos - 1) >> 1;
+                    if (val[heap[parent]] <= val[i]) break;
+                    heap[pos] = heap[parent];
+                    pos = parent;
+                }
+                heap[pos] = i;
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        while (heapSize > 0) {
+            int u = heap[0];
+            int last = heap[--heapSize];
+            if (heapSize > 0) {
+                int pos = 0;
+                while (true) {
+                    int child = (pos << 1) + 1;
+                    if (child >= heapSize) break;
+                    int right = child + 1;
+                    if (right < heapSize && val[heap[right]] < val[heap[child]])
+                        child = right;
+                    if (val[last] <= val[heap[child]]) break;
+                    heap[pos] = heap[child];
+                    pos = child;
+                }
+                heap[pos] = last;
+            }
+            sb.append(val[u]).append(' ');
+
+            for (int e = head[u]; e != -1; e = nxt[e]) {
+                int v = to[e];
+                if (--indeg[v] == 0) {
+                    int pos = heapSize++;
+                    while (pos > 0) {
+                        int parent = (pos - 1) >> 1;
+                        if (val[heap[parent]] <= val[v]) break;
+                        heap[pos] = heap[parent];
+                        pos = parent;
+                    }
+                    heap[pos] = v;
+                }
+            }
+        }
+
+        System.out.println(sb.toString().trim());
+    }
+}
