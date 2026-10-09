@@ -1,0 +1,33 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int max = n / 3 * 2;
+        if (n % 3 == 2) {
+            max++;
+        }
+        bw.write(String.valueOf(max + 1));
+        bw.newLine();
+        int first = max;
+        for (int i = (max + 1) / 2; i >= 0; i--) {
+            bw.write(String.valueOf(first + " " + i + " " + (n - i - first)));
+            bw.newLine();
+            first--;
+        }
+        int sn = n;
+        if (n % 3 == 1) {
+            sn--;
+        }
+        for (int i = sn - first - 1; first >= 0; i--) {
+            bw.write(String.valueOf(first + " " + i + " " + (n - i - first)));
+            bw.newLine();
+            first--;
+        }
+        bw.close();
+    }
+}
