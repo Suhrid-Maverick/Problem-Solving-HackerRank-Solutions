@@ -1,0 +1,158 @@
+import java.io.*;
+import java.text.DecimalFormat;
+import java.util.*;
+
+public class Solution {
+
+    static class Edge {
+        int v;
+        int c;
+        double w;
+        Edge next;
+        Edge twain;
+        public Edge(int v, int c, double w) {
+            this.v = v;
+            this.c = c;
+            this.w = w;
+        }
+    }
+
+    static Edge[] es;
+    static Edge[] pred;
+    static Edge[] pool;
+    static int allo = 0;
+
+    static void add(int u, int v, int c, double w) {
+        Edge e1 = new Edge(v, c, w);
+        Edge e2 = new Edge(u, 0, -w);
+
+        pool[allo] = e1;
+        pool[allo].next = es[u];
+        pool[allo].twain = e2;
+
+        pool[allo + 1] = e2;
+        pool[allo + 1].next = es[v];
+        pool[allo + 1].twain = e1;
+
+        es[u] = pool[allo++];
+        es[v] = pool[allo++];
+    }
+
+    static final double EPS = 1e-8;
+    static boolean[] in;
+    static int[] q;
+    static double[] dist;
+
+    static boolean labelCorrecting(int n, int src, int sink) {
+        Arrays.fill(in, 0, n, false);
+        Arrays.fill(pred, 0, n, null);
+        Arrays.fill(dist, 0, n, Double.MAX_VALUE / 2);
+        dist[src] = 0;
+        int fr = 0;
+        int re = 0;
+        q[re++] = src;
+        while (fr != re) {
+            int u = q[fr++];
+            if (fr == q.length) {
+                fr = 0;
+            }
+            in[u] = false;
+            for (Edge e = es[u]; e != null; e = e.next) {
+                if (e.c > 0) {
+                    double t = dist[u] + e.w;
+                    if (t + EPS < dist[e.v]) {
+                        dist[e.v] = t;
+                        pred[e.v] = e;
+                        if (!in[e.v]) {
+                            in[e.v] = true;
+                            q[re++] = e.v;
+                            if (re == q.length)
+                                re = 0;
+                        }
+                    }
+                }
+            }
+        }
+        return dist[sink] < Double.MAX_VALUE;
+    }
+
+    static double minCostMaxFlow(int n, int src, int sink, int m) {
+        int flow = 0;
+        double cost = 0;
+        while (flow < m && labelCorrecting(n, src, sink) && dist[sink] < 0) {
+            int f = m - flow;
+            for (int v = sink; v != src; v = pred[v].twain.v) {
+                f = Math.min(f, pred[v].c);
+            }
+            flow += f;
+            cost += f * dist[sink];
+            for (int v = sink; v != src; v = pred[v].twain.v) {
+                pred[v].c -= f;
+                pred[v].twain.c += f;
+            }
+        }
+        return cost;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+        Map<String, Integer> price = new HashMap<>();
+        for (int i = 0; i < k; i++) {
+            st = new StringTokenizer(br.readLine());
+            String s = st.nextToken();
+            int p = Integer.parseInt(st.nextToken());
+            price.put(s, p);
+        }
+        int src = 2 * n;
+        int sink = src + 1;
+        String[] dest = new String[n];
+        es = new Edge[n * 2 + 2];
+        pred = new Edge[n * 2 + 2];
+        pool = new Edge[n * (n - 1) + 3 * n << 1];
+        for (int i = 0; i < n; i++) {
+            st = new StringTokenizer(br.readLine());
+            String s = st.nextToken();
+            dest[i] = s;
+            double t = price.get(s);
+            add(src, i, 1, t);
+            add(i, n + i, 1, -100 * n);
+            add(n + i, sink, 1, 0);
+            for (int j = 0; j < i; j++) {
+                add(n + j, i, 1, dest[j].equals(dest[i]) ? 0.8 * t : t);
+            }
+        }
+        in = new boolean[n * 2 + 2];
+        q = new int[n * 2 + 2];
+        dist = new double[n * 2 + 2];
+        double res = minCostMaxFlow(sink + 1, src, sink, m) + 100 * n * n;
+        DecimalFormat df = new DecimalFormat("#.###");
+        bw.write(df.format(res) + "\n");
+        int id = 0;
+        int[] window = new int[n];
+        for (Edge e = es[src]; e != null; e = e.next) {
+            if (e.c == 0) {
+                window[e.v] = ++id;
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            for (Edge e = es[n + i]; e != null; e = e.next) {
+                if (e.v < n && i < e.v && e.c == 0) {
+                    window[e.v] = window[i];
+                }
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            bw.write(window[i] + "\n");
+        }
+
+        bw.newLine();
+        bw.close();
+        br.close();
+    }
+}
