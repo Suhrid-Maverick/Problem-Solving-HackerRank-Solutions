@@ -1,0 +1,72 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        long k = Long.parseLong(st.nextToken());
+
+        List<Integer>[] children = new List[n + 1];
+        for (int i = 1; i <= n; i++) {
+            children[i] = new ArrayList<>();
+        }
+        int[] parent = new int[n + 1];
+        for (int i = 0; i < n - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int a = Integer.parseInt(st.nextToken());
+            int b = Integer.parseInt(st.nextToken());
+            children[a].add(b);
+            parent[b] = a;
+        }
+
+        int root = 1;
+        for (int i = 1; i <= n; i++) {
+            if (parent[i] == 0) {
+                root = i;
+                break;
+            }
+        }
+
+        int[] bit = new int[n + 2];
+        long ans = 0;
+        Deque<int[]> stack = new ArrayDeque<>();
+        stack.push(new int[]{root, 0});
+
+        while (!stack.isEmpty()) {
+            int[] cur = stack.pop();
+            int u = cur[0];
+            if (cur[1] == 0) {
+                int l = (int) Math.max(1, u - k);
+                int r = (int) Math.min(n, u + k);
+                ans += query(bit, r) - query(bit, l - 1);
+                add(bit, u, 1);
+                stack.push(new int[]{u, 1});
+                for (int v : children[u]) {
+                    stack.push(new int[]{v, 0});
+                }
+            } else {
+                add(bit, u, -1);
+            }
+        }
+
+        System.out.println(ans);
+    }
+
+    static void add(int[] bit, int i, int delta) {
+        while (i < bit.length) {
+            bit[i] += delta;
+            i += i & -i;
+        }
+    }
+
+    static int query(int[] bit, int i) {
+        int s = 0;
+        while (i > 0) {
+            s += bit[i];
+            i -= i & -i;
+        }
+        return s;
+    }
+}
