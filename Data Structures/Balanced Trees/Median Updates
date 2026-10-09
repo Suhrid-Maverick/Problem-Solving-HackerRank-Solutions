@@ -1,0 +1,121 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Fenwick {
+        private final int[] tree;
+        private final int n;
+
+        Fenwick(int n) {
+            this.n = n;
+            this.tree = new int[n + 1];
+        }
+
+        void add(int i, int delta) {
+            for (; i <= n; i += i & -i) {
+                tree[i] += delta;
+            }
+        }
+
+        int findKth(int k) {
+            int idx = 0;
+            int bitMask = Integer.highestOneBit(n);
+            for (int d = bitMask; d != 0; d >>= 1) {
+                int next = idx + d;
+                if (next <= n && tree[next] < k) {
+                    idx = next;
+                    k -= tree[next];
+                }
+            }
+            return idx + 1;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+
+        char[] ops = new char[n];
+        int[] vals = new int[n];
+        int[] allVals = new int[n];
+        int allCount = 0;
+
+        for (int i = 0; i < n; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            ops[i] = st.nextToken().charAt(0);
+            vals[i] = Integer.parseInt(st.nextToken());
+            allVals[allCount++] = vals[i];
+        }
+
+        // Coordinate compression
+        Arrays.sort(allVals, 0, allCount);
+        int m = 1;
+        for (int i = 1; i < allCount; i++) {
+            if (allVals[i] != allVals[m - 1]) {
+                allVals[m++] = allVals[i];
+            }
+        }
+        int[] sorted = Arrays.copyOf(allVals, m);
+
+        Map<Integer, Integer> idxMap = new HashMap<>();
+        for (int i = 0; i < m; i++) {
+            idxMap.put(sorted[i], i + 1);
+        }
+
+        Fenwick fenwick = new Fenwick(m);
+        Map<Integer, Integer> freq = new HashMap<>();
+        int total = 0;
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < n; i++) {
+            char op = ops[i];
+            int x = vals[i];
+
+            if (op == 'a') {
+                int idx = idxMap.get(x);
+                fenwick.add(idx, 1);
+                freq.merge(x, 1, Integer::sum);
+                total++;
+            } else {
+                if (freq.getOrDefault(x, 0) == 0) {
+                    sb.append("Wrong!\n");
+                    continue;
+                }
+                int idx = idxMap.get(x);
+                fenwick.add(idx, -1);
+                int newCount = freq.merge(x, -1, Integer::sum);
+                if (newCount == 0) freq.remove(x);
+                total--;
+                if (total == 0) {
+                    sb.append("Wrong!\n");
+                    continue;
+                }
+            }
+
+            // Compute and print median
+            if (total % 2 == 1) {
+                int k = total / 2 + 1;
+                int idx = fenwick.findKth(k);
+                sb.append(sorted[idx - 1]).append('\n');
+            } else {
+                int k1 = total / 2;
+                int k2 = k1 + 1;
+                int idx1 = fenwick.findKth(k1);
+                int idx2 = fenwick.findKth(k2);
+                long sum = (long) sorted[idx1 - 1] + sorted[idx2 - 1];
+                if (sum % 2 == 0) {
+                    sb.append(sum / 2).append('\n');
+                } else {
+                    if (sum < 0) {
+                        sb.append('-');
+                        sum = -sum;
+                    }
+                    sb.append(sum / 2).append(".5\n");
+                }
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
