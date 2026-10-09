@@ -1,0 +1,72 @@
+import java.io.*;
+import java.util.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+
+    /*
+     * Complete the 'climbingLeaderboard' function below.
+     *
+     * The function is expected to return an INTEGER_ARRAY.
+     * The function accepts following parameters:
+     * 1. INTEGER_ARRAY ranked
+     * 2. INTEGER_ARRAY player
+     */
+
+    public static List<Integer> climbingLeaderboard(List<Integer> ranked, List<Integer> player) {
+        // Remove duplicate scores from the ranked leaderboard
+        List<Integer> distinctRanked = ranked.stream().distinct().collect(toList());
+        
+        List<Integer> playerRanks = new ArrayList<>();
+        int i = distinctRanked.size() - 1;
+
+        // Iterate through each of the player's scores
+        for (int playerScore : player) {
+            // Traverse the distinct leaderboard from the end (lowest rank)
+            while (i >= 0 && playerScore >= distinctRanked.get(i)) {
+                i--;
+            }
+            // The player's rank is i + 2 because ranks are 1-based, and the loop ends when
+            // playerScore is less than the current distinctRanked score (or i becomes -1).
+            // Example: if player score is 50 and ranked scores are [100, 50, 40],
+            // loop runs for 40, i becomes 1. Loop runs for 50, i becomes 0. Loop stops.
+            // Current i is 0. Rank should be 2. So, i + 2 = 0 + 2 = 2.
+            playerRanks.add(i + 2);
+        }
+        
+        return playerRanks;
+    }
+
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int rankedCount = Integer.parseInt(bufferedReader.readLine().trim());
+
+        List<Integer> ranked = Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+            .map(Integer::parseInt)
+            .collect(toList());
+
+        int playerCount = Integer.parseInt(bufferedReader.readLine().trim());
+
+        List<Integer> player = Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+            .map(Integer::parseInt)
+            .collect(toList());
+
+        List<Integer> result = Result.climbingLeaderboard(ranked, player);
+
+        bufferedWriter.write(
+            result.stream()
+                .map(Object::toString)
+                .collect(Collectors.joining("\n"))
+            + "\n"
+        );
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
