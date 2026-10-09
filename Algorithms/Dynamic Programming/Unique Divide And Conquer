@@ -1,0 +1,127 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    FastScanner in;
+    PrintWriter out;
+
+    void solve() {
+        int n = in.nextInt();
+        int p = in.nextInt();
+        int[][] c = new int[n + 1][n + 1];
+        c[0][0] = 1;
+        for (int i = 1; i <= n; i++) {
+            c[i][0] = 1;
+            for (int j = 1; j <= n; j++) {
+                c[i][j] = c[i - 1][j - 1] + c[i - 1][j];
+                if (c[i][j] >= p) {
+                    c[i][j] -= p;
+                }
+            }
+        }
+        long[] dpSum = new long[n + 1];
+        long[] ans = new long[n + 1];
+        long[] dpBad = new long[n + 1];
+        dpSum[0] = 1;
+        for (int sz = 1; sz <= n; sz++) {
+            for (int big = (1 + sz) / 2; big < sz; big++) {
+                dpBad[sz] += dpSum[sz - 1 - big] * ans[big] % p * big % p
+                        * c[sz - 1][big] % p;
+            }
+            dpBad[sz] %= p;
+            ans[sz] = (dpSum[sz - 1] - dpBad[sz] + p) * sz % p;
+            for (int size1 = 1; size1 <= sz; size1++) {
+                dpSum[sz] += ans[size1] * size1 % p * c[sz - 1][size1 - 1] % p
+                        * dpSum[sz - size1] % p;
+            }
+            dpSum[sz] %= p;
+        }
+        out.println(ans[n]);
+    }
+
+    void run() {
+        try {
+            in = new FastScanner(new File("object.in"));
+            out = new PrintWriter(new File("object.out"));
+
+            solve();
+
+            out.close();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    void runIO() {
+
+        in = new FastScanner(System.in);
+        out = new PrintWriter(System.out);
+
+        solve();
+
+        out.close();
+    }
+
+    class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        public FastScanner(File f) {
+            try {
+                br = new BufferedReader(new FileReader(f));
+            } catch (FileNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+
+        public FastScanner(InputStream f) {
+            br = new BufferedReader(new InputStreamReader(f));
+        }
+
+        String next() {
+            while (st == null || !st.hasMoreTokens()) {
+                String s = null;
+                try {
+                    s = br.readLine();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (s == null)
+                    return null;
+                st = new StringTokenizer(s);
+            }
+            return st.nextToken();
+        }
+
+        boolean hasMoreTokens() {
+            while (st == null || !st.hasMoreTokens()) {
+                String s = null;
+                try {
+                    s = br.readLine();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                if (s == null)
+                    return false;
+                st = new StringTokenizer(s);
+            }
+            return true;
+        }
+
+        int nextInt() {
+            return Integer.parseInt(next());
+        }
+
+        long nextLong() {
+            return Long.parseLong(next());
+        }
+
+        double nextDouble() {
+            return Double.parseDouble(next());
+        }
+    }
+
+    public static void main(String[] args) {
+        new Solution().runIO();
+    }
+}
