@@ -1,0 +1,104 @@
+import java.io.*;
+
+public class Solution {
+    private static final int MODULO = 1000000007;
+
+    public static void main(String[] args) throws Exception {
+        BufferedInputStream in = new BufferedInputStream(System.in, 1 << 16);
+
+        int n = nextInt(in);
+        int m = nextInt(in);
+
+        int[] skills = new int[n];
+        for (int i = 0; i < n; i++) {
+            int value = 0;
+            for (int j = 0; j < m; j++) {
+                int c = nextNonSpace(in);
+                value = (value << 1) | (c - '0');
+            }
+            skills[i] = value;
+        }
+
+        int[] target = new int[m];
+        for (int i = 0; i < m; i++) {
+            target[i] = nextNonSpace(in) - '0';
+        }
+
+        int nuevo_m = 0;
+        for (int i = 0; i < m; i++) {
+            if (target[i] == 1) nuevo_m++;
+        }
+
+        int size = 1 << nuevo_m;
+        int[] f = new int[size];
+        int targetAllOnes = 0;
+        for (int i = 0; i < m; i++) {
+            if (target[i] == 1) targetAllOnes = targetAllOnes * 2 + 1;
+        }
+
+        for (int i = 0; i < n; i++) {
+            int value = 0;
+            boolean flag = true;
+            for (int j = m - 1; j >= 0; j--) {
+                if (target[m - j - 1] == 1) {
+                    if ((skills[i] & (1 << j)) != 0) value = (value << 1) | 1;
+                    else value <<= 1;
+                } else {
+                    if ((skills[i] & (1 << j)) != 0) {
+                        flag = false;
+                        break;
+                    }
+                }
+            }
+            if (flag) f[value]++;
+        }
+
+        for (int j = 0; j < nuevo_m; j++) {
+            int bit = 1 << j;
+            for (int i = 0; i < size; i++) {
+                if ((i & bit) != 0) f[i] += f[i ^ bit];
+            }
+        }
+
+        int[] pow2 = new int[n + 1];
+        pow2[0] = 1;
+        for (int i = 1; i <= n; i++) {
+            pow2[i] = (int) ((long) pow2[i - 1] * 2 % MODULO);
+        }
+
+        long respuesta = 0;
+        for (int i = 0; i < size; i++) {
+            int cnt = Integer.bitCount(i);
+            int value = pow2[f[i]];
+            if ((cnt & 1) == (nuevo_m & 1)) {
+                respuesta = (respuesta + value) % MODULO;
+            } else {
+                respuesta = (respuesta - value + MODULO) % MODULO;
+            }
+        }
+
+        if (targetAllOnes == 0) {
+            System.out.println((respuesta - 1 + MODULO) % MODULO);
+        } else {
+            System.out.println(respuesta % MODULO);
+        }
+    }
+
+    private static int nextNonSpace(BufferedInputStream in) throws IOException {
+        int c = in.read();
+        while (c <= ' ') {
+            c = in.read();
+        }
+        return c;
+    }
+
+    private static int nextInt(BufferedInputStream in) throws IOException {
+        int c = nextNonSpace(in);
+        int ret = 0;
+        while (c > ' ') {
+            ret = ret * 10 + (c - '0');
+            c = in.read();
+        }
+        return ret;
+    }
+}
