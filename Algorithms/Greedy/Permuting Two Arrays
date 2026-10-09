@@ -1,0 +1,56 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static String twoArrays(int k, int[] A, int[] B) {
+        Arrays.sort(A);
+
+        // Sort B descending
+        Arrays.sort(B);
+        for (int i = 0, j = B.length - 1; i < j; i++, j--) {
+            int temp = B[i];
+            B[i] = B[j];
+            B[j] = temp;
+        }
+
+        for (int i = 0; i < A.length; i++) {
+            if (A[i] + B[i] < k) {
+                return "NO";
+            }
+        }
+
+        return "YES";
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+        StringBuilder sb = new StringBuilder();
+
+        int q = Integer.parseInt(br.readLine().trim());
+
+        while (q-- > 0) {
+            st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int k = Integer.parseInt(st.nextToken());
+
+            int[] A = new int[n];
+            int[] B = new int[n];
+
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                A[i] = Integer.parseInt(st.nextToken());
+            }
+
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                B[i] = Integer.parseInt(st.nextToken());
+            }
+
+            sb.append(twoArrays(k, A, B)).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
