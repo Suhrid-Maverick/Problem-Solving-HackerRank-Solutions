@@ -1,0 +1,96 @@
+import java.io.*;
+import java.math.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MAX = 53;
+
+    static int oilWell(int[][] blocks, int r, int c) {
+        int[][][][] s = new int[MAX][MAX][MAX][MAX];
+        for (int i = 0; i < r; i++) {
+            for (int l = 0; l + i < r; l++) {
+                for (int j = 0; j < c; j++) {
+                    for (int u = 0; u + j < c; u++) {
+                        int li = l + i;
+                        int d = u + j;
+
+                        if (l == li && u == d) {
+                            s[l][li][u][d] = 0;
+                            continue;
+                        }
+
+                        int h = Integer.MAX_VALUE;
+
+                        if (l < li) {
+                            int kl = 0, kr = 0;
+                            for (int x = u; x <= d; x++) {
+                                if (blocks[l][x] > 0) {
+                                    kl += fine(l, x, l + 1, li, u, d);
+                                }
+
+                                if (blocks[li][x] > 0) {
+                                    kr += fine(li, x, l, li - 1, u, d);
+                                }
+                            }
+
+                            h = Math.min(h, s[l + 1][li][u][d] + kl);
+                            h = Math.min(h, s[l][li - 1][u][d] + kr);
+                        }
+
+                        if (u < d) {
+                            int ku = 0;
+                            int kd = 0;
+                            for (int x = l; x <= li; x++) {
+                                if (blocks[x][u] > 0) {
+                                    ku += fine(x, u, l, li, u + 1, d);
+                                }
+                                if (blocks[x][d] > 0) {
+                                    kd += fine(x, d, l, li, u, d - 1);
+                                }
+                            }
+
+                            h = Math.min(h, s[l][li][u + 1][d] + ku);
+                            h = Math.min(h, s[l][li][u][d - 1] + kd);
+                        }
+
+                        s[l][li][u][d] = h;
+                    }
+                }
+            }
+        }
+        return s[0][r - 1][0][c - 1];
+    }
+
+    static int fine(int x, int y, int l, int r, int u, int d) {
+        return Math.max(Math.max(Math.abs(l - x), Math.abs(x - r)), Math.max(Math.abs(y - d), Math.abs(y - u)));
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int r = Integer.parseInt(st.nextToken());
+        int c = Integer.parseInt(st.nextToken());
+
+        int[][] blocks = new int[r][c];
+
+        for (int i = 0; i < r; i++) {
+            st = new StringTokenizer(br.readLine());
+
+            for (int j = 0; j < c; j++) {
+                int item = Integer.parseInt(st.nextToken());
+                blocks[i][j] = item;
+            }
+        }
+
+        int result = oilWell(blocks, r, c);
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        br.close();
+        bw.close();
+    }
+}
