@@ -1,0 +1,235 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    // Fast I/O
+    static class FastScanner {
+        final private int BUFFER_SIZE = 1 << 16;
+        private DataInputStream din;
+        private byte[] buffer;
+        private int bufferPointer, bytesRead;
+        public FastScanner() {
+            din = new DataInputStream(System.in);
+            buffer = new byte[BUFFER_SIZE];
+            bufferPointer = bytesRead = 0;
+        }
+        public int nextInt() throws IOException {
+            int ret = 0;
+            byte c = read();
+            while (c <= ' ') c = read();
+            boolean neg = (c == '-');
+            if (neg) c = read();
+            do { ret = ret * 10 + c - '0'; } while ((c = read()) >= '0' && c <= '9');
+            return neg ? -ret : ret;
+        }
+        private byte read() throws IOException {
+            if (bufferPointer == bytesRead) fillBuffer();
+            return buffer[bufferPointer++];
+        }
+        private void fillBuffer() throws IOException {
+            bytesRead = din.read(buffer, 0, BUFFER_SIZE);
+            if (bytesRead == -1) buffer[0] = -1;
+            bufferPointer = 0;
+        }
+    }
+
+    static int[] lonsArr;
+    static int[] lonsStart;
+    static int[] lonsCount;
+    static int[] treeStart;
+    static int[] treeSize;
+    static long[] tree;
+
+    static int lowerBound(int[] arr, int from, int to, long target) {
+        while (from < to) {
+            int mid = (from + to) >>> 1;
+            if (arr[mid] < target) from = mid + 1;
+            else to = mid;
+        }
+        return from;
+    }
+
+    static int upperBound(int[] arr, int from, int to, long target) {
+        while (from < to) {
+            int mid = (from + to) >>> 1;
+            if (arr[mid] <= target) from = mid + 1;
+            else to = mid;
+        }
+        return from;
+    }
+
+    static long queryNode(int node, long lonLow, long lonHigh) {
+        int c = lonsCount[node];
+        if (c == 0) return 0;
+        int s = lonsStart[node];
+        int L = lowerBound(lonsArr, s, s + c, lonLow) - s;
+        int R = upperBound(lonsArr, s, s + c, lonHigh) - s;
+        if (L >= R) return 0;
+        int sz = treeSize[node];
+        int base = treeStart[node];
+        int l = L + sz, r = R + sz;
+        long res = 0;
+        while (l < r) {
+            if ((l & 1) == 1) { long v = tree[base + l]; if (v > res) res = v; l++; }
+            if ((r & 1) == 1) { r--; long v = tree[base + r]; if (v > res) res = v; }
+            l >>= 1; r >>= 1;
+        }
+        return res;
+    }
+
+    static void updateNode(int node, int lon, long val) {
+        int c = lonsCount[node];
+        int s = lonsStart[node];
+        int lo = lowerBound(lonsArr, s, s + c, lon) - s;
+        int sz = treeSize[node];
+        int base = treeStart[node];
+        int pos = lo + sz;
+        if (tree[base + pos] >= val) return;
+        tree[base + pos] = val;
+        pos >>= 1;
+        while (pos > 0) {
+            long nv = tree[base + (pos << 1)];
+            long v2 = tree[base + (pos << 1 | 1)];
+            if (v2 > nv) nv = v2;
+            if (tree[base + pos] == nv) break;
+            tree[base + pos] = nv;
+            pos >>= 1;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+        int dLat = fs.nextInt();
+        int dLon = fs.nextInt();
+
+        int[] lat    = new int[n];
+        int[] lon    = new int[n];
+        int[] height = new int[n];
+        int[] points = new int[n];
+        for (int i = 0; i < n; i++) {
+            lat[i]    = fs.nextInt();
+            lon[i]    = fs.nextInt();
+            height[i] = fs.nextInt();
+            points[i] = fs.nextInt();
+        }
+
+        long[] enc = new long[n];
+        for (int i = 0; i < n; i++) enc[i] = ((long)(height[i] + 2_000_000_000L) << 20) | i;
+        Arrays.sort(enc);
+        int[] order = new int[n];
+        for (int i = 0; i < n; i++) order[i] = (int)(enc[i] & 0xFFFFF);
+
+        int[] sortedLats = lat.clone();
+        Arrays.sort(sortedLats);
+        int m = 1;
+        for (int i = 1; i < n; i++)
+            if (sortedLats[i] != sortedLats[m - 1]) sortedLats[m++] = sortedLats[i];
+        int[] latVals = Arrays.copyOf(sortedLats, m);
+
+        int sizeLat = 1;
+        while (sizeLat < m) sizeLat <<= 1;
+        int numNodes = 2 * sizeLat;
+
+        int[] latIdxArr = new int[n];
+        int[] cnt = new int[numNodes];
+        for (int i = 0; i < n; i++) {
+            int idx = lowerBound(latVals, 0, m, lat[i]);
+            latIdxArr[i] = idx;
+            int node = sizeLat + idx;
+            while (node > 0) { cnt[node]++; node >>= 1; }
+        }
+
+        lonsStart = new int[numNodes + 1];
+        for (int i = 0; i < numNodes; i++) lonsStart[i + 1] = lonsStart[i] + cnt[i];
+        lonsArr = new int[lonsStart[numNodes]];
+        int[] fillPos = lonsStart.clone();
+        for (int i = 0; i < n; i++) {
+            int node = sizeLat + latIdxArr[i];
+            int l = lon[i];
+            while (node > 0) { lonsArr[fillPos[node]++] = l; node >>= 1; }
+        }
+
+        lonsCount = new int[numNodes];
+        treeStart = new int[numNodes];
+        treeSize  = new int[numNodes];
+        long treeTotal = 0;
+        for (int i = 1; i < numNodes; i++) {
+            int s = lonsStart[i], e = lonsStart[i + 1];
+            int c = e - s;
+            if (c == 0) {
+                lonsCount[i] = 0;
+                treeSize[i]  = 1;
+                treeStart[i] = (int) treeTotal;
+                treeTotal += 2;
+                continue;
+            }
+            Arrays.sort(lonsArr, s, e);
+            int unique = 1;
+            for (int j = s + 1; j < e; j++)
+                if (lonsArr[j] != lonsArr[s + unique - 1]) lonsArr[s + unique++] = lonsArr[j];
+            lonsCount[i] = unique;
+            int sz = 1;
+            while (sz < unique) sz <<= 1;
+            treeSize[i]  = sz;
+            treeStart[i] = (int) treeTotal;
+            treeTotal += 2L * sz;
+        }
+        tree = new long[(int) treeTotal];
+
+        long maxTotal = 0;
+        long[] dpBuf = new long[n];
+        int i = 0;
+        while (i < n) {
+            int h = height[order[i]];
+            int j = i;
+            while (j < n && height[order[j]] == h) j++;
+
+            for (int k = i; k < j; k++) {
+                int c = order[k];
+                long latLow  = (long) lat[c] - dLat;
+                long latHigh = (long) lat[c] + dLat;
+
+                int lIdx = lowerBound(latVals, 0, m, latLow);
+                int rIdx = upperBound(latVals, 0, m, latHigh) - 1;
+
+                long bestPrev = 0;
+                if (lIdx <= rIdx) {
+                    int l = lIdx + sizeLat;
+                    int r = rIdx + sizeLat + 1;
+                    long lonLow  = (long) lon[c] - dLon;
+                    long lonHigh = (long) lon[c] + dLon;
+                    while (l < r) {
+                        if ((l & 1) == 1) {
+                            long v = queryNode(l, lonLow, lonHigh);
+                            if (v > bestPrev) bestPrev = v;
+                            l++;
+                        }
+                        if ((r & 1) == 1) {
+                            r--;
+                            long v = queryNode(r, lonLow, lonHigh);
+                            if (v > bestPrev) bestPrev = v;
+                        }
+                        l >>= 1; r >>= 1;
+                    }
+                }
+                long dp = points[c] + bestPrev;
+                dpBuf[k] = dp;
+                if (dp > maxTotal) maxTotal = dp;
+            }
+
+            for (int k = i; k < j; k++) {
+                int c = order[k];
+                long dp = dpBuf[k];
+                int node = sizeLat + latIdxArr[c];
+                while (node > 0) {
+                    updateNode(node, lon[c], dp);
+                    node >>= 1;
+                }
+            }
+            i = j;
+        }
+
+        System.out.println(maxTotal);
+    }
+}
