@@ -1,0 +1,255 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Piece {
+        char c;
+        int row, col;
+        Piece(char c, int row, int col) {
+            this.c = c;
+            this.row = row;
+            this.col = col;
+        }
+    }
+
+    static class Feature {
+        int Qi = -1, Qj = -1, qi = -1, qj = -1;
+        List<Piece> wpieces = new ArrayList<>();
+        List<Piece> bpieces = new ArrayList<>();
+    }
+
+    static class Move {
+        int srcRow, srcCol, dstRow, dstCol;
+        char srcPiece, dstPiece;
+        Move(int srcRow, int srcCol, char srcPiece, int dstRow, int dstCol, char dstPiece) {
+            this.srcRow = srcRow;
+            this.srcCol = srcCol;
+            this.srcPiece = srcPiece;
+            this.dstRow = dstRow;
+            this.dstCol = dstCol;
+            this.dstPiece = dstPiece;
+        }
+    }
+
+    static boolean isWhite(char c) {
+        return c == 'Q' || c == 'N' || c == 'B' || c == 'R';
+    }
+
+    static boolean isBlack(char c) {
+        return c == 'q' || c == 'n' || c == 'b' || c == 'r';
+    }
+
+    static Feature getFeature(char[][] chess) {
+        Feature f = new Feature();
+        for (int i = 0; i < 4; i++) {
+            for (int j = 0; j < 4; j++) {
+                char c = chess[i][j];
+                if (c == '.' || c == 0) continue;
+
+                Piece p = new Piece(c, i, j);
+                if (isWhite(c)) {
+                    f.wpieces.add(p);
+                    if (c == 'Q') {
+                        f.Qi = i;
+                        f.Qj = j;
+                    }
+                } else if (isBlack(c)) {
+                    f.bpieces.add(p);
+                    if (c == 'q') {
+                        f.qi = i;
+                        f.qj = j;
+                    }
+                }
+            }
+        }
+        return f;
+    }
+
+    static boolean isTarget(char[][] chess, Piece piece, int row, int col) {
+        char p = piece.c;
+        char pUpper = Character.toUpperCase(p);
+        int pr = piece.row, pc = piece.col;
+
+        if (pUpper == 'N') {
+            int rdiff = Math.abs(pr - row);
+            int cdiff = Math.abs(pc - col);
+            return (rdiff == 2 && cdiff == 1) || (rdiff == 1 && cdiff == 2);
+        }
+
+        List<int[]> dirs = new ArrayList<>();
+        if (pUpper == 'Q' || pUpper == 'R') {
+            dirs.add(new int[]{0, 1});
+            dirs.add(new int[]{0, -1});
+            dirs.add(new int[]{1, 0});
+            dirs.add(new int[]{-1, 0});
+        }
+        if (pUpper == 'Q' || pUpper == 'B') {
+            dirs.add(new int[]{1, 1});
+            dirs.add(new int[]{-1, -1});
+            dirs.add(new int[]{1, -1});
+            dirs.add(new int[]{-1, 1});
+        }
+
+        for (int[] d : dirs) {
+            int cr = pr + d[0];
+            int cc = pc + d[1];
+            while (cr >= 0 && cr < 4 && cc >= 0 && cc < 4) {
+                if (cr == row && cc == col) return true;
+                if (chess[cr][cc] != '.') break;
+                cr += d[0];
+                cc += d[1];
+            }
+        }
+        return false;
+    }
+
+    static List<Move> getValidMoves(char[][] chess, List<Piece> pieces) {
+        List<Move> res = new ArrayList<>();
+        if (pieces.isEmpty()) return res;
+
+        boolean whiteMoving = isWhite(pieces.get(0).c);
+
+        for (int r = 0; r < 4; r++) {
+            for (int c = 0; c < 4; c++) {
+                char target = chess[r][c];
+                if (target != '.') {
+                    if (whiteMoving && isWhite(target)) continue;
+                    if (!whiteMoving && isBlack(target)) continue;
+                }
+                for (Piece p : pieces) {
+                    if (isTarget(chess, p, r, c)) {
+                        res.add(new Move(p.row, p.col, p.c, r, c, target));
+                    }
+                }
+            }
+        }
+        return res;
+    }
+
+    static boolean evaluate(char[][] chess, int m, int step) {
+        Feature f = getFeature(chess);
+
+        // White's Turn (Odd steps)
+        if (step % 2 == 1) {
+            // Check if White can capture Black Queen right now
+            for (Piece p : f.wpieces) {
+                if (isTarget(chess, p, f.qi, f.qj)) {
+                    return true;
+                }
+            }
+        }
+
+        if (step == m) {
+            return false;
+        }
+
+        if (step % 2 == 1) {
+            for (Move move : getValidMoves(chess, f.wpieces)) {
+                // Make move
+                chess[move.dstRow][move.dstCol] = move.srcPiece;
+                chess[move.srcRow][move.srcCol] = '.';
+
+                // If this move puts White Queen in immediate danger, it's illegal/bad
+                Feature fNext = getFeature(chess);
+                boolean danger = false;
+                if (fNext.Qi >= 0) {
+                    for (Piece bp : fNext.bpieces) {
+                        if (isTarget(chess, bp, fNext.Qi, fNext.Qj)) {
+                            danger = true;
+                            break;
+                        }
+                    }
+                }
+                if (danger) {
+                    // Undo and skip
+                    chess[move.srcRow][move.srcCol] = move.srcPiece;
+                    chess[move.dstRow][move.dstCol] = move.dstPiece;
+                    continue;
+                }
+
+                if (evaluate(chess, m, step + 1)) {
+                    chess[move.srcRow][move.srcCol] = move.srcPiece;
+                    chess[move.dstRow][move.dstCol] = move.dstPiece;
+                    return true;
+                }
+
+                // Undo move
+                chess[move.srcRow][move.srcCol] = move.srcPiece;
+                chess[move.dstRow][move.dstCol] = move.dstPiece;
+            }
+            return false;
+        } else {
+            // Black's Turn (Even steps) - Must prevent White from winning
+            for (Move move : getValidMoves(chess, f.bpieces)) {
+                chess[move.dstRow][move.dstCol] = move.srcPiece;
+                chess[move.srcRow][move.srcCol] = '.';
+
+                if (!evaluate(chess, m, step + 1)) {
+                    chess[move.srcRow][move.srcCol] = move.srcPiece;
+                    chess[move.dstRow][move.dstCol] = move.dstPiece;
+                    return false;
+                }
+
+                chess[move.srcRow][move.srcCol] = move.srcPiece;
+                chess[move.dstRow][move.dstCol] = move.dstPiece;
+            }
+            return true;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line).append(' ');
+        }
+        String[] inputData = sb.toString().trim().split("\\s+");
+        if (inputData.length == 0 || inputData[0].isEmpty()) return;
+
+        int idx = 0;
+        int g = Integer.parseInt(inputData[idx++]);
+
+        StringBuilder out = new StringBuilder();
+
+        for (int t = 0; t < g; t++) {
+            int w = Integer.parseInt(inputData[idx++]);
+            int b = Integer.parseInt(inputData[idx++]);
+            int m = Integer.parseInt(inputData[idx++]);
+
+            char[][] chess = new char[4][4];
+            for (int i = 0; i < 4; i++) {
+                Arrays.fill(chess[i], '.');
+            }
+
+            for (int i = 0; i < w; i++) {
+                char piece = inputData[idx++].charAt(0);
+                int col = inputData[idx++].charAt(0) - 'A';
+                int row = 4 - (inputData[idx++].charAt(0) - '0');
+                chess[row][col] = piece;
+            }
+
+            for (int i = 0; i < b; i++) {
+                char piece = inputData[idx++].charAt(0);
+                int col = inputData[idx++].charAt(0) - 'A';
+                int row = 4 - (inputData[idx++].charAt(0) - '0');
+                chess[row][col] = Character.toLowerCase(piece);
+            }
+
+            if (m > 1 && m % 2 == 0) {
+                m -= 1;
+            }
+
+            out.append(evaluate(chess, m, 1) ? "YES" : "NO").append('\n');
+        }
+
+        bw.write(out.toString());
+        bw.flush();
+
+        br.close();
+        bw.close();
+    }
+}
