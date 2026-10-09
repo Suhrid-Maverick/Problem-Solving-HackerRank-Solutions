@@ -1,0 +1,55 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            long n = Long.parseLong(st.nextToken());
+            long k = Long.parseLong(st.nextToken());
+            long b = Long.parseLong(st.nextToken());
+
+            if (b > k) {
+                sb.append("-1\n");
+                continue;
+            }
+
+            long minSum = b * (b + 1) / 2;
+            if (n < minSum) {
+                sb.append("-1\n");
+                continue;
+            }
+
+            long left = n + b * (b - 1) / 2;
+            if ((left + b - 1) / b > k) {
+                sb.append("-1\n");
+                continue;
+            }
+
+            long[] arr = new long[(int) b];
+            for (int i = 0; i < b; i++) {
+                arr[i] = i + 1;
+            }
+
+            long extra = n - minSum;
+            long maxAdd = k - b;
+
+            for (int i = (int) b - 1; i >= 0 && extra > 0; i--) {
+                long add = Math.min(extra, maxAdd);
+                arr[i] += add;
+                extra -= add;
+            }
+
+            for (int i = 0; i < b; i++) {
+                if (i > 0) sb.append(' ');
+                sb.append(arr[i]);
+            }
+            sb.append('\n');
+        }
+        System.out.print(sb);
+    }
+}
