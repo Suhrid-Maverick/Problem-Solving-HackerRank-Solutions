@@ -1,0 +1,23 @@
+import java.util.Scanner;
+
+public class Main {
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int g = sc.nextInt();
+        while (g-- > 0) {
+            int n = sc.nextInt();
+            int x = 0;
+            for (int i = 0; i < n; i++) {
+                int v = sc.nextInt();
+                if ((v & 1) == 1) {
+                    v++;
+                } else {
+                    v--;
+                }
+                x ^= v;
+            }
+            System.out.println(x == 0 ? "L" : "W");
+        }
+        sc.close();
+    }
+}
