@@ -1,0 +1,94 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int q = Integer.parseInt(st.nextToken());
+
+        int[] nArr = new int[q];
+        long[] kArr = new long[q];
+        int maxN = 0;
+        for (int i = 0; i < q; i++) {
+            st = new StringTokenizer(br.readLine());
+            nArr[i] = Integer.parseInt(st.nextToken());
+            kArr[i] = Long.parseLong(st.nextToken());
+            if (nArr[i] > maxN) maxN = nArr[i];
+        }
+
+        long[] min = new long[maxN + 1];
+        long[] max = new long[maxN + 1];
+        min[0] = 0;
+        if (maxN >= 1) min[1] = 0;
+        for (int i = 2; i <= maxN; i++) {
+            min[i] = min[i - 1] + (31 - Integer.numberOfLeadingZeros(i));
+        }
+        for (int i = 1; i <= maxN; i++) {
+            max[i] = (long) i * (i - 1) / 2;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < q; i++) {
+            int n = nArr[i];
+            long k = kArr[i];
+            if (k < min[n] || k > max[n]) {
+                sb.append("-1\n");
+                continue;
+            }
+
+            int[] st_n = new int[n + 1];
+            long[] st_k = new long[n + 1];
+            int[] st_off = new int[n + 1];
+            int top = 0;
+            st_n[top] = n;
+            st_k[top] = k;
+            st_off[top] = 0;
+            top++;
+
+            List<Integer> result = new ArrayList<>(n);
+            while (top > 0) {
+                top--;
+                int cur_n = st_n[top];
+                long cur_k = st_k[top];
+                int cur_off = st_off[top];
+                if (cur_n == 0) continue;
+                if (cur_n == 1) {
+                    result.add(cur_off + 1);
+                    continue;
+                }
+                long k_prime = cur_k - (cur_n - 1);
+                int L = 0;
+                while (true) {
+                    int R = cur_n - 1 - L;
+                    if (min[L] + min[R] <= k_prime && k_prime <= max[L] + max[R]) {
+                        break;
+                    }
+                    L++;
+                }
+                int R = cur_n - 1 - L;
+                long k1 = Math.max(min[L], k_prime - max[R]);
+                long k2 = k_prime - k1;
+                int root_val = cur_off + L + 1;
+                result.add(root_val);
+
+                st_n[top] = R;
+                st_k[top] = k2;
+                st_off[top] = cur_off + L + 1;
+                top++;
+
+                st_n[top] = L;
+                st_k[top] = k1;
+                st_off[top] = cur_off;
+                top++;
+            }
+
+            for (int j = 0; j < result.size(); j++) {
+                if (j > 0) sb.append(' ');
+                sb.append(result.get(j));
+            }
+            sb.append('\n');
+        }
+        System.out.print(sb);
+    }
+}
