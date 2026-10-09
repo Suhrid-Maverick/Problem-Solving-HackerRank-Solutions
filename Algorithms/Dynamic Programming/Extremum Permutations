@@ -1,0 +1,85 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1000000007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int N = Integer.parseInt(st.nextToken());
+        int K = Integer.parseInt(st.nextToken());
+        int L = Integer.parseInt(st.nextToken());
+
+        char[] pattern = new char[N - 1];
+        Arrays.fill(pattern, '?');
+
+        // Process local minima (A)
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < K; i++) {
+            int a = Integer.parseInt(st.nextToken());
+            // edge a-1: left > right  -> '>'
+            if (!set(pattern, a - 2, '>')) { System.out.println(0); return; }
+            // edge a: left < right    -> '<'
+            if (!set(pattern, a - 1, '<')) { System.out.println(0); return; }
+        }
+
+        // Process local maxima (B)
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < L; i++) {
+            int b = Integer.parseInt(st.nextToken());
+            // edge b-1: left < right  -> '<'
+            if (!set(pattern, b - 2, '<')) { System.out.println(0); return; }
+            // edge b: left > right    -> '>'
+            if (!set(pattern, b - 1, '>')) { System.out.println(0); return; }
+        }
+
+        // DP over permutations with given partial up/down pattern
+        int[] dp = new int[N + 1];
+        dp[1] = 1;
+
+        for (int i = 2; i <= N; i++) {
+            int[] newdp = new int[i + 1];
+            long total = 0;
+            for (int j = 1; j < i; j++) {
+                total += dp[j];
+            }
+            total %= MOD;
+
+            int[] pref = new int[i];
+            pref[0] = 0;
+            for (int j = 1; j < i; j++) {
+                pref[j] = pref[j - 1] + dp[j];
+                if (pref[j] >= MOD) pref[j] -= MOD;
+            }
+
+            char c = pattern[i - 2];
+            for (int j = 1; j <= i; j++) {
+                if (c == '<') {
+                    newdp[j] = pref[j - 1];
+                } else if (c == '>') {
+                    int val = pref[i - 1] - pref[j - 1];
+                    if (val < 0) val += MOD;
+                    newdp[j] = val;
+                } else {
+                    newdp[j] = (int) total;
+                }
+            }
+            dp = newdp;
+        }
+
+        long ans = 0;
+        for (int j = 1; j <= N; j++) {
+            ans += dp[j];
+        }
+        ans %= MOD;
+        System.out.println(ans);
+    }
+
+    private static boolean set(char[] pattern, int idx, char c) {
+        if (idx < 0 || idx >= pattern.length) return true; // safety
+        if (pattern[idx] != '?' && pattern[idx] != c) return false;
+        pattern[idx] = c;
+        return true;
+    }
+}
