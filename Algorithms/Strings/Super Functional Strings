@@ -1,0 +1,124 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1_000_000_007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        String[] ss = new String[T];
+        int maxLen = 0;
+        for (int i = 0; i < T; i++) {
+            ss[i] = br.readLine().trim();
+            maxLen = Math.max(maxLen, ss[i].length());
+        }
+        // pref[D][L] = sum_{l=1..L} l^D mod MOD
+        int[][] pref = new int[27][maxLen + 1];
+        for (int L = 1; L <= maxLen; L++) {
+            long v = 1;
+            for (int D = 0; D <= 26; D++) {
+                pref[D][L] = (int)((pref[D][L - 1] + v) % MOD);
+                v = v * L % MOD;
+            }
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String s : ss) sb.append(solve(s, pref)).append('\n');
+        System.out.print(sb);
+    }
+
+    static int solve(String s, int[][] pref) {
+        int n = s.length();
+        if (n == 0) return 0;
+
+        int[] sa = suffixArray(s);
+
+        // LCP via Kasai
+        int[] rankInv = new int[n], lcp = new int[n];
+        for (int i = 0; i < n; i++) rankInv[sa[i]] = i;
+        int h = 0;
+        for (int i = 0; i < n; i++) {
+            if (rankInv[i] > 0) {
+                int j = sa[rankInv[i] - 1];
+                while (i + h < n && j + h < n && s.charAt(i + h) == s.charAt(j + h)) h++;
+                lcp[rankInv[i]] = h;
+                if (h > 0) h--;
+            }
+        }
+
+        // nextOcc[i][c] = first index >= i where character c occurs
+        int[][] nextOcc = new int[n][26];
+        int[] last = new int[26];
+        Arrays.fill(last, n);
+        for (int i = n - 1; i >= 0; i--) {
+            last[s.charAt(i) - 'a'] = i;          // include self first
+            System.arraycopy(last, 0, nextOcc[i], 0, 26);
+        }
+
+        long ans = 0;
+        int[] buf = new int[26];
+        for (int i = 0; i < n; i++) {
+            int pos = sa[i];
+            int minLen = (i == 0) ? 1 : lcp[i] + 1;
+            int maxLen = n - pos;
+            if (minLen > maxLen) continue;
+
+            int k = 0;
+            for (int c = 0; c < 26; c++)
+                if (nextOcc[pos][c] < n) buf[k++] = nextOcc[pos][c];
+            Arrays.sort(buf, 0, k);
+
+            for (int idx = 0; idx < k; idx++) {
+                int rs = (idx == 0) ? 1 : buf[idx] - pos + 1;
+                int re = (idx + 1 < k) ? buf[idx + 1] - pos : maxLen;
+                int from = Math.max(minLen, rs);
+                int to = Math.min(maxLen, re);
+                if (from <= to) {
+                    int D = idx + 1;
+                    long sum = (pref[D][to] - pref[D][from - 1] + MOD) % MOD;
+                    ans = (ans + sum) % MOD;
+                }
+                if (re >= maxLen) break;
+            }
+        }
+        return (int) ans;
+    }
+
+    static int[] suffixArray(String s) {
+        int n = s.length();
+        int[] sa = new int[n], rank = new int[n], newRank = new int[n], sa2 = new int[n];
+        int cntSize = Math.max(n + 2, 28);   // accommodate initial char ranks (1..26 -> idx 2..27)
+        int[] cnt = new int[cntSize];
+        for (int i = 0; i < n; i++) { sa[i] = i; rank[i] = s.charAt(i) - 'a' + 1; }
+
+        for (int k = 1; ; k <<= 1) {
+            // stable sort by second key (sentinel = -1)
+            Arrays.fill(cnt, 0);
+            for (int i = 0; i < n; i++) {
+                int key = (sa[i] + k < n) ? rank[sa[i] + k] : -1;
+                cnt[key + 1]++;
+            }
+            for (int i = 1; i < cntSize; i++) cnt[i] += cnt[i - 1];
+            for (int i = n - 1; i >= 0; i--) {
+                int key = (sa[i] + k < n) ? rank[sa[i] + k] : -1;
+                sa2[--cnt[key + 1]] = sa[i];
+            }
+            // stable sort by first key
+            Arrays.fill(cnt, 0);
+            for (int i = 0; i < n; i++) cnt[rank[sa2[i]] + 1]++;
+            for (int i = 1; i < cntSize; i++) cnt[i] += cnt[i - 1];
+            for (int i = n - 1; i >= 0; i--) sa[--cnt[rank[sa2[i]] + 1]] = sa2[i];
+
+            newRank[sa[0]] = 0;
+            for (int i = 1; i < n; i++) {
+                int p = sa[i - 1], c = sa[i];
+                int pk = (p + k < n) ? rank[p + k] : -1;
+                int ck = (c + k < n) ? rank[c + k] : -1;
+                newRank[c] = newRank[p] + ((rank[p] != rank[c] || pk != ck) ? 1 : 0);
+            }
+            System.arraycopy(newRank, 0, rank, 0, n);
+            if (rank[sa[n - 1]] == n - 1) break;
+        }
+        return sa;
+    }
+}
