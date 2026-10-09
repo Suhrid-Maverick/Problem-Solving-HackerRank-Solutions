@@ -1,0 +1,124 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MOD = 1_000_000_007;
+
+    static class Solve {
+        int[] exceed = new int[55];
+        int numErased;
+        int sCount;
+        int scores;
+        int dp[][][] = new int[42][42][42 * 41];
+        int[][][] calced = new int[42][42][42 * 41];
+        int calcedn;
+        int[][] c = new int[55][55];
+
+        void init() {
+            for (int i = 0; i < 50; ++i) {
+                c[i][0] = 1;
+                for (int j = 1; j <= i; ++j) {
+                    c[i][j] = (c[i - 1][j] + c[i - 1][j - 1]) % MOD;
+                }
+            }
+        }
+
+        int calc(int k, int last, int sum) {
+            if (k == numErased) {
+                return (scores + sum == sCount * (sCount - 1) / 2) ? 1 : 0;
+            }
+
+            if (last >= sCount) {
+                return 0;
+            }
+
+            int ans = dp[k][last][sum];
+
+            if (calced[k][last][sum] == calcedn) {
+                return ans;
+            }
+            calced[k][last][sum] = calcedn;
+
+            ans = calc(k, last + 1, sum);
+            int sumi = sum;
+            for (int i = 1; k + i <= numErased; i++) {
+                sumi += last;
+                if (sumi + exceed[k + i] < (k + i) * (k + i - 1) / 2) {
+                    break;
+                }
+
+                ans = (int) ((ans + 1L * c[numErased - k][i] * calc(k + i, last + 1, sumi)) % MOD);
+            }
+            dp[k][last][sum] = ans;
+            return ans;
+        }
+
+        int countScorecards(int[] s, int n, int sCount, int numErased) {
+            this.sCount = sCount;
+            this.numErased = numErased;
+
+            Arrays.sort(s, 0, n);
+
+            int sum = 0;
+            for (int i = 0; i < n; ++i) {
+                sum += s[i];
+                if (i * (i + 1) / 2 > sum) {
+                    return 0;
+                }
+            }
+            scores = sum;
+
+            for (int i = 1; i <= numErased; ++i) {
+                sum = 0;
+                exceed[i] = 0;
+                for (int j = 0; j < n; ++j) {
+                    sum += s[j] - (i + j);
+                    exceed[i] = Math.min(exceed[i], sum);
+                }
+            }
+            calcedn++;
+            return calc(0, 0, 0);
+        }
+
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+
+        Solve solve = new Solve();
+        solve.init();
+
+        int[] s = new int[55];
+
+        for (int it = 0; it < t; it++) {
+            st = new StringTokenizer(br.readLine());
+            int sCount = Integer.parseInt(st.nextToken());
+            int n = 0;
+            int numErased = 0;
+
+            st = new StringTokenizer(br.readLine());
+
+            for (int j = 0; j < sCount; j++) {
+                int item = Integer.parseInt(st.nextToken());
+                if (item == -1) {
+                    numErased++;
+                } else {
+                    s[n++] = item;
+                }
+            }
+
+            int result = solve.countScorecards(s, n, sCount, numErased);
+
+            bw.write(String.valueOf(result));
+            bw.newLine();
+        }
+
+        bw.close();
+        br.close();
+    }
+}
