@@ -1,0 +1,22 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int year = Integer.parseInt(br.readLine().trim());
+
+        int day;
+
+        if (year == 1918) {
+            System.out.println("26.09.1918");
+            return;
+        } else if (year < 1918) {
+            day = (year % 4 == 0) ? 12 : 13;
+        } else {
+            boolean leap = (year % 400 == 0) || (year % 4 == 0 && year % 100 != 0);
+            day = leap ? 12 : 13;
+        }
+
+        System.out.printf("%02d.09.%d%n", day, year);
+    }
+}
