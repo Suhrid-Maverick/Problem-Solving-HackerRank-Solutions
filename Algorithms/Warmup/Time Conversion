@@ -1,0 +1,20 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine().trim();
+
+        int hour = Integer.parseInt(s.substring(0, 2));
+        String rest = s.substring(2, 8); // :mm:ss
+        String period = s.substring(8);  // AM or PM
+
+        if (period.equals("AM")) {
+            if (hour == 12) hour = 0;
+        } else {
+            if (hour != 12) hour += 12;
+        }
+
+        System.out.printf("%02d%s%n", hour, rest);
+    }
+}
