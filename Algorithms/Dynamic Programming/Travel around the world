@@ -1,0 +1,94 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final long INF = Long.MAX_VALUE / 4;
+
+    static class Node {
+        long Kf, Sf, Kmin, Smin;
+        Node(long Kf, long Sf, long Kmin, long Smin) {
+            this.Kf = Kf;
+            this.Sf = Sf;
+            this.Kmin = Kmin;
+            this.Smin = Smin;
+        }
+    }
+
+    static final Node NEUTRAL = new Node(INF, 0, INF, INF);
+
+    static Node combine(Node L, Node R) {
+        long Kf = Math.min(R.Kf, L.Kf + R.Sf);
+        long Sf = L.Sf + R.Sf;
+        long KminB = Math.min(R.Kmin, L.Kf + R.Smin);
+        long SminB = L.Sf + R.Smin;
+        long Kmin = Math.min(L.Kmin, KminB);
+        long Smin = Math.min(L.Smin, SminB);
+        return new Node(Kf, Sf, Kmin, Smin);
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int N = Integer.parseInt(st.nextToken());
+        long C = Long.parseLong(st.nextToken());
+
+        long[] a = new long[N];
+        long[] b = new long[N];
+
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < N; i++) a[i] = Long.parseLong(st.nextToken());
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < N; i++) b[i] = Long.parseLong(st.nextToken());
+
+        int M = 2 * N;
+        int size = 1;
+        while (size < M) size <<= 1;
+
+        Node[] tree = new Node[2 * size];
+        Arrays.fill(tree, NEUTRAL);
+
+        for (int i = 0; i < M; i++) {
+            int idx = i % N;
+            long d = a[idx] - b[idx];
+            long Kf = C - b[idx];
+            long Sf = d;
+            long Kmin = C - b[idx];
+            long Smin = Math.min(0, d);
+            tree[size + i] = new Node(Kf, Sf, Kmin, Smin);
+        }
+
+        for (int i = size - 1; i >= 1; i--) {
+            tree[i] = combine(tree[2 * i], tree[2 * i + 1]);
+        }
+
+        int count = 0;
+        for (int i = 0; i < N; i++) {
+            int l = i;
+            int r = i + N - 1;
+            Node leftRes = NEUTRAL;
+            Node rightRes = NEUTRAL;
+            int L = l + size;
+            int R = r + size;
+
+            while (L <= R) {
+                if ((L & 1) == 1) {
+                    leftRes = combine(leftRes, tree[L]);
+                    L++;
+                }
+                if ((R & 1) == 0) {
+                    rightRes = combine(tree[R], rightRes);
+                    R--;
+                }
+                L >>= 1;
+                R >>= 1;
+            }
+
+            Node res = combine(leftRes, rightRes);
+            if (res.Kmin >= 0 && res.Smin >= 0) {
+                count++;
+            }
+        }
+
+        System.out.println(count);
+    }
+}
