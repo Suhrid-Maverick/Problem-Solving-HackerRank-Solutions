@@ -1,0 +1,52 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Heap {
+        private final PriorityQueue<Integer> heap = new PriorityQueue<>();
+        private final Map<Integer, Integer> counts = new HashMap<>();
+
+        public void insert(int val) {
+            heap.offer(val);
+            counts.put(val, counts.getOrDefault(val, 0) + 1);
+        }
+
+        public void delete(int val) {
+            if (counts.getOrDefault(val, 0) > 0) {
+                counts.put(val, counts.get(val) - 1);
+            }
+        }
+
+        public Integer minimum() {
+            while (!heap.isEmpty() && counts.getOrDefault(heap.peek(), 0) == 0) {
+                heap.poll();
+            }
+            return heap.isEmpty() ? null : heap.peek();
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        int q = Integer.parseInt(br.readLine().trim());
+        Heap heap = new Heap();
+
+        for (int i = 0; i < q; i++) {
+            String[] parts = br.readLine().trim().split(" ");
+            int op = Integer.parseInt(parts[0]);
+
+            if (op == 1) {
+                heap.insert(Integer.parseInt(parts[1]));
+            } else if (op == 2) {
+                heap.delete(Integer.parseInt(parts[1]));
+            } else {
+                Integer min = heap.minimum();
+                sb.append(min == null ? "null" : min.toString()).append("\n");
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
