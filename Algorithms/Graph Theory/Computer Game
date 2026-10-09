@@ -1,0 +1,162 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    private static BufferedReader in;
+    private static Integer n, pi, vn, source, dest, result;
+    private static Map<Integer, Integer> primeNodes;
+    private static Integer[] primeSieve;
+    private static List<Edge>[] graph;
+
+    public static void main(String args[]) throws IOException {
+        String[] s;
+        int[] n1, n2;
+        in = new BufferedReader(new InputStreamReader(System.in));
+        n = Integer.parseInt(in.readLine());
+        n1 = new int[n];
+        s = in.readLine().split("\\s");
+        for (int i = 0; i < n; i++)
+            n1[i] = Integer.parseInt(s[i]);
+        n2 = new int[n];
+        s = in.readLine().split("\\s");
+        for (int i = 0; i < n; i++)
+            n2[i] = Integer.parseInt(s[i]);
+
+        source = 0;
+        dest = 1;
+        graph = createGraph(300000);
+        primeNodes = new HashMap<>();
+        primeSieve = primeSieve(1000000000);
+        for (int i = 0; i < n; i++) {
+            vn = i + 2;
+            addEdge(graph, source, vn, 1);
+            for (Integer p : primeFactors(n1[i], primeSieve)) {
+                pi = primeNodes.get(p);
+                if (pi == null) {
+                    pi = n * 2 + primeNodes.size() + 1;
+                    primeNodes.put(p, pi);
+                }
+                addEdge(graph, vn, pi, 1);
+            }
+        }
+        for (int i = 0; i < n; i++) {
+            vn = n + i + 2;
+            addEdge(graph, vn, dest, 1);
+            for (Integer p : primeFactors(n2[i], primeSieve)) {
+                pi = primeNodes.get(p);
+                if (pi != null)
+                    addEdge(graph, pi, vn, 1);
+            }
+        }
+        result = maxFlow(graph, source, dest);
+        System.out.println(result);
+    }
+
+    private static Integer[] primeSieve(int max) {
+        List<Integer> sieve = new ArrayList<>();
+        int[] divisor = new int[(int) Math.sqrt(max) - 2];
+        boolean[] prime = new boolean[(int) Math.sqrt(max) + 3];
+        Arrays.fill(prime, true);
+        for (int i = 2; i < prime.length; i++) {
+            if (!prime[i])
+                continue;
+            divisor[i] = i;
+            int j = i * i;
+            while (j < prime.length) {
+                prime[j] = false;
+                if (j < divisor.length)
+                    divisor[j] = i;
+                j += i;
+            }
+            sieve.add(i);
+        }
+        return sieve.toArray(new Integer[0]);
+    }
+
+    private static Set<Integer> primeFactors(int n, Integer[] primeSieve) {
+        final Set<Integer> primes = new HashSet<>();
+        for (Integer p : primeSieve) {
+            if (p > Math.sqrt(n) + 1) break;
+            while (n % p == 0) {
+                primes.add(p);
+                n /= p;
+            }
+        }
+        if (n > 2)
+            primes.add(n);
+        return primes;
+    }
+
+    private static List<Edge>[] createGraph(int nodes) {
+        List<Edge>[] graph = new List[nodes];
+        for (int i = 0; i < nodes; i++)
+            graph[i] = new ArrayList<>();
+        return graph;
+    }
+
+    private static void addEdge(List<Edge>[] graph, int s, int t, int cap) {
+        graph[s].add(new Edge(t, graph[t].size(), cap));
+        graph[t].add(new Edge(s, graph[s].size() - 1, 0));
+    }
+
+    private static boolean BFS(List<Edge>[] graph, int src, int dest, int[] dist) {
+        Arrays.fill(dist, -1);
+        dist[src] = 0;
+        int[] Q = new int[graph.length];
+        int sizeQ = 0;
+        Q[sizeQ++] = src;
+        for (int i = 0; i < sizeQ; i++) {
+            int u = Q[i];
+            for (Edge e : graph[u])
+                if (dist[e.t] < 0 && e.f < e.cap) {
+                    dist[e.t] = dist[u] + 1;
+                    Q[sizeQ++] = e.t;
+                }
+        }
+        return dist[dest] >= 0;
+    }
+
+    private static int DFS(List<Edge>[] graph, int[] ptr, int[] dist, int dest, int u, int f) {
+        if (u == dest)
+            return f;
+        for (; ptr[u] < graph[u].size(); ++ptr[u]) {
+            Edge e = graph[u].get(ptr[u]);
+            if (dist[e.t] == dist[u] + 1 && e.f < e.cap) {
+                int df = DFS(graph, ptr, dist, dest, e.t, Math.min(f, e.cap - e.f));
+                if (df > 0) {
+                    e.f += df;
+                    graph[e.t].get(e.rev).f -= df;
+                    return df;
+                }
+            }
+        }
+        return 0;
+    }
+
+    private static int maxFlow(List<Edge>[] graph, int src, int dest) {
+        int flow = 0;
+        int[] dist = new int[graph.length];
+        while (BFS(graph, src, dest, dist)) {
+            int[] ptr = new int[graph.length];
+            while (true) {
+                int df = DFS(graph, ptr, dist, dest, src, Integer.MAX_VALUE);
+                if (df == 0)
+                    break;
+                flow += df;
+            }
+        }
+        return flow;
+    }
+
+    private static class Edge {
+
+        int t, rev, cap, f;
+
+        public Edge(int t, int rev, int cap) {
+            this.t = t;
+            this.rev = rev;
+            this.cap = cap;
+        }
+    }
+}
