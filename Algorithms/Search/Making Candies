@@ -1,0 +1,70 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static long minimumPasses(long m, long w, long p, long n) {
+        long low = 1;
+        long high = (long) 1e12;
+        while (low < high) {
+            long mid = low + (high - low) / 2;
+            if (canAchieve(m, w, p, n, mid)) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return low;
+    }
+
+    static boolean canAchieve(long m, long w, long p, long target, long rounds) {
+        if (m >= (target + w - 1) / w) {
+            return true;
+        }
+        long candies = m * w;
+        rounds--;
+        if (rounds == 0) {
+            return false;
+        }
+        while (true) {
+            long remaining = target - candies;
+            long needed = (remaining + m * w - 1) / (m * w);
+            if (rounds >= needed) {
+                return true;
+            }
+            if (candies < p) {
+                remaining = p - candies;
+                needed = (remaining + m * w - 1) / (m * w);
+                rounds -= needed;
+                if (rounds < 1) {
+                    return false;
+                }
+                candies += needed * m * w;
+            }
+            candies -= p;
+            if (m > w) {
+                w++;
+            } else {
+                m++;
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String[] parts = br.readLine().trim().split("\\s+");
+        long m = Long.parseLong(parts[0]);
+        long w = Long.parseLong(parts[1]);
+        long p = Long.parseLong(parts[2]);
+        long n = Long.parseLong(parts[3]);
+
+        long result = minimumPasses(m, w, p, n);
+
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+        bw.write(String.valueOf(result));
+        bw.newLine();
+        bw.flush();
+        bw.close();
+        br.close();
+    }
+}
