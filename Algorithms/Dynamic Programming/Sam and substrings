@@ -1,0 +1,40 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String n = br.readLine().trim();
+        int L = n.length();
+
+        long[] pow10 = new long[L + 1];
+        pow10[0] = 1;
+        for (int i = 1; i <= L; i++) {
+            pow10[i] = (pow10[i - 1] * 10) % MOD;
+        }
+
+        long inv9 = modPow(9, MOD - 2);
+        long ans = 0;
+
+        for (int i = 0; i < L; i++) {
+            int d = n.charAt(i) - '0';
+            long sumPowers = (pow10[L - i] - 1 + MOD) % MOD * inv9 % MOD;
+            ans = (ans + d * (i + 1) % MOD * sumPowers) % MOD;
+        }
+
+        System.out.println(ans);
+    }
+
+    private static long modPow(long base, long exp) {
+        long res = 1;
+        base %= MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) res = (res * base) % MOD;
+            base = (base * base) % MOD;
+            exp >>= 1;
+        }
+        return res;
+    }
+}
