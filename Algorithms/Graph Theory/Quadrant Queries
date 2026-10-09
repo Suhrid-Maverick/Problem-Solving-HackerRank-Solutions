@@ -1,0 +1,150 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+
+        char nextChar() throws IOException {
+            return next().charAt(0);
+        }
+    }
+
+    static class SegTree {
+        int n;
+        int[][] t;
+        boolean[] lx, ly;
+
+        SegTree(int n, int[] q) {
+            this.n = n;
+            int size = 4 * n + 5;
+            t = new int[4][size];
+            lx = new boolean[size];
+            ly = new boolean[size];
+            build(1, 1, n, q);
+        }
+
+        void build(int v, int l, int r, int[] q) {
+            if (l == r) {
+                if (q[l] >= 0) t[q[l]][v] = 1;
+                return;
+            }
+            int m = (l + r) >> 1;
+            build(v << 1, l, m, q);
+            build(v << 1 | 1, m + 1, r, q);
+            pull(v);
+        }
+
+        void pull(int v) {
+            int L = v << 1, R = L | 1;
+            t[0][v] = t[0][L] + t[0][R];
+            t[1][v] = t[1][L] + t[1][R];
+            t[2][v] = t[2][L] + t[2][R];
+            t[3][v] = t[3][L] + t[3][R];
+        }
+
+        void applyX(int v) {
+            int tmp = t[0][v]; t[0][v] = t[3][v]; t[3][v] = tmp;
+            tmp = t[1][v]; t[1][v] = t[2][v]; t[2][v] = tmp;
+            lx[v] ^= true;
+        }
+
+        void applyY(int v) {
+            int tmp = t[0][v]; t[0][v] = t[1][v]; t[1][v] = tmp;
+            tmp = t[2][v]; t[2][v] = t[3][v]; t[3][v] = tmp;
+            ly[v] ^= true;
+        }
+
+        void push(int v) {
+            if (lx[v]) {
+                applyX(v << 1);
+                applyX(v << 1 | 1);
+                lx[v] = false;
+            }
+            if (ly[v]) {
+                applyY(v << 1);
+                applyY(v << 1 | 1);
+                ly[v] = false;
+            }
+        }
+
+        void update(int v, int l, int r, int ql, int qr, boolean isX) {
+            if (ql <= l && r <= qr) {
+                if (isX) applyX(v);
+                else applyY(v);
+                return;
+            }
+            push(v);
+            int m = (l + r) >> 1;
+            if (ql <= m) update(v << 1, l, m, ql, qr, isX);
+            if (qr > m) update(v << 1 | 1, m + 1, r, ql, qr, isX);
+            pull(v);
+        }
+
+        void query(int v, int l, int r, int ql, int qr, int[] res) {
+            if (ql <= l && r <= qr) {
+                res[0] += t[0][v];
+                res[1] += t[1][v];
+                res[2] += t[2][v];
+                res[3] += t[3][v];
+                return;
+            }
+            push(v);
+            int m = (l + r) >> 1;
+            if (ql <= m) query(v << 1, l, m, ql, qr, res);
+            if (qr > m) query(v << 1 | 1, m + 1, r, ql, qr, res);
+        }
+    }
+
+    public static void main(String[] args) throws Exception {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+
+        int[] q = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            int x = fs.nextInt();
+            int y = fs.nextInt();
+
+            if (x > 0 && y > 0) q[i] = 0;
+            else if (x < 0 && y > 0) q[i] = 1;
+            else if (x < 0 && y < 0) q[i] = 2;
+            else if (x > 0 && y < 0) q[i] = 3;
+            else q[i] = -1;
+        }
+
+        SegTree st = new SegTree(n, q);
+        int Q = fs.nextInt();
+        StringBuilder sb = new StringBuilder();
+
+        while (Q-- > 0) {
+            char type = fs.nextChar();
+            int i = fs.nextInt();
+            int j = fs.nextInt();
+
+            if (type == 'C') {
+                int[] res = new int[4];
+                st.query(1, 1, n, i, j, res);
+                sb.append(res[0]).append(' ')
+                  .append(res[1]).append(' ')
+                  .append(res[2]).append(' ')
+                  .append(res[3]).append('\n');
+            } else if (type == 'X') {
+                st.update(1, 1, n, i, j, true);
+            } else {
+                st.update(1, 1, n, i, j, false);
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
