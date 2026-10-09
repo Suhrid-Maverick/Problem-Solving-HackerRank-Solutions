@@ -1,0 +1,293 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int N = 500002;
+    static final int M = 1000;
+    static final int V = N + 2;
+
+    static class Pll {
+        int first;
+        long second;
+
+        Pll(int first, long second) {
+            this.first = first;
+            this.second = second;
+        }
+    }
+
+    static class Edge {
+        int v;
+        long c;
+        long w;
+        Edge next;
+        Edge dual;
+        long f;
+    }
+
+    static Edge[] e = new Edge[V];
+    static Edge[] pool = new Edge[N * 2 + M << 1];
+    static int allo = 0;
+
+    static Edge getEdge() {
+        if (pool[allo] == null) {
+            pool[allo] = new Edge();
+        }
+        return pool[allo];
+    }
+
+    static void insert(int u, int v, long c, long w) {
+        Edge edge = getEdge();
+        edge.v = v;
+        edge.c = c;
+        edge.w = w;
+        edge.next = e[u];
+        e[u] = edge;
+        allo++;
+        edge = getEdge();
+        edge.v = u;
+        edge.c = 0;
+        edge.w = -w;
+        edge.next = e[v];
+        e[v] = edge;
+        allo++;
+        e[u].dual = e[v];
+        e[v].dual = e[u];
+    }
+
+    static Deque<Integer> q = new LinkedList<>();
+    static boolean[] vis = new boolean[N];
+    static long[] h = new long[V];
+    static long hsrc;
+    static int src;
+    static int sink;
+
+    static boolean relabel() {
+        q.clear();
+        q.add(sink);
+        Arrays.fill(vis, 0, sink + 1, false);
+        Arrays.fill(h, 0, sink + 1, Long.MAX_VALUE);
+        h[sink] = 0;
+        vis[sink] = true;
+        while (!q.isEmpty()) {
+            int v = q.pollFirst();
+            long t;
+            vis[v] = false;
+            for (Edge it = e[v]; it != null; it = it.next) {
+                if (it.dual.c != 0 && (t = h[v] - it.w) < h[it.v]) {
+                    h[it.v] = t;
+                    if (!vis[it.v]) {
+                        if (t <= h[!q.isEmpty() ? q.peekFirst() : src]) {
+                            q.addFirst(it.v);
+                        } else {
+                            q.add(it.v);
+                        }
+                    }
+                }
+            }
+        }
+        for (int u = 0; u < sink + 1; u++) {
+            for (Edge it = e[u]; it != null; it = it.next) {
+                it.w += h[it.v] - h[u];
+            }
+        }
+        hsrc += h[src];
+        return h[src] < Long.MAX_VALUE;
+    }
+
+    static class Node {
+        long f;
+        long ff;
+        long old;
+        int u;
+        Edge it;
+        boolean start = true;
+        Node parent;
+        Edge child;
+        Node nodeChild;
+
+        Node(int u, Edge it, Node parent) {
+            this.u = u;
+            this.it = it;
+            this.parent = parent;
+        }
+    }
+
+    static long augment(int u, long f) {
+        if (u == sink) {
+            return f;
+        }
+        Node root = new Node(u, null, null);
+        root.f = f;
+        Deque<Node> deque = new LinkedList<>();
+        deque.add(root);
+        while (!deque.isEmpty()) {
+            Node node = deque.peekLast();
+            if (node.start) {
+                if (node.it != null) {
+                    node.f = Math.min(node.parent.f, node.it.c);
+                }
+                if (node.u == sink) {
+                    node.ff = node.f;
+                    deque.removeLast();
+                    continue;
+                }
+                vis[node.u] = true;
+                node.old = node.f;
+                Edge it = e[node.u];
+                node.child = it;
+                if (it != null && it.c > 0 && !vis[it.v] && it.w == 0) {
+                    node.nodeChild = new Node(it.v, it, node);
+                    deque.add(node.nodeChild);
+                } else {
+                    node.nodeChild = null;
+                }
+                node.start = false;
+            } else {
+                boolean b = false;
+                if (node.nodeChild != null) {
+                    node.child.c -= node.nodeChild.ff;
+                    node.child.dual.c += node.nodeChild.ff;
+                    node.f -= node.nodeChild.ff;
+                    if (node.f == 0) {
+                        b = true;
+                    }
+                }
+                if (b || node.child == null) {
+                    node.ff = node.old - node.f;
+                    deque.removeLast();
+                } else {
+                    node.child = node.child.next;
+                    Edge it = node.child;
+                    if (it != null && it.c > 0 && !vis[it.v] && it.w == 0) {
+                        node.nodeChild = new Node(it.v, it, node);
+                        deque.add(node.nodeChild);
+                    } else {
+                        node.nodeChild = null;
+                    }
+                }
+            }
+        }
+        return root.ff;
+    }
+
+    static class NodeDfs {
+        int u;
+        int p;
+
+        public NodeDfs(int u, int p) {
+            this.u = u;
+            this.p = p;
+        }
+    }
+
+    static int[] nextIndex = new int[2 * N];
+    static Pll[] adj = new Pll[2 * N];
+    static int[] lastIndex = new int[N];
+    static int etot = 1;
+
+    static void addPll(int u, int v, int w) {
+        nextIndex[etot] = lastIndex[u];
+        lastIndex[u] = etot;
+        adj[etot++] = new Pll(v, w);
+    }
+
+    static void dfs(int u, int p) {
+        Deque<NodeDfs> deque = new LinkedList<>();
+        deque.add(new NodeDfs(u, p));
+        while (!deque.isEmpty()) {
+            NodeDfs node = deque.removeLast();
+
+            for (int i = lastIndex[node.u]; i > 0; i = nextIndex[i]) {
+                if (adj[i].first != node.p) {
+                    insert(node.u, adj[i].first, adj[i].second, 0);
+                    deque.add(new NodeDfs(adj[i].first, node.u));
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+
+            allo = 0;
+            src = n;
+            sink = n + 1;
+            etot = 1;
+
+            Arrays.fill(lastIndex, 0, n, 0);
+
+            Arrays.fill(e, 0, sink + 1, null);
+
+            boolean checkC = true;
+
+            for (int i = 0; i < n - 1; i++) {
+                st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken()) - 1;
+                int v = Integer.parseInt(st.nextToken()) - 1;
+                int w = Integer.parseInt(st.nextToken());
+
+                addPll(u, v, w);
+                addPll(v, u, w);
+
+                if (w != 1) {
+                    checkC = false;
+                }
+            }
+
+            long ans = 0;
+            Arrays.fill(h, 0, n, 0);
+
+            for (int i = 0; i < m; i++) {
+                st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken()) - 1;
+                int v = Integer.parseInt(st.nextToken()) - 1;
+                int w = Integer.parseInt(st.nextToken());
+
+                insert(u, v, 1, w);
+                ans += w;
+                h[u]++;
+                h[v]--;
+            }
+
+            if (!checkC || m > 1) {
+                dfs(0, -1);
+
+                for (int i = 0; i < n; i++) {
+                    if (h[i] > 0) {
+                        insert(src, i, h[i], 0);
+                    } else if (h[i] < 0) {
+                        insert(i, sink, -h[i], 0);
+                    }
+                }
+
+                Arrays.fill(h, 0, sink + 1, 0);
+                hsrc = 0;
+                while (relabel()) {
+                    long w;
+                    Arrays.fill(vis, 0, sink + 1, false);
+                    while ((w = augment(src, Long.MAX_VALUE)) != 0) {
+                        ans -= w * hsrc;
+                        Arrays.fill(vis, 0, sink + 1, false);
+                    }
+                }
+            }
+
+            bw.write(String.valueOf(ans));
+            bw.newLine();
+        }
+
+        bw.close();
+        br.close();
+    }
+}
