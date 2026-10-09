@@ -1,0 +1,37 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            int[] h = new int[n];
+            StringTokenizer st = new StringTokenizer(br.readLine());
+
+            long total = 0;
+            for (int i = 0; i < n; i++) {
+                h[i] = Integer.parseInt(st.nextToken());
+                total += h[i];
+            }
+
+            Arrays.sort(h);
+
+            long max = total;          // eat 0 mandragoras: health = 1
+            long remaining = total;
+
+            for (int i = 1; i <= n; i++) {
+                remaining -= h[i - 1];
+                long exp = (long) (1 + i) * remaining;
+                if (exp > max) max = exp;
+            }
+
+            sb.append(max).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
