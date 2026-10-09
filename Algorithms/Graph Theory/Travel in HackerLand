@@ -1,0 +1,236 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static TreeSet<Integer>[] all;
+    static int ind;
+
+    static void swapAll(int root_A, int root_B) {
+        TreeSet<Integer> tmp = all[root_A];
+        all[root_A] = all[root_B];
+        all[root_B] = tmp;
+    }
+
+
+    static class DisjointUnionSets {
+        int[] parent;
+        int[] rank;
+
+        public DisjointUnionSets(int n) {
+            parent = new int[n];
+            rank = new int[n];
+        }
+
+        int findset(int x) {
+            return x == parent[x] ? x : findset(parent[x]);
+        }
+
+        void union(int x, int y) {
+            int xRoot = findset(x);
+            int yRoot = findset(y);
+            if (xRoot == yRoot) {
+                return;
+            }
+            if (rank[xRoot] < rank[yRoot]) {
+                parent[xRoot] = parent[yRoot];
+                rank[yRoot] += rank[xRoot];
+                if (all[xRoot].size() > all[yRoot].size()) {
+                    swapAll(xRoot, yRoot);
+                }
+                while (all[xRoot].size() > 0) {
+                    int tmp = all[xRoot].pollFirst();
+                    all[yRoot].add(tmp);
+                }
+            } else {
+                parent[yRoot] = parent[xRoot];
+                rank[xRoot] += rank[yRoot];
+                if (all[xRoot].size() < all[yRoot].size()) {
+                    swapAll(xRoot, yRoot);
+                }
+                while (all[yRoot].size() > 0) {
+                    int tmp = all[yRoot].pollFirst();
+                    all[xRoot].add(tmp);
+                }
+            }
+        }
+    }
+
+    static class QS {
+        int x, y, k, id;
+
+        public QS(int x, int y, int k, int id) {
+            this.x = x;
+            this.y = y;
+            this.k = k;
+            this.id = id;
+        }
+    }
+
+    static class Edge {
+        int u;
+        int v;
+
+        public Edge(int xx, int yy) {
+            this.u = xx;
+            this.v = yy;
+        }
+    }
+
+    static class EdgeW {
+        int w;
+        Edge edge;
+
+        public EdgeW(int xx, Edge yy) {
+            this.w = xx;
+            this.edge = yy;
+        }
+    }
+
+    static EdgeW[] edges;
+
+    static void apply(DisjointUnionSets dus, int k) {
+        while (ind < edges.length) {
+            if (edges[ind].w > k) {
+                break;
+            } else {
+                dus.union(edges[ind].edge.u, edges[ind].edge.v);
+                ind++;
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+        int q = Integer.parseInt(st.nextToken());
+
+        Map<Integer, Integer> map = new HashMap<>();
+        int cntb = 0;
+        int[] revmp1 = new int[n + 1];
+        st = new StringTokenizer(br.readLine());
+        for (int i = 1; i <= n; i++) {
+            int item = Integer.parseInt(st.nextToken());
+            if (!map.containsKey(item)) {
+                map.put(item, ++cntb);
+            }
+            revmp1[i] = map.get(item);
+        }
+
+        edges = new EdgeW[m];
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int w = Integer.parseInt(st.nextToken());
+            edges[i] = new EdgeW(w, new Edge(u, v));
+        }
+        Arrays.sort(edges, (a, b) -> a.w - b.w);
+
+        int[] revmp2 = new int[m + 1];
+        int cnte = 0;
+        map.clear();
+        for (int k = 0; k < edges.length; k++) {
+            EdgeW i = edges[k];
+            if (!map.containsKey(i.w)) {
+                map.put(i.w, ++cnte);
+                revmp2[cnte] = i.w;
+            }
+            edges[k].w = map.get(i.w);
+        }
+
+        int tot = 0;
+        int[] ans = new int[q];
+        QS[] qs = new QS[q + 1];
+        for (int i = 0; i < q; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int w = Integer.parseInt(st.nextToken());
+            if (w > cntb) {
+                ans[i] = -1;
+            } else {
+                tot++;
+                qs[tot] = new QS(u, v, w, i);
+            }
+        }
+        int[] lo = new int[tot + 1];
+        int[] hi = new int[tot + 1];
+        for (int i = 1; i <= tot; i++) {
+            lo[i] = 1;
+            hi[i] = cnte + 1;
+        }
+
+        Stack<Integer>[] check = new Stack[Math.max(n + 1, m)];
+        all = new TreeSet[n + 1];
+        for (int i = 0; i <= n; i++) {
+            all[i] = new TreeSet<>();
+        }
+        for (int i = 0; i < check.length; i++) {
+            check[i] = new Stack<>();
+        }
+        DisjointUnionSets dus = new DisjointUnionSets(n + 1);
+
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+
+            for (int i = 0; i <= n; i++) {
+                all[i].clear();
+                all[i].add(revmp1[i]);
+                dus.parent[i] = i;
+                dus.rank[i] = 1;
+            }
+            int upto = 0;
+            for (int i = 1; i <= tot; i++) {
+                if (lo[i] != hi[i]) {
+                    check[(lo[i] + hi[i]) >> 1].add(i);
+                    upto = Math.max(upto, (lo[i] + hi[i]) >> 1);
+                }
+            }
+
+            ind = 0;
+            for (int i = 1; i <= upto; i++) {
+                apply(dus, i);
+
+                while (check[i].size() > 0) {
+                    changed = true;
+                    int id = check[i].pop();
+                    int rootx = dus.findset(qs[id].x);
+                    int rooty = dus.findset(qs[id].y);
+                    if (rootx != rooty) {
+                        lo[id] = i + 1;
+                    } else {
+                        if (all[rootx].size() >= qs[id].k) {
+                            hi[id] = i;
+                        } else {
+                            lo[id] = i + 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        for (int i = 1; i <= tot; i++) {
+            if (lo[i] <= cnte) {
+                ans[qs[i].id] = revmp2[lo[i]];
+            } else {
+                ans[qs[i].id] = -1;
+            }
+        }
+
+        for (int i = 0; i < q; i++) {
+            bw.write(ans[i] + "\n");
+        }
+
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
