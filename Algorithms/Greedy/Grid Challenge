@@ -1,0 +1,66 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static String gridChallenge(String[] grid) {
+        int n = grid.length;
+        char[][] g = new char[n][];
+
+        for (int i = 0; i < n; i++) {
+            char[] row = grid[i].toCharArray();
+            Arrays.sort(row);
+            g[i] = row;
+        }
+
+        int cols = g[0].length;
+
+        for (int c = 0; c < cols; c++) {
+            for (int r = 0; r < n - 1; r++) {
+                if (g[r][c] > g[r + 1][c]) {
+                    return "NO";
+                }
+            }
+        }
+
+        return "YES";
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        StringBuilder sb = new StringBuilder();
+
+        int t = fs.nextInt();
+
+        while (t-- > 0) {
+            int n = fs.nextInt();
+
+            String[] grid = new String[n];
+            for (int i = 0; i < n; i++) {
+                grid[i] = fs.next();
+            }
+
+            sb.append(gridChallenge(grid)).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
