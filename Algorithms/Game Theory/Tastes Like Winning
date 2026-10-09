@@ -1,0 +1,45 @@
+import java.io.*;
+import java.util.*;
+import java.text.*;
+import java.math.*;
+import java.util.regex.*;
+
+public class TastesLikeWinning {
+    private static final long mod = 1000000007;
+    private static long m;
+    private static long pow;
+    
+    public static void main(String[] args) {
+        
+        Scanner in = new Scanner(System.in);
+        int n = in.nextInt();
+        m = in.nextLong();
+        pow = pow(2, m);
+        
+        long[] solves = new long[n+1];
+        long[] semiSolves = new long[n+1];
+        long[] products = new long[n+1];
+        semiSolves[0] = 1;
+        semiSolves[1] = 0;
+        products[0] = 1;
+        products[1] = (pow - 1 + mod) % mod;
+        solves[0] = 0;
+        solves[1] = products[1];
+        for (int i = 2; i <= n; i++){
+            products[i] = (((pow - i + mod) % mod) * products[i-1]) % mod;
+            semiSolves[i] = 
+                (solves[i-1] - ((i-1) * ((semiSolves[i-2] * ((pow - 1 - (i-2) + mod) % mod)) % mod)) % mod + mod) % mod;
+            solves[i] = (products[i] - semiSolves[i] + mod) % mod;
+        }
+        
+        System.out.println(solves[n]);
+    }
+   
+    
+    private static long pow(long b, long p){
+        if (p == 0) return 1;
+        if (p % 2 == 1) return 2 * pow(b, p - 1) % mod;
+        long q = pow(b, p / 2);
+        return q * q % mod;
+    }
+}
