@@ -1,0 +1,44 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine());
+        int[] arr = new int[n];
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) arr[i] = Integer.parseInt(st.nextToken());
+
+        int q = Integer.parseInt(br.readLine());
+        int[] queries = new int[q];
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < q; i++) queries[i] = Integer.parseInt(st.nextToken());
+
+        long[] result = playingWithNumbers(arr, queries);
+        StringBuilder sb = new StringBuilder();
+        for (long r : result) sb.append(r).append('\n');
+        System.out.print(sb);
+    }
+
+    static long[] playingWithNumbers(int[] arr, int[] queries) {
+        Arrays.sort(arr);
+        int n = arr.length;
+        long[] prefix = new long[n + 1];
+        for (int i = 0; i < n; i++) prefix[i + 1] = prefix[i] + arr[i];
+
+        long[] res = new long[queries.length];
+        long acc = 0;
+        for (int i = 0; i < queries.length; i++) {
+            acc += queries[i];
+            int lo = 0, hi = n;
+            while (lo < hi) {
+                int mid = (lo + hi) >>> 1;
+                if (arr[mid] + acc < 0) lo = mid + 1;
+                else hi = mid;
+            }
+            int negCount = lo;
+            res[i] = prefix[n] - 2 * prefix[negCount] + acc * (n - 2L * negCount);
+        }
+        return res;
+    }
+}
