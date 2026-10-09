@@ -1,0 +1,95 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Stack;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        int n = Integer.parseInt(br.readLine().trim());
+        List<String> operations = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            operations.add(br.readLine());
+        }
+
+        textEditor(operations);
+    }
+
+    public static void textEditor(List<String> operations) {
+        StringBuilder arr = new StringBuilder();
+        Stack<LastOperation> ops = new Stack<>();
+
+        for (String operation : operations) {
+            String[] inputs = operation.split(" ");
+            int operationNum = Integer.parseInt(inputs[0]);
+
+            if (operationNum == 1) {
+                String w = inputs[1];
+                LastOperation op = append(arr, w);
+                ops.push(op);
+            } else if (operationNum == 2) {
+                int k = Integer.parseInt(inputs[1]);
+                LastOperation op = remove(arr, k);
+                if (op != null) {
+                    ops.push(op);
+                }
+            } else if (operationNum == 3) {
+                int k = Integer.parseInt(inputs[1]);
+                if (arr.length() > k - 1) {
+                    System.out.println(arr.charAt(k - 1));
+                }
+            } else if (operationNum == 4) {
+                undo(arr, ops);
+            }
+        }
+    }
+
+    public static LastOperation append(StringBuilder s, String w) {
+        int index = s.length();
+        s.append(w);
+        return new LastOperation(1, index, w);
+    }
+
+    public static LastOperation remove(StringBuilder s, int k) {
+        LastOperation op = null;
+        if (s.length() >= k) {
+            int startIndex = s.length() - k;
+            String removedValue = s.substring(startIndex, s.length());
+            s.delete(startIndex, s.length());
+            op = new LastOperation(2, startIndex, removedValue);
+        }
+        return op;
+    }
+
+    public static void undo(StringBuilder s, Stack<LastOperation> ops) {
+        if (ops.isEmpty()) {
+            return;
+        }
+        LastOperation lastOperation = ops.pop();
+        if (lastOperation.operation == 1) {
+            String value = lastOperation.value;
+            remove(s, value.length());
+        } else {
+            int index = lastOperation.index;
+            String value = lastOperation.value;
+            s.insert(index, value);
+        }
+    }
+}
+
+class LastOperation {
+    int operation;
+    int index;
+    String value;
+
+    public LastOperation(int operation, int index, String value) {
+        this.operation = operation;
+        this.index = index;
+        this.value = value;
+    }
+}
