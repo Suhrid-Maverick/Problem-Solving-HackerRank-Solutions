@@ -1,0 +1,30 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s1 = br.readLine().trim();
+        String s2 = br.readLine().trim();
+
+        int n = s1.length();
+        int m = s2.length();
+
+        int[] dp = new int[m + 1];
+
+        for (int i = 1; i <= n; i++) {
+            int prev = 0;
+            char c1 = s1.charAt(i - 1);
+            for (int j = 1; j <= m; j++) {
+                int temp = dp[j];
+                if (c1 == s2.charAt(j - 1)) {
+                    dp[j] = prev + 1;
+                } else {
+                    dp[j] = Math.max(dp[j], dp[j - 1]);
+                }
+                prev = temp;
+            }
+        }
+
+        System.out.println(dp[m]);
+    }
+}
