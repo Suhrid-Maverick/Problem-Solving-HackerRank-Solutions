@@ -1,0 +1,157 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    static int[] bfs(int n, List<int[]>[] adj, int start) {
+        int[] dist = new int[n + 1];
+        Arrays.fill(dist, -1);
+        Queue<Integer> q = new ArrayDeque<>();
+        dist[start] = 0;
+        q.add(start);
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            for (int[] edge : adj[u]) {
+                int v = edge[0];
+                int w = edge[1];
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + w;
+                    q.add(v);
+                }
+            }
+        }
+        return dist;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+        int k = fs.nextInt();
+
+        int[] terminals = new int[k];
+        boolean[] isTerminal = new boolean[n + 1];
+        for (int i = 0; i < k; i++) {
+            terminals[i] = fs.nextInt();
+            isTerminal[terminals[i]] = true;
+        }
+
+        // Count unique terminals
+        int uniqueK = 0;
+        boolean[] seen = new boolean[n + 1];
+        for (int i = 0; i < k; i++) {
+            if (!seen[terminals[i]]) {
+                seen[terminals[i]] = true;
+                uniqueK++;
+            }
+        }
+
+        if (uniqueK <= 1) {
+            System.out.println(0);
+            return;
+        }
+
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        // Read n-1 edges (tree)
+        for (int i = 0; i < n - 1; i++) {
+            int u = fs.nextInt();
+            int v = fs.nextInt();
+            int w = fs.nextInt();
+            adj[u].add(new int[]{v, w});
+            adj[v].add(new int[]{u, w});
+        }
+
+        // BFS to establish parent and order
+        int[] parent = new int[n + 1];
+        int[] weightToParent = new int[n + 1];
+        int[] order = new int[n];
+        int orderSize = 0;
+        boolean[] visited = new boolean[n + 1];
+        Queue<Integer> q = new ArrayDeque<>();
+        q.add(1);
+        visited[1] = true;
+        parent[1] = 0;
+
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            order[orderSize++] = u;
+            for (int[] edge : adj[u]) {
+                int v = edge[0];
+                int w = edge[1];
+                if (!visited[v]) {
+                    visited[v] = true;
+                    parent[v] = u;
+                    weightToParent[v] = w;
+                    q.add(v);
+                }
+            }
+        }
+
+        // Count terminals in each subtree
+        int[] count = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            if (isTerminal[i]) count[i] = 1;
+        }
+
+        for (int i = orderSize - 1; i > 0; i--) {
+            int u = order[i];
+            int p = parent[u];
+            if (p != 0) {
+                count[p] += count[u];
+            }
+        }
+
+        // Sum weights of edges in the minimal subtree connecting all terminals
+        long totalWeight = 0;
+        for (int u = 2; u <= n; u++) {
+            if (count[u] > 0 && count[u] < uniqueK) {
+                totalWeight += weightToParent[u];
+            }
+        }
+
+        // Find diameter among terminals
+        int start = terminals[0];
+        int[] dist = bfs(n, adj, start);
+
+        int A = start;
+        int maxDist = -1;
+        for (int i = 0; i < k; i++) {
+            int t = terminals[i];
+            if (dist[t] > maxDist) {
+                maxDist = dist[t];
+                A = t;
+            }
+        }
+
+        dist = bfs(n, adj, A);
+        int B = A;
+        maxDist = -1;
+        for (int i = 0; i < k; i++) {
+            int t = terminals[i];
+            if (dist[t] > maxDist) {
+                maxDist = dist[t];
+                B = t;
+            }
+        }
+
+        long diameter = maxDist;
+        long ans = 2 * totalWeight - diameter;
+        System.out.println(ans);
+    }
+}
