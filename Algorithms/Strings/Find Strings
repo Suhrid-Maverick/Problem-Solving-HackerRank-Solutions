@@ -1,0 +1,190 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        private final int BUFFER_SIZE = 1 << 16;
+        private DataInputStream din;
+        private byte[] buffer;
+        private int bufferPointer, bytesRead;
+        FastScanner() {
+            din = new DataInputStream(System.in);
+            buffer = new byte[BUFFER_SIZE];
+            bufferPointer = bytesRead = 0;
+        }
+        int nextInt() throws IOException {
+            int ret = 0;
+            byte c = read();
+            while (c <= ' ') c = read();
+            boolean neg = (c == '-');
+            if (neg) c = read();
+            do { ret = ret * 10 + c - '0'; } while ((c = read()) >= '0' && c <= '9');
+            return neg ? -ret : ret;
+        }
+        long nextLong() throws IOException {
+            long ret = 0;
+            byte c = read();
+            while (c <= ' ') c = read();
+            boolean neg = (c == '-');
+            if (neg) c = read();
+            do { ret = ret * 10 + c - '0'; } while ((c = read()) >= '0' && c <= '9');
+            return neg ? -ret : ret;
+        }
+        String nextLine() throws IOException {
+            StringBuilder sb = new StringBuilder();
+            byte c = read();
+            while (c <= ' ') c = read();
+            do { sb.append((char) c); } while ((c = read()) > ' ');
+            return sb.toString();
+        }
+        private byte read() throws IOException {
+            if (bufferPointer == bytesRead) fillBuffer();
+            return buffer[bufferPointer++];
+        }
+        private void fillBuffer() throws IOException {
+            bytesRead = din.read(buffer, 0, BUFFER_SIZE);
+            if (bytesRead == -1) buffer[0] = -1;
+            bufferPointer = 0;
+        }
+    }
+
+    static int[] len, link;
+    static int[][] next;
+    static int nodes, last;
+    static long[] cntE;
+
+    // Generalized SAM extend from current `last`
+    static void extend(int c) {
+        if (next[last][c] != 0) {
+            int cur = next[last][c];
+            if (len[cur] == len[last] + 1) {
+                last = cur;
+                return;
+            }
+            int clone = ++nodes;
+            len[clone] = len[last] + 1;
+            System.arraycopy(next[cur], 0, next[clone], 0, 26);
+            link[clone] = link[cur];
+            int p = last;
+            while (p != 0 && next[p][c] == cur) {
+                next[p][c] = clone;
+                p = link[p];
+            }
+            link[cur] = clone;
+            last = clone;
+            return;
+        }
+        int cur = ++nodes;
+        len[cur] = len[last] + 1;
+        int p = last;
+        while (p != 0 && next[p][c] == 0) {
+            next[p][c] = cur;
+            p = link[p];
+        }
+        if (p == 0) {
+            link[cur] = 1;
+        } else {
+            int q = next[p][c];
+            if (len[p] + 1 == len[q]) {
+                link[cur] = q;
+            } else {
+                int clone = ++nodes;
+                len[clone] = len[p] + 1;
+                System.arraycopy(next[q], 0, next[clone], 0, 26);
+                link[clone] = link[q];
+                while (p != 0 && next[p][c] == q) {
+                    next[p][c] = clone;
+                    p = link[p];
+                }
+                link[q] = link[cur] = clone;
+            }
+        }
+        last = cur;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+        String[] strings = new String[n];
+        int totalLen = 0;
+        for (int i = 0; i < n; i++) {
+            strings[i] = fs.nextLine();
+            totalLen += strings[i].length();
+        }
+
+        int maxNodes = 2 * totalLen + 2;
+        len = new int[maxNodes];
+        link = new int[maxNodes];
+        next = new int[maxNodes][26];
+        nodes = last = 1;
+        len[1] = 0;
+        link[1] = 0;
+
+        for (int i = 0; i < n; i++) {
+            last = 1;
+            String s = strings[i];
+            for (int j = 0; j < s.length(); j++) {
+                extend(s.charAt(j) - 'a');
+            }
+        }
+
+        // Sort states by len ascending (counting sort)
+        int maxLen = 0;
+        for (int i = 1; i <= nodes; i++) if (len[i] > maxLen) maxLen = len[i];
+        int[] bucket = new int[maxLen + 2];
+        for (int i = 1; i <= nodes; i++) bucket[len[i]]++;
+        for (int i = 1; i <= maxLen + 1; i++) bucket[i] += bucket[i - 1];
+        int[] order = new int[nodes + 1];
+        for (int i = 1; i <= nodes; i++) order[bucket[len[i]]--] = i;
+
+        // cntE[v] = 1 + sum cntE[next[v][c]] (includes empty path)
+        cntE = new long[nodes + 1];
+        final long CAP = Long.MAX_VALUE / 4;
+        for (int i = nodes; i >= 1; i--) {
+            int v = order[i];
+            long sum = 1;
+            for (int c = 0; c < 26; c++) {
+                int u = next[v][c];
+                if (u != 0) {
+                    sum += cntE[u];
+                    if (sum > CAP) sum = CAP;
+                }
+            }
+            cntE[v] = sum;
+        }
+
+        long total = cntE[1] - 1; // exclude empty string
+
+        int q = fs.nextInt();
+        StringBuilder sb = new StringBuilder();
+        for (int qi = 0; qi < q; qi++) {
+            long k = fs.nextLong();
+            if (k < 1 || k > total) {
+                sb.append("INVALID\n");
+                continue;
+            }
+            int v = 1;
+            StringBuilder result = new StringBuilder();
+            while (true) {
+                int chosen = -1;
+                for (int c = 0; c < 26; c++) {
+                    int u = next[v][c];
+                    if (u == 0) continue;
+                    if (k <= cntE[u]) {
+                        result.append((char) ('a' + c));
+                        k--;
+                        if (k == 0) { chosen = -1; v = -1; break; }
+                        v = u;
+                        chosen = c;
+                        break;
+                    }
+                    k -= cntE[u];
+                }
+                if (v == -1) break;
+                if (chosen == -1) break; // safety
+            }
+            sb.append(result).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
