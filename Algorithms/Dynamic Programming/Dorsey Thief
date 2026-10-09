@@ -1,0 +1,48 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        String[] parts = br.readLine().split("\\s+");
+        int n = Integer.parseInt(parts[0]);
+        int x = Integer.parseInt(parts[1]);
+
+        int[] a = new int[n];
+        int[] v = new int[n];
+
+        for (int i = 0; i < n; ++i) {
+            parts = br.readLine().split("\\s+");
+            v[i] = Integer.parseInt(parts[0]);
+            a[i] = Integer.parseInt(parts[1]);
+        }
+
+        long[] gain = new long[x + 1];
+        int maxSold = 0;
+
+        for (int i = 0; i < n; ++i) {
+            for (int j = Math.min(x - a[i], maxSold); j >= 0; --j) {
+                if (gain[j] > 0 || j == 0) {
+                    int sold = j + a[i];
+                    long oldGain = gain[sold];
+                    long newGain = gain[j] + v[i];
+                    if (newGain > oldGain) {
+                        gain[sold] = newGain;
+                        if (sold > maxSold) {
+                            maxSold = sold;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (gain[x] > 0) {
+            System.out.println(gain[x]);
+        } else {
+            System.out.println("Got caught!");
+        }
+
+        br.close();
+    }
+}
