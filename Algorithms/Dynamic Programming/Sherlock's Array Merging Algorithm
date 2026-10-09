@@ -1,0 +1,240 @@
+import java.io.*;
+import java.util.*;
+import java.math.*;
+
+public class Solution {
+
+    static class Reader {
+        final private int BUFFER_SIZE = 1 << 16;
+        private DataInputStream din;
+        private byte[] buffer;
+        private int bufferPointer, bytesRead;
+
+        public Reader() {
+            din = new DataInputStream(System.in);
+            buffer = new byte[BUFFER_SIZE];
+            bufferPointer = bytesRead = 0;
+        }
+
+        public int nextInt() throws IOException {
+            int ret = 0;
+            byte c = read();
+            while (c <= ' ')
+                c = read();
+            boolean neg = (c == '-');
+            if (neg)
+                c = read();
+            do {
+                ret = ret * 10 + c - '0';
+            } while ((c = read()) >= '0' && c <= '9');
+
+            if (neg)
+                return -ret;
+            return ret;
+        }
+
+        private void fillBuffer() throws IOException {
+            bytesRead = din.read(buffer, bufferPointer = 0, BUFFER_SIZE);
+            if (bytesRead == -1)
+                buffer[0] = -1;
+        }
+
+        private byte read() throws IOException {
+            if (bufferPointer == bytesRead)
+                fillBuffer();
+            return buffer[bufferPointer++];
+        }
+
+        public void close() throws IOException {
+            if (din == null)
+                return;
+            din.close();
+        }
+    }
+
+    public static long inverseMOD(int a) {
+        if (a == 0) return 1L;
+
+        long t = 0L;
+        long r = MOD;
+        long newt = 1L;
+        long newr = (long) a;
+        long quotient;
+
+        while (newr != 0L) {
+            quotient = r / newr;
+
+            t -= quotient * newt;
+            r -= quotient * newr;
+
+            if (r != 0L) {
+                quotient = newr / r;
+                newt -= quotient * t;
+                newr -= quotient * r;
+            } else {
+                r = newr;
+                t = newt;
+                break;
+            }
+        }
+
+        if (r > 1L) {
+            return -1L;
+        }
+        if (t < 0L) t += MOD;
+        return t;
+    }
+
+    static HashMap<Integer, Long> C;
+    static long I[];
+    static int F[];
+    static long FI[][];
+    static long MOD = 1000000007L;
+    static long MODLIMIT = Long.MAX_VALUE / MOD;
+    static long MODSUMLIMIT = Long.MAX_VALUE - MOD * 10L;
+    static int S[];
+    static int M[];
+    static int mi;
+    static int N;
+
+    public static long solve(int blockindex, int funnellimit, int blocksize) {
+        if (funnellimit == 1) {
+            return 1L;
+        }
+
+        if (funnellimit > blocksize) {
+            return -1L;
+        }
+
+        if (blocksize == funnellimit) {
+            if (blockindex == mi - 1) {
+                return 1L;
+            }
+
+            int key = funnellimit * N + (S[blockindex] + M[blockindex] - blocksize);
+            if (C.get(key) != null) {
+                return C.get(key);
+            }
+
+            long p = 0;
+            long t;
+            blocksize = M[++blockindex];
+
+            for (int f = (blocksize > funnellimit ? funnellimit : blocksize); f != 0; f--) {
+                t = solve(blockindex, f, blocksize);
+                if (t < 0L) continue;
+
+                t *= (long) F[funnellimit];
+                if (t >= MODLIMIT) t %= MOD;
+
+                t *= I[funnellimit - f];
+                if (t >= MODLIMIT) t %= MOD;
+
+                p += t;
+            }
+
+            if (p > MOD) p %= MOD;
+            C.put(key, p);
+            return p;
+        }
+
+        int key = funnellimit * N + (S[blockindex] + M[blockindex] - blocksize);
+        if (C.get(key) != null) {
+            return C.get(key);
+        }
+
+        long p = 0L;
+        long t;
+        blocksize -= funnellimit;
+
+        for (int f = (blocksize > funnellimit ? funnellimit : blocksize); f != 0; f--) {
+            t = solve(blockindex, f, blocksize);
+            if (t < 0L) continue;
+
+            t *= (long) F[funnellimit];
+            if (t >= MODLIMIT) t %= MOD;
+
+            t *= I[funnellimit - f];
+            if (t >= MODLIMIT) t %= MOD;
+
+            p += t;
+        }
+
+        if (p >= MOD) p %= MOD;
+        C.put(key, p);
+        return p;
+    }
+
+    public static void main(String[] args) throws IOException {
+        Reader in = new Reader();
+
+        N = in.nextInt();
+        int Np1 = N + 1;
+
+        {
+            C = new HashMap<Integer, Long>(N);
+        }
+
+        M = new int[N];
+        S = new int[N + 1];
+        mi = 0;
+
+        {
+            S[0] = 0;
+
+            int prev = in.nextInt();
+            int streak = 1;
+            int cur;
+
+            for (int i = 1; i < N; i++) {
+                cur = in.nextInt();
+                if (cur < prev) {
+                    S[mi + 1] = S[mi] + streak;
+                    M[mi++] = streak;
+                    streak = 1;
+                    prev = cur;
+                } else {
+                    ++streak;
+                    prev = cur;
+                }
+            }
+
+            S[mi + 1] = S[mi] + streak;
+            M[mi++] = streak;
+
+            F = new int[M[0] + 1];
+            I = new long[M[0] + 1];
+            long fac = 1L;
+            F[0] = 1;
+            I[0] = 1L;
+
+            for (int i = 1; i <= M[0]; i++) {
+                fac *= (long) i;
+                if (fac >= MOD) {
+                    fac %= MOD;
+                }
+                F[i] = (int) fac;
+                I[i] = inverseMOD((int) fac);
+            }
+
+            FI = new long[M[0] + 1][M[0] + 1];
+            for (int f = M[0]; f != 0; f--) {
+                for (int i = f; i != -1; i--) {
+                    FI[f][i] = ((long) F[f] * I[i]) % MOD;
+                }
+            }
+        }
+
+        long p = 1;
+
+        for (int f = 2; f < Np1; f++) {
+            long t = solve(0, f, M[0]);
+            if (t < 0L) continue;
+            p += t;
+            if (p > MODSUMLIMIT) p %= MOD;
+        }
+
+        System.out.print(p % MOD);
+        in.close();
+    }
+}
