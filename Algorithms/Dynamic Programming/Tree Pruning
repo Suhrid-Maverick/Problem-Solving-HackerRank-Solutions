@@ -1,0 +1,91 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    public static void main(String[] args) throws IOException {
+        FastScanner in = new FastScanner(System.in);
+        PrintWriter out = new PrintWriter(System.out);
+        new Main().run(in, out);
+        out.close();
+    }
+
+    int n;
+    int K;
+    List<Integer>[] adj;
+    int[] w;
+
+    void run(FastScanner in, PrintWriter out) {
+        n = in.nextInt();
+        K = in.nextInt();
+        w = new int[n];
+        adj = new List[n];
+        for (int i = 0; i < n; i++) adj[i] = new ArrayList<>();
+        for (int i = 0; i < n; i++) w[i] = in.nextInt();
+        for (int i = 1; i < n; i++) {
+            int u = in.nextInt() - 1;
+            int v = in.nextInt() - 1;
+            adj[u].add(v);
+            adj[v].add(u);
+        }
+
+        long[] dp = go(0, -1);
+        long max = Long.MIN_VALUE;
+        for (int k = 0; k <= K; k++) {
+            max = Math.max(max, dp[k]);
+        }
+        out.println(max);
+    }
+
+    long[] go(int u, int p) {
+        long[][] dp = new long[2][K + 1];
+        for (long[] d : dp) Arrays.fill(d, Long.MIN_VALUE);
+        int flip = 0;
+        dp[0][0] = w[u];
+
+        for (int v : adj[u]) {
+            Arrays.fill(dp[flip ^ 1], Long.MIN_VALUE);
+            if (v == p) continue;
+
+            long[] childDp = go(v, u);
+            for (int k = 0; k <= K && dp[flip][k] != Long.MIN_VALUE; k++) {
+                for (int pk = 0; pk + k <= K && childDp[pk] != Long.MIN_VALUE; pk++) {
+                    dp[flip ^ 1][pk + k] = Math.max(
+                            dp[flip ^ 1][pk + k],
+                            dp[flip][k] + childDp[pk]);
+                }
+            }
+            flip = flip ^ 1;
+        }
+        dp[flip][1] = Math.max(dp[flip][1], 0);
+        return dp[flip];
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        public FastScanner(InputStream in) {
+            br = new BufferedReader(new InputStreamReader(in));
+            st = null;
+        }
+
+        String next() {
+            while (st == null || !st.hasMoreElements()) {
+                try {
+                    st = new StringTokenizer(br.readLine());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() {
+            return Integer.parseInt(next());
+        }
+
+        long nextLong() {
+            return Long.parseLong(next());
+        }
+    }
+}
