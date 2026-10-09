@@ -1,0 +1,143 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    /* ---------- DSU with size tracking ---------- */
+    static class DSU {
+        int[] parent, size;
+
+        DSU(int n) {
+            parent = new int[n];
+            size = new int[n];
+            for (int i = 0; i < n; i++) {
+                parent[i] = i;
+                size[i] = 1;
+            }
+        }
+
+        int find(int x) {
+            if (parent[x] != x)
+                parent[x] = find(parent[x]);   // path compression
+            return parent[x];
+        }
+
+        /** Returns the number of new paths created by merging the two components. */
+        long union(int a, int b) {
+            int ra = find(a), rb = find(b);
+            if (ra == rb) return 0;
+            if (size[ra] < size[rb]) {          // union by size
+                int tmp = ra; ra = rb; rb = tmp;
+            }
+            long newPaths = (long) size[ra] * size[rb];
+            parent[rb] = ra;
+            size[ra] += size[rb];
+            return newPaths;
+        }
+    }
+
+    /* ---------- Main solver ---------- */
+    static long[] solve(int[][] edges, int[][] queries) {
+        int m = edges.length;          // number of edges (n-1)
+        int n = m + 1;                // number of nodes
+
+        // Sort edge indices by weight
+        Integer[] idx = new Integer[m];
+        for (int i = 0; i < m; i++) idx[i] = i;
+        Arrays.sort(idx, Comparator.comparingInt(i -> edges[i][2]));
+
+        DSU dsu = new DSU(n);
+        long[] pathCount = new long[m];   // paths created at each distinct weight
+        int[] weight = new int[m];        // corresponding weight
+        int distinct = 0;                 // number of distinct weights
+
+        // Process edges grouped by equal weight
+        for (int i = 0; i < m; ) {
+            int j = i;
+            int w = edges[idx[i]][2];
+            long totalNew = 0;
+            while (j < m && edges[idx[j]][2] == w) {
+                int e = idx[j];
+                totalNew += dsu.union(edges[e][0] - 1, edges[e][1] - 1);
+                j++;
+            }
+            pathCount[distinct] = totalNew;
+            weight[distinct] = w;
+            distinct++;
+            i = j;
+        }
+
+        // Build prefix sums of path counts over distinct weights
+        long[] pref = new long[distinct];
+        pref[0] = pathCount[0];
+        for (int i = 1; i < distinct; i++) {
+            pref[i] = pref[i - 1] + pathCount[i];
+        }
+
+        // Answer queries
+        long[] ans = new long[queries.length];
+        for (int q = 0; q < queries.length; q++) {
+            int L = queries[q][0], R = queries[q][1];
+
+            // first weight >= L
+            int lo = lowerBound(weight, 0, distinct, L);
+            // first weight > R
+            int hi = upperBound(weight, 0, distinct, R);
+
+            long cnt = 0;
+            if (lo < hi) {
+                cnt = pref[hi - 1] - (lo > 0 ? pref[lo - 1] : 0);
+            }
+            ans[q] = cnt;
+        }
+        return ans;
+    }
+
+    /* ---------- Binary search helpers ---------- */
+    static int lowerBound(int[] a, int from, int to, int key) {
+        int lo = from, hi = to;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (a[mid] < key) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    static int upperBound(int[] a, int from, int to, int key) {
+        int lo = from, hi = to;
+        while (lo < hi) {
+            int mid = lo + (hi - lo) / 2;
+            if (a[mid] <= key) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    /* ---------- Fast I/O ---------- */
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int q = Integer.parseInt(st.nextToken());
+
+        int[][] edges = new int[n - 1][3];
+        for (int i = 0; i < n - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            edges[i][0] = Integer.parseInt(st.nextToken());
+            edges[i][1] = Integer.parseInt(st.nextToken());
+            edges[i][2] = Integer.parseInt(st.nextToken());
+        }
+
+        int[][] queries = new int[q][2];
+        for (int i = 0; i < q; i++) {
+            st = new StringTokenizer(br.readLine());
+            queries[i][0] = Integer.parseInt(st.nextToken());
+            queries[i][1] = Integer.parseInt(st.nextToken());
+        }
+
+        long[] result = solve(edges, queries);
+        StringBuilder sb = new StringBuilder();
+        for (long v : result) sb.append(v).append('\n');
+        System.out.print(sb);
+    }
+}
