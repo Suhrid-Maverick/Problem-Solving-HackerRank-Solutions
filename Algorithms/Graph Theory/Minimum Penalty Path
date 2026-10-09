@@ -1,0 +1,84 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+
+        int n = fs.nextInt();
+        int m = fs.nextInt();
+
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        for (int i = 0; i < m; i++) {
+            int u = fs.nextInt();
+            int v = fs.nextInt();
+            int w = fs.nextInt();
+            adj[u].add(new int[]{v, w});
+            adj[v].add(new int[]{u, w});
+        }
+
+        int s = fs.nextInt();
+        int t = fs.nextInt();
+
+        if (s == t) {
+            System.out.println(0);
+            return;
+        }
+
+        boolean[] visited = new boolean[n + 1];
+        int[] queue = new int[n];
+
+        // Edge costs are <= 1023, so OR result is in [0, 1023]
+        for (int mask = 0; mask < 1024; mask++) {
+            Arrays.fill(visited, false);
+            int head = 0, tail = 0;
+
+            queue[tail++] = s;
+            visited[s] = true;
+            boolean found = false;
+
+            while (head < tail) {
+                int u = queue[head++];
+                if (u == t) {
+                    found = true;
+                    break;
+                }
+
+                for (int[] edge : adj[u]) {
+                    int v = edge[0];
+                    int w = edge[1];
+
+                    if (!visited[v] && (w | mask) == mask) {
+                        visited[v] = true;
+                        queue[tail++] = v;
+                    }
+                }
+            }
+
+            if (found) {
+                System.out.println(mask);
+                return;
+            }
+        }
+
+        System.out.println(-1);
+    }
+}
