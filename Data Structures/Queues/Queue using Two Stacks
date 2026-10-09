@@ -1,0 +1,54 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static Stack<Integer> stack1 = new Stack<>();
+    static Stack<Integer> stack2 = new Stack<>();
+
+    public static void enqueue(int val) {
+        stack1.push(val);
+    }
+
+    public static int dequeue() {
+        if (stack2.isEmpty()) {
+            while (!stack1.isEmpty()) {
+                stack2.push(stack1.pop());
+            }
+        }
+        return stack2.pop();
+    }
+
+    public static int peek() {
+        if (stack2.isEmpty()) {
+            while (!stack1.isEmpty()) {
+                stack2.push(stack1.pop());
+            }
+        }
+        return stack2.peek();
+    }
+
+    public static void main(String[] args) {
+        Scanner scan = new Scanner(System.in);
+        int q = Integer.parseInt(scan.nextLine().trim());
+
+        for (int i = 0; i < q; i++) {
+            String[] line = scan.nextLine().trim().split(" ");
+            int op = Integer.parseInt(line[0]);
+
+            switch (op) {
+                case 1:
+                    enqueue(Integer.parseInt(line[1]));
+                    break;
+                case 2:
+                    dequeue();
+                    break;
+                case 3:
+                    System.out.println(peek());
+                    break;
+            }
+        }
+
+        scan.close();
+    }
+}
