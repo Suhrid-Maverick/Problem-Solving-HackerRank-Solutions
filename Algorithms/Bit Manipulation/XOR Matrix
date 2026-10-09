@@ -1,0 +1,66 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+
+        int n = in.nextInt();
+        long m = in.nextLong();
+        long[] ar = new long[n];
+
+        for (int ni = 0; ni < n; ni++) {
+            ar[ni] = in.nextInt();
+        }
+
+        in.close();
+
+        long[] tmpar;
+        m--;
+        int shifted;
+
+        while (m > 0) {
+            long pt = maxTwoPow(m);
+
+            tmpar = new long[n];
+
+            for (int j = 0; j < n - 1; j++) {
+                shifted = (int) ((j + pt) % n);
+                tmpar[j] = ar[j] ^ ar[shifted];
+            }
+
+            shifted = (int) ((n - 1 + pt) % n);
+            tmpar[n - 1] = ar[n - 1] ^ ar[shifted];
+
+            m -= pt;
+            ar = tmpar;
+        }
+
+        printArray(ar);
+    }
+
+    private static long maxTwoPow(long m) {
+        if (m == 0) {
+            return 0;
+        }
+
+        long tmp = 1;
+
+        while ((tmp << 1) <= m) {
+            tmp <<= 1;
+        }
+
+        return tmp;
+    }
+
+    private static void printArray(long[] ar) {
+        int n = ar.length;
+
+        for (int ni = 0; ni < n - 1; ni++) {
+            System.out.print(ar[ni]);
+            System.out.print(" ");
+        }
+        System.out.println(ar[n - 1]);
+    }
+}
