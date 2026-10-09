@@ -1,0 +1,147 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    private Map<Integer, List<Integer>> roads = new HashMap<>();
+
+    /*
+     * Complete the repairRoads function below.
+     */
+    static int repairRoads(int n, int[][] roads) {
+        /*
+         * Write your code here.
+         */
+
+        Solution solution = new Solution();
+        for (int i = 0; i < n - 1; i++) {
+            System.out.println(roads[i][0] + "-" + roads[i][1]);
+            solution.addRoad(roads[i][0], roads[i][1]);
+        }
+        return solution.solve();
+    }
+
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = Integer.parseInt(scanner.nextLine().trim());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            int n = Integer.parseInt(scanner.nextLine().trim());
+
+            int[][] roads = new int[n - 1][2];
+
+            for (int roadsRowItr = 0; roadsRowItr < n - 1; roadsRowItr++) {
+                String[] roadsRowItems = scanner.nextLine().split(" ");
+
+                for (int roadsColumnItr = 0; roadsColumnItr < 2; roadsColumnItr++) {
+                    int roadsItem = Integer.parseInt(roadsRowItems[roadsColumnItr].trim());
+                    roads[roadsRowItr][roadsColumnItr] = roadsItem;
+                }
+            }
+
+            int result = repairRoads(n, roads);
+
+            bufferedWriter.write(String.valueOf(result));
+            bufferedWriter.newLine();
+        }
+
+        bufferedWriter.close();
+    }
+
+    private void addToTree(RoadTree roadTree, int level, Integer city, Integer parent) {
+        List<Integer> roadsFromCity = roads.get(city);
+        if (parent != null) {
+            roadsFromCity.remove(parent);
+        }
+        roadTree.add(city, roadsFromCity, level + 1);
+        for (Integer c : roadsFromCity) {
+            addToTree(roadTree, level + 1, c, city);
+        }
+    }
+
+
+    public int solve() {
+        int result = 0;
+        int level = 0;
+        RoadTree roadTree = new RoadTree(roads.size());
+        Integer root = roads.keySet().iterator().next();
+        addToTree(roadTree, level, root, null);
+        for (int i = roadTree.levels.lastKey() - 1; i > 0; i--) {
+            List<Integer> cities = roadTree.levels.get(i);
+            for (Integer city : cities) {
+                List<Integer> leaves = roadTree.roads.get(city);
+                if (leaves != null && leaves.isEmpty() == false) {
+                    for (Integer integer : leaves) {
+                        roadTree.points[city] += roadTree.points[integer];
+                    }
+                    if (roadTree.points[city] == 0) {
+                        roadTree.points[city]++;
+                    } else if (roadTree.points[city] % 2 == 0) {
+                        result += roadTree.points[city] / 2;
+                        roadTree.points[city] = 0;
+                    }
+                    for (Integer integer : leaves) {
+                        roadTree.roads.remove(integer);
+                    }
+                    if (roadTree.points[city] == 0) {
+                        roadTree.remove(city);
+                    }
+                }
+            }
+        }
+        return result + (roadTree.points[root] + 1) / 2;
+    }
+
+
+    public static class RoadTree {
+        private int[] parents;
+        private Map<Integer, List<Integer>> roads = new HashMap<>();
+        private TreeMap<Integer, List<Integer>> levels = new TreeMap<>();
+        private int[] points;
+
+        public RoadTree(int numberOfCities) {
+            points = new int[numberOfCities];
+            parents = new int[numberOfCities];
+        }
+
+        public void add(Integer city, List<Integer> roads, Integer level) {
+            if (levels.containsKey(level) == false) {
+                levels.put(level, new ArrayList<Integer>());
+            }
+            this.roads.put(city, roads);
+            levels.get(level).add(city);
+            for (Integer integer : roads) {
+                parents[integer] = city;
+            }
+        }
+
+        public void remove(Integer city) {
+            roads.get(parents[city]).remove(city);
+            roads.remove(city);
+        }
+
+    }
+
+    public void addRoad(int city1, int city2) {
+        addConnection(city1, city2);
+        addConnection(city2, city1);
+    }
+
+    private void addConnection(int city1, int city2) {
+        if (roads.containsKey(city1)) {
+            roads.get(city1).add(city2);
+        } else {
+            List<Integer> cities = new ArrayList<>();
+            cities.add(city2);
+            roads.put(city1, cities);
+        }
+    }
+
+}
