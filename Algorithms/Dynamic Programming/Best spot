@@ -1,0 +1,86 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static void bestSpot(int[][] land, int[][] store, int r, int c, int h, int w) {
+        long sumDiff = 0;
+        int m = r - h;
+        int n = c - w;
+        long minSum = Integer.MAX_VALUE;
+        int minCol = n;
+        int minRow = m;
+
+        for (int i = m; i >= 0; i--) {
+            for (int j = n; j >= 0; j--) {
+                sumDiff = 0;
+
+                for (int k = 0; k < h; k++) {
+                    for (int l = 0; l < w; l++) {
+                        int z = land[i + k][j + l] - store[k][l];
+                        sumDiff += z * z;
+                    }
+                }
+
+                if (sumDiff == 0) {
+                    minSum = sumDiff;
+                    minRow = i;
+                    minCol = j;
+                }
+                if (sumDiff < minSum) {
+                    minSum = sumDiff;
+                    minRow = i;
+                    minCol = j;
+                } else if (sumDiff == minSum) {
+                    if (minRow > i) {
+                        minRow = i;
+                        minCol = j;
+                    } else if (minRow == i && minCol > j) {
+                        minCol = j;
+                    }
+                }
+            }
+        }
+
+        System.out.println(minSum);
+        System.out.println((minRow + 1) + " " + (minCol + 1));
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int r = Integer.parseInt(st.nextToken());
+        int c = Integer.parseInt(st.nextToken());
+
+        int[][] land = new int[r][c];
+
+        for (int i = 0; i < r; i++) {
+            st = new StringTokenizer(br.readLine());
+
+            for (int j = 0; j < c; j++) {
+                int item = Integer.parseInt(st.nextToken());
+                land[i][j] = item;
+            }
+        }
+
+        st = new StringTokenizer(br.readLine());
+        int h = Integer.parseInt(st.nextToken());
+        int w = Integer.parseInt(st.nextToken());
+
+        int[][] store = new int[h][w];
+
+        for (int iwItr = 0; iwItr < h; iwItr++) {
+            st = new StringTokenizer(br.readLine());
+
+            for (int j = 0; j < w; j++) {
+                int item = Integer.parseInt(st.nextToken());
+                store[iwItr][j] = item;
+            }
+        }
+
+        bestSpot(land, store, r, c, h, w);
+
+        br.close();
+    }
+}
