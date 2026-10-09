@@ -1,0 +1,104 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MOD = 1_000_000_007;
+
+    static long sum(long a, long b) {
+        return (a + b) % MOD;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int q = Integer.parseInt(st.nextToken());
+
+        for (int qItr = 0; qItr < q; qItr++) {
+            st = new StringTokenizer(br.readLine());
+
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+            int s = Integer.parseInt(st.nextToken());
+
+            int[][] A = new int[2 * n + 1][2 * n + 1];
+            int[][] ways = new int[2 * n + 1][2 * n + 1];
+
+            for (int i = 0; i < n; i++) {
+                char[] item = br.readLine().toCharArray();
+                for (int j = 0; j < n; j++) {
+                    if (item[j] == 'P') {
+                        continue;
+                    }
+
+                    int x = i + j + 1;
+                    int y = n - i + j;
+
+                    A[x][y] = 1;
+
+                    if (item[j] == 'L') {
+                        ways[x][y]++;
+                    }
+                }
+            }
+
+            for (int i = 0; i < m; i++) {
+                int[][] past = ways;
+                ways = new int[2 * n + 1][2 * n + 1];
+
+                for (int j = 0; j < 2 * n + 1; j++) {
+                    for (int k = 0; k < 2 * n + 1; k++) {
+                        if (j > 0) {
+                            past[j][k] = (int) sum(past[j][k], past[j - 1][k]);
+                        }
+                        if (k > 0) {
+                            past[j][k] = (int) sum(past[j][k], past[j][k - 1]);
+                        }
+                        if (j > 0 && k > 0) {
+                            past[j][k] = (int) sum(past[j][k], MOD - past[j - 1][k - 1]);
+                        }
+                    }
+                }
+
+                for (int j = 0; j < 2 * n + 1; j++) {
+                    for (int k = 0; k < 2 * n + 1; k++) {
+                        if (A[j][k] == 0) continue;
+
+                        int x1 = Math.max(j - s, 0);
+                        int x2 = Math.min(j + s, 2 * n);
+
+                        int y1 = Math.max(k - s, 0);
+                        int y2 = Math.min(k + s, 2 * n);
+
+                        ways[j][k] = past[x2][y2];
+
+                        if (x1 > 0) {
+                            ways[j][k] = (int) sum(ways[j][k], MOD - past[x1 - 1][y2]);
+                        }
+                        if (y1 > 0) {
+                            ways[j][k] = (int) sum(ways[j][k], MOD - past[x2][y1 - 1]);
+                        }
+                        if (x1 > 0 && y1 > 0) {
+                            ways[j][k] = (int) sum(ways[j][k], past[x1 - 1][y1 - 1]);
+                        }
+                    }
+                }
+            }
+
+            long result = 0;
+            for (int i = 0; i < 2 * n + 1; i++) {
+                for (int j = 0; j < 2 * n + 1; j++) {
+                    result = sum(result, ways[i][j]);
+                }
+            }
+
+            bw.write(String.valueOf(result));
+            bw.newLine();
+        }
+
+        bw.close();
+        br.close();
+    }
+}
