@@ -1,0 +1,143 @@
+import java.io.*;
+
+public class Solution {
+    static final int MAX = 600000;
+    static final int SIZE = 20;
+
+    static byte[] inbuf;
+    static int inptr, inlen;
+    static InputStream in;
+
+    static int readByte() throws IOException {
+        if (inptr >= inlen) {
+            inlen = in.read(inbuf);
+            inptr = 0;
+            if (inlen <= 0) return -1;
+        }
+        return inbuf[inptr++];
+    }
+
+    static int readInt() throws IOException {
+        int c;
+        while ((c = readByte()) <= ' ') if (c < 0) return -1;
+        int sign = 1;
+        if (c == '-') { sign = -1; c = readByte(); }
+        int num = 0;
+        while (c > ' ') {
+            num = num * 10 + (c - '0');
+            c = readByte();
+        }
+        return num * sign;
+    }
+
+    static long readLong() throws IOException {
+        int c;
+        while ((c = readByte()) <= ' ') if (c < 0) return -1;
+        int sign = 1;
+        if (c == '-') { sign = -1; c = readByte(); }
+        long num = 0;
+        while (c > ' ') {
+            num = num * 10 + (c - '0');
+            c = readByte();
+        }
+        return num * sign;
+    }
+
+    static int lowerBound(long[] arr, int offset, int a, int b, long n) {
+        while (a < b) {
+            int mid = (a + b) >>> 1;
+            if (arr[offset + mid] < n) a = mid + 1;
+            else b = mid;
+        }
+        return a;
+    }
+
+    public static void main(String[] args) throws IOException {
+        in = new BufferedInputStream(System.in, 1 << 16);
+        inbuf = new byte[1 << 16];
+
+        int[] counter = new int[MAX];
+        long[] fresh = new long[MAX];
+        long[] sum = new long[MAX];
+        long[] finder = new long[MAX];
+
+        int[] prev = new int[MAX * SIZE];
+        long[] high = new long[MAX * SIZE];
+        long[] el = new long[MAX * SIZE];
+
+        sum[0] = 1;
+        int u = 1;
+        long t = 1;
+
+        for (int i = 0; i < 20; i++) {
+            int last = Math.min(20 * u, MAX);
+
+            for (int k = 1; k < 10; k++) {
+                long eBase = (long) k * t;
+                for (int j = 0; j < last; j++) {
+                    long sj = sum[j];
+                    if (sj == 0) continue;
+                    int n = k * u + j;
+                    if (n >= MAX) break;
+                    int p = counter[n];
+                    int base = n * SIZE + p;
+                    fresh[n] += sj;
+                    prev[base] = j;
+                    high[base] = sum[n] + fresh[n];
+                    el[base] = eBase;
+                    counter[n] = p + 1;
+                }
+            }
+
+            for (int j = 0; j < MAX; j++) {
+                sum[j] += fresh[j];
+                fresh[j] = 0;
+            }
+
+            u *= 2;
+            t *= 10;
+        }
+
+        finder[0] = 1;
+        for (int i = 1; i < MAX; i++) {
+            finder[i] = finder[i - 1] + sum[i];
+        }
+
+        int count = readInt();
+        StringBuilder sb = new StringBuilder(count * 20);
+
+        for (int q = 0; q < count; q++) {
+            long p = readLong();
+
+            if (p == 1) {
+                sb.append("0\n");
+                continue;
+            }
+
+            int x = lowerBound(finder, 0, 1, MAX - 1, p);
+            long res = 0;
+            p -= finder[x - 1];
+
+            while (true) {
+                int baseX = x * SIZE;
+                int k = counter[x];
+                int yRel = lowerBound(high, baseX, 0, k - 1, p);
+                int yAbs = baseX + yRel;
+
+                res += el[yAbs];
+                x = prev[yAbs];
+
+                if (x == 0) {
+                    sb.append(res).append('\n');
+                    break;
+                }
+
+                if (yRel > 0) {
+                    p -= high[baseX + yRel - 1];
+                }
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
