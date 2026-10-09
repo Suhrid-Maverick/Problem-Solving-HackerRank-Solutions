@@ -1,0 +1,159 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Node {
+        int data;
+        Node left;
+        Node right;
+        int height;
+
+        Node(int data) {
+            this.data = data;
+            this.left = null;
+            this.right = null;
+            this.height = 1;
+        }
+    }
+
+    static class AVLTree {
+        Node root;
+
+        AVLTree() {
+            this.root = null;
+        }
+
+        int getHeight(Node node) {
+            return node == null ? 0 : node.height;
+        }
+
+        int calculateHeight(Node node) {
+            return 1 + Math.max(getHeight(node.left), getHeight(node.right));
+        }
+
+        int getBalance(Node node) {
+            return getHeight(node.left) - getHeight(node.right);
+        }
+
+        void insert(int data) {
+            root = insertHelper(root, data);
+        }
+
+        Node insertHelper(Node node, int data) {
+            if (node == null) {
+                return new Node(data);
+            }
+
+            if (data < node.data) {
+                node.left = insertHelper(node.left, data);
+            } else if (data > node.data) {
+                node.right = insertHelper(node.right, data);
+            } else {
+                return node;
+            }
+
+            node.height = 1 + Math.max(getHeight(node.left), getHeight(node.right));
+
+            int bf = getBalance(node);
+
+            if (bf > 1 && data < node.left.data) {
+                return rotateRight(node);
+            }
+
+            if (bf > 1 && data > node.left.data) {
+                node.left = rotateLeft(node.left);
+                return rotateRight(node);
+            }
+
+            if (bf < -1 && data > node.right.data) {
+                return rotateLeft(node);
+            }
+
+            if (bf < -1 && data < node.right.data) {
+                node.right = rotateRight(node.right);
+                return rotateLeft(node);
+            }
+
+            return node;
+        }
+
+        Node rotateRight(Node node) {
+            Node left = node.left;
+            Node leftRight = left.right;
+
+            left.right = node;
+            node.left = leftRight;
+
+            node.height = calculateHeight(node);
+            left.height = calculateHeight(left);
+
+            return left;
+        }
+
+        Node rotateLeft(Node node) {
+            Node right = node.right;
+            Node rightLeft = right.left;
+
+            right.left = node;
+            node.right = rightLeft;
+
+            node.height = calculateHeight(node);
+            right.height = calculateHeight(right);
+
+            return right;
+        }
+
+        void inorder(Node node) {
+            if (node != null) {
+                inorder(node.left);
+                System.out.print(node.data + "(BF=" + getBalance(node) + ") ");
+                inorder(node.right);
+            }
+        }
+
+        void postorder(Node node) {
+            if (node != null) {
+                System.out.print(node.data + "(BF=" + getBalance(node) + ") ");
+                postorder(node.left);
+                postorder(node.right);
+            }
+        }
+
+        void printBalance() {
+            inorder(root);
+            System.out.println();
+            postorder(root);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        List<String> lines = new ArrayList<>();
+        String line;
+        while ((line = br.readLine()) != null) {
+            if (line.trim().equals("Exit")) {
+                break;
+            }
+            lines.add(line);
+        }
+
+        String nol = lines.get(0);
+        int[] treeInput = Arrays.stream(lines.get(1).split(" "))
+                .mapToInt(Integer::parseInt)
+                .toArray();
+        int toIns = Integer.parseInt(lines.get(2).trim());
+
+        AVLTree tree = new AVLTree();
+
+        for (int x : treeInput) {
+            tree.insert(x);
+        }
+
+        tree.insert(toIns);
+        tree.printBalance();
+
+        br.close();
+    }
+}
