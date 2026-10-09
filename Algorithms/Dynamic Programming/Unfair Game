@@ -1,0 +1,116 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class UnfairGame {
+
+    static int om(int[] values, boolean notDone) {
+        int threshold = 0;
+        int stones = 0;
+        int nimSum = nimSum(values);
+        if (nimSum == 0)
+            return 0;
+        int index = getIndexOfLargest(values);
+        int t = values[index];
+        int digits = 0;
+        while (t != 0) {
+            t >>= 1;
+            digits++;
+        }
+        int[] newValues = values.clone();
+        newValues[index] = 1 << digits;
+        int buffer = newValues[index] - values[index];
+        while (nimSum != 0) {
+            int highestBit = -1;
+            while (nimSum != 0) {
+                nimSum >>= 1;
+                highestBit++;
+            }
+            int required = 1 << highestBit;
+            threshold = required << 1;
+            int mask = required - 1;
+            int least = required;
+            int keyIndex = -1;
+            int standby = -1;
+            int atleast = required;
+            for (int i = 0; i < values.length; i++) {
+                int offer = required - (values[i] & mask);
+                if (offer <= atleast) {
+                    atleast = offer;
+                    standby = i;
+                }
+                if (offer <= least && (offer + (values[i] & (threshold - 1))) < threshold
+                        && (values[i] & required) == 0) {
+                    least = offer;
+                    keyIndex = i;
+                }
+            }
+            if (keyIndex == -1) {
+                stones += atleast;
+                values[standby] += atleast;
+            } else {
+                stones += least;
+                values[keyIndex] += least;
+            }
+            nimSum = nimSum(values);
+        }
+        if (stones < threshold || !notDone) {
+            return stones;
+        }
+        int chance = om(newValues, false);
+        if (buffer + chance < stones)
+            return buffer + chance;
+        else
+            return stones;
+    }
+
+    static int nimSum(int[] values) {
+        int sum = 0;
+        for (int i = 0; i < values.length; i++) {
+            sum ^= values[i];
+        }
+        return sum;
+    }
+
+    static int getIndexOfLargest(int[] values) {
+        int mask = 1 << 31;
+        mask--;
+        return getIndexOfLargest(mask, values);
+    }
+
+    static int getIndexOfLargest(int mask, int[] values) {
+        int largestIndex = 0;
+        for (int i = 0; i < values.length; i++) {
+            if ((values[i] & mask) > values[largestIndex])
+                largestIndex = i;
+        }
+        return largestIndex;
+    }
+
+    static int pairs(int[] values, int bitIndex) {
+        int count = 0;
+        int v = 1 << bitIndex;
+        for (int i = 0; i < values.length; i++) {
+            if ((values[i] & v) > 0)
+                count++;
+        }
+        return count;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine();
+        int T = Integer.parseInt(s);
+        for (int i = 0; i < T; i++) {
+            s = br.readLine();
+            int N = Integer.parseInt(s);
+            s = br.readLine();
+            String[] ss = s.split("\\s");
+            int[] values = new int[N];
+            for (int j = 0; j < N; j++) {
+                values[j] = Integer.parseInt(ss[j]);
+            }
+            System.out.println(om(values, true));
+        }
+    }
+}
