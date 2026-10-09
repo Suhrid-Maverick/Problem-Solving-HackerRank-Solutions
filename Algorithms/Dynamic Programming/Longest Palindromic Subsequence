@@ -1,0 +1,130 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int N;
+    static int K;
+    static String S;
+
+    static int[][] dp;
+    static int[][] dpX;
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        dp = new int[3002][3002];
+        dpX = new int[3002][3002];
+
+        int T = in.nextInt();
+        for (int i = 0; i < T; i++) {
+            N = in.nextInt();
+            K = in.nextInt();
+            S = in.next("[a-z]+");
+            int result = solve();
+            System.out.println(result);
+        }
+    }
+
+    static int solve() {
+        for (int i = 0; i < dp.length; i++) {
+            Arrays.fill(dp[i], -1);
+            Arrays.fill(dpX[i], -1);
+        }
+
+        int result;
+        if (K == 0) {
+            result = 26 * (N + 1);
+        } else {
+            result = 0;
+            for (int i = 0; i <= N; i++) {
+                int countOfExtend = countOfExtend(i);
+                result += countOfExtend;
+            }
+            return result;
+        }
+        return result;
+    }
+
+    private static int countOfExtend(int at) {
+        int base = count(0, N);
+        if (at > 0 && at < N) {
+            if (countOuter(at, at + 1) + 1 - base >= K) {
+                return 26;
+            }
+        }
+        boolean[] usedChars = new boolean[26];
+        int result = 0;
+        for (int i = 0; i < N; i++) {
+            int ch = S.charAt(i) - 'a';
+            if (!usedChars[ch]) {
+                int from = Math.min(i, at);
+                int to = Math.max(i, at);
+                int outer;
+                int inner;
+                if (i < at) {
+                    outer = countOuter(from - 1, to);
+                    inner = count(from + 1, to);
+                } else {
+                    outer = countOuter(from - 1, to + 1);
+                    inner = count(from, to);
+                }
+                if (inner < 0 || outer < 0) {
+                    throw new IllegalStateException();
+                }
+
+                if (outer + inner + 2 - base >= K) {
+                    usedChars[ch] = true;
+                    result++;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    static int countOuter(int from, int to) {
+        if (from == -1 || to >= N) {
+            return 0;
+        } else {
+            int result = dpX[from][to];
+            if (result >= 0) {
+                return result;
+            }
+            int a = S.charAt(from);
+            int b = S.charAt(to);
+            if (a == b) {
+                result = countOuter(from - 1, to + 1) + 2;
+            } else {
+                result = Math.max(countOuter(from - 1, to), countOuter(from, to + 1));
+            }
+
+            dpX[from][to] = result;
+            return result;
+        }
+    }
+
+    static int count(int from, int to) {
+        if (from == to) {
+            return 0;
+        } else if (from + 1 == to) {
+            return 1;
+        }
+
+        int result = dp[from][to];
+        if (result >= 0) {
+            return result;
+        }
+
+        int a = S.charAt(from);
+        int b = S.charAt(to - 1);
+
+        if (a == b) {
+            result = count(from + 1, to - 1) + 2;
+        } else {
+            result = Math.max(count(from + 1, to), count(from, to - 1));
+        }
+
+        dp[from][to] = result;
+        return result;
+    }
+
+}
