@@ -1,0 +1,91 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+
+            int[] x = new int[n];
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                x[i] = Integer.parseInt(st.nextToken());
+            }
+
+            int[] D = new int[n];
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                D[i] = Integer.parseInt(st.nextToken());
+            }
+
+            long[][] C = new long[m + 1][m + 1];
+            for (int i = 0; i <= m; i++) {
+                C[i][0] = C[i][i] = 1;
+                for (int j = 1; j < i; j++) {
+                    C[i][j] = (C[i - 1][j - 1] + C[i - 1][j]) % MOD;
+                }
+            }
+
+            long[] dp = new long[m + 1];
+            dp[0] = 1;
+
+            for (int dim = 0; dim < n; dim++) {
+                int size = D[dim];
+                int start = x[dim];
+
+                long[] f = new long[m + 1];
+                f[0] = 1;
+
+                long[] prev = new long[size + 2];
+                prev[start] = 1;
+
+                for (int step = 1; step <= m; step++) {
+                    long[] cur = new long[size + 2];
+                    long total = 0;
+
+                    for (int pos = 1; pos <= size; pos++) {
+                        long val = 0;
+                        if (pos > 1) val += prev[pos - 1];
+                        if (pos < size) val += prev[pos + 1];
+                        val %= MOD;
+
+                        cur[pos] = val;
+                        total += val;
+                    }
+
+                    f[step] = total % MOD;
+                    prev = cur;
+                }
+
+                long[] ndp = new long[m + 1];
+
+                for (int used = 0; used <= m; used++) {
+                    if (dp[used] == 0) continue;
+
+                    for (int k = 0; k <= m - used; k++) {
+                        if (f[k] == 0) continue;
+
+                        long add = dp[used] * f[k] % MOD;
+                        add = add * C[used + k][k] % MOD;
+
+                        ndp[used + k] = (ndp[used + k] + add) % MOD;
+                    }
+                }
+
+                dp = ndp;
+            }
+
+            sb.append(dp[m]).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
