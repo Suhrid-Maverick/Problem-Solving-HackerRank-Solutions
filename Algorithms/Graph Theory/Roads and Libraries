@@ -1,0 +1,74 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int[] parent, rank, compSize;
+
+    static int find(int x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
+        return x;
+    }
+
+    static void union(int a, int b) {
+        int ra = find(a);
+        int rb = find(b);
+        if (ra == rb) return;
+        if (rank[ra] < rank[rb]) {
+            int tmp = ra;
+            ra = rb;
+            rb = tmp;
+        }
+        parent[rb] = ra;
+        compSize[ra] += compSize[rb];
+        if (rank[ra] == rank[rb]) rank[ra]++;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+        int q = Integer.parseInt(br.readLine().trim());
+
+        while (q-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+            long c_lib = Long.parseLong(st.nextToken());
+            long c_road = Long.parseLong(st.nextToken());
+
+            parent = new int[n + 1];
+            rank = new int[n + 1];
+            compSize = new int[n + 1];
+
+            for (int i = 1; i <= n; i++) {
+                parent[i] = i;
+                compSize[i] = 1;
+            }
+
+            for (int i = 0; i < m; i++) {
+                st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken());
+                int v = Integer.parseInt(st.nextToken());
+                union(u, v);
+            }
+
+            long total = 0;
+            if (c_road >= c_lib) {
+                total = n * c_lib;
+            } else {
+                for (int i = 1; i <= n; i++) {
+                    if (parent[i] == i) {
+                        int sz = compSize[i];
+                        total += c_lib + (sz - 1) * c_road;
+                    }
+                }
+            }
+
+            sb.append(total).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
