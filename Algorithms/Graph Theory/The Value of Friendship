@@ -1,0 +1,87 @@
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        int t = in.nextInt();
+        for (int a0 = 0; a0 < t; a0++) {
+            int n = in.nextInt();
+            int m = in.nextInt();
+
+            DisjointSets friendGroups = new DisjointSets(n);
+
+            for (int a1 = 0; a1 < m; a1++) {
+                int x = in.nextInt();
+                int y = in.nextInt();
+                // your code goes here
+                friendGroups.union(x - 1, y - 1);
+            }
+
+            List<Integer> groupSizes = friendGroups.setSizes();
+            Collections.sort(groupSizes, Comparator.reverseOrder());
+
+            long[] extra = new long[m];
+            int idx = 0;
+            for (int size : groupSizes) {
+                for (int i = 1; i < size; i++) {
+                    extra[idx++] = i;
+                }
+            }
+
+            long totalFriendship = 0;
+            long currentFriendship = 0;
+            for (int i = 0; i < m; i++) {
+                currentFriendship += 2L * extra[i];
+                totalFriendship += currentFriendship;
+            }
+            System.out.println(totalFriendship);
+        }
+    }
+
+    private static class DisjointSets {
+        private int[] parent;
+        private int[] size;
+
+        public DisjointSets(int n) {
+            parent = new int[n];
+            size = new int[n];
+            for (int i = 0; i < n; i++) {
+                parent[i] = i;
+                size[i] = 1;
+            }
+        }
+
+        public void union(int a, int b) {
+            int p = find(a);
+            int q = find(b);
+            if (p == q)
+                return;
+            if (size[p] < size[q]) {
+                parent[p] = q;
+                size[q] += size[p];
+            } else {
+                parent[q] = p;
+                size[p] += size[q];
+            }
+        }
+
+        public int find(int x) {
+            while (x != parent[x]) {
+                parent[x] = parent[parent[x]];
+                x = parent[x];
+            }
+            return x;
+        }
+
+        public List<Integer> setSizes() {
+            Set<Integer> sets = new HashSet<>();
+            for (int x : parent)
+                sets.add(find(x));
+            List<Integer> sizes = new ArrayList<>();
+            for (int x : sets)
+                sizes.add(size[x]);
+            return sizes;
+        }
+    }
+}
