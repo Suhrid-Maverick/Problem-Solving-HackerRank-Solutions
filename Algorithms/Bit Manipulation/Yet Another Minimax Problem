@@ -1,0 +1,99 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        if (line == null) return;
+        int N = Integer.parseInt(line.trim());
+        if (N <= 1) {
+            System.out.println(0);
+            return;
+        }
+        int[] A = new int[N];
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < N; i++) {
+            A[i] = Integer.parseInt(st.nextToken());
+        }
+
+        // Find the highest bit where numbers differ
+        int maxBit = -1;
+        for (int bit = 30; bit >= 0; bit--) {
+            boolean has0 = false, has1 = false;
+            for (int x : A) {
+                if (((x >> bit) & 1) == 0) has0 = true;
+                else has1 = true;
+                if (has0 && has1) break;
+            }
+            if (has0 && has1) {
+                maxBit = bit;
+                break;
+            }
+        }
+
+        if (maxBit == -1) {
+            System.out.println(0);
+            return;
+        }
+
+        List<Integer> list0 = new ArrayList<>();
+        List<Integer> list1 = new ArrayList<>();
+        for (int x : A) {
+            if (((x >> maxBit) & 1) == 0) list0.add(x);
+            else list1.add(x);
+        }
+
+        // Build trie for list1
+        int maxNodes = N * 31 + 5;
+        int[] child0 = new int[maxNodes];
+        int[] child1 = new int[maxNodes];
+        int nodeCount = 1;
+
+        for (int x : list1) {
+            int cur = 1;
+            for (int bit = 30; bit >= 0; bit--) {
+                int b = (x >> bit) & 1;
+                if (b == 0) {
+                    if (child0[cur] == 0) {
+                        child0[cur] = ++nodeCount;
+                    }
+                    cur = child0[cur];
+                } else {
+                    if (child1[cur] == 0) {
+                        child1[cur] = ++nodeCount;
+                    }
+                    cur = child1[cur];
+                }
+            }
+        }
+
+        // Query minimum XOR for each element in list0
+        int ans = Integer.MAX_VALUE;
+        for (int x : list0) {
+            int cur = 1;
+            int res = 0;
+            for (int bit = 30; bit >= 0; bit--) {
+                int b = (x >> bit) & 1;
+                if (b == 0) {
+                    if (child0[cur] != 0) {
+                        cur = child0[cur];
+                    } else {
+                        res |= (1 << bit);
+                        cur = child1[cur];
+                    }
+                } else {
+                    if (child1[cur] != 0) {
+                        cur = child1[cur];
+                    } else {
+                        res |= (1 << bit);
+                        cur = child0[cur];
+                    }
+                }
+            }
+            if (res < ans) ans = res;
+        }
+
+        System.out.println(ans);
+    }
+}
