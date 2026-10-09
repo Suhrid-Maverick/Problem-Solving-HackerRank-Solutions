@@ -1,0 +1,69 @@
+import java.util.*;
+
+public class Solution {
+    private static Map<String, Boolean> memo = new HashMap<>();
+
+    private static boolean IsIncreasing(int[] arr) {
+        for (int i = 0; i < arr.length - 1; i++) {
+            if (arr[i] >= arr[i + 1]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean FindWinner(int[] arr) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arr.length; i++) {
+            if (i > 0) sb.append("|");
+            sb.append(arr[i]);
+        }
+        String key = sb.toString();
+
+        if (memo.containsKey(key)) {
+            return memo.get(key);
+        }
+
+        if (IsIncreasing(arr)) {
+            memo.put(key, true);
+            return true;
+        }
+
+        for (int idx = 0; idx < arr.length; idx++) {
+            int[] newArr = new int[arr.length - 1];
+            int k = 0;
+            for (int i = 0; i < arr.length; i++) {
+                if (i != idx) {
+                    newArr[k++] = arr[i];
+                }
+            }
+            if (FindWinner(newArr)) {
+                memo.put(key, false);
+                return false;
+            }
+        }
+
+        memo.put(key, true);
+        return true;
+    }
+
+    public static String PermutationGame(int[] arr) {
+        memo.clear();
+        return FindWinner(arr) ? "Bob" : "Alice";
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int t = Integer.parseInt(sc.nextLine().trim());
+        while (t-- > 0) {
+            int n = Integer.parseInt(sc.nextLine().trim());
+            String[] parts = sc.nextLine().split(" ");
+            int[] arr = new int[n];
+            for (int i = 0; i < n; i++) {
+                arr[i] = Integer.parseInt(parts[i]);
+            }
+            System.out.println(PermutationGame(arr));
+        }
+        sc.close();
+    }
+}
