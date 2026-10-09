@@ -1,0 +1,93 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+
+        int[] pop = new int[n];
+        for (int i = 0; i < n; i++) pop[i] = fs.nextInt();
+
+        int[] townX = new int[n];
+        for (int i = 0; i < n; i++) townX[i] = fs.nextInt();
+
+        int m = fs.nextInt();
+
+        int[] cloudY = new int[m];
+        for (int i = 0; i < m; i++) cloudY[i] = fs.nextInt();
+
+        int[] cloudR = new int[m];
+        for (int i = 0; i < m; i++) cloudR[i] = fs.nextInt();
+
+        // Sort towns by location
+        Integer[] idx = new Integer[n];
+        for (int i = 0; i < n; i++) idx[i] = i;
+        Arrays.sort(idx, (a, b) -> Integer.compare(townX[a], townX[b]));
+
+        // Create start and end events for clouds
+        int[][] starts = new int[m][2];
+        int[][] ends = new int[m][2];
+        for (int i = 0; i < m; i++) {
+            starts[i][0] = cloudY[i] - cloudR[i];
+            starts[i][1] = i;
+            ends[i][0] = cloudY[i] + cloudR[i];
+            ends[i][1] = i;
+        }
+
+        Arrays.sort(starts, (a, b) -> Integer.compare(a[0], b[0]));
+        Arrays.sort(ends, (a, b) -> Integer.compare(a[0], b[0]));
+
+        long baseSunny = 0;
+        long[] extra = new long[m];
+
+        HashSet<Integer> active = new HashSet<>();
+        int si = 0, ei = 0;
+
+        for (int i = 0; i < n; i++) {
+            int id = idx[i];
+            int x = townX[id];
+
+            // Add clouds that start at or before x
+            while (si < m && starts[si][0] <= x) {
+                active.add(starts[si][1]);
+                si++;
+            }
+
+            // Remove clouds that end before x
+            while (ei < m && ends[ei][0] < x) {
+                active.remove(ends[ei][1]);
+                ei++;
+            }
+
+            if (active.isEmpty()) {
+                baseSunny += pop[id];
+            } else if (active.size() == 1) {
+                int cloudId = active.iterator().next();
+                extra[cloudId] += pop[id];
+            }
+            // if size > 1, town remains dark after removing any single cloud
+        }
+
+        long maxExtra = 0;
+        for (long e : extra) {
+            if (e > maxExtra) maxExtra = e;
+        }
+
+        System.out.println(baseSunny + maxExtra);
+    }
+}
