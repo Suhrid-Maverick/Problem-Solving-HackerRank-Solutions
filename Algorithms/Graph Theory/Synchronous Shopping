@@ -1,0 +1,86 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] fishMask = new int[n + 1];
+        for (int i = 1; i <= n; i++) {
+            st = new StringTokenizer(br.readLine());
+            int c = Integer.parseInt(st.nextToken());
+            int mask = 0;
+            for (int j = 0; j < c; j++) {
+                int type = Integer.parseInt(st.nextToken());
+                mask |= (1 << (type - 1));
+            }
+            fishMask[i] = mask;
+        }
+
+        List<List<int[]>> adj = new ArrayList<>();
+        for (int i = 0; i <= n; i++) adj.add(new ArrayList<>());
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int w = Integer.parseInt(st.nextToken());
+            adj.get(u).add(new int[]{v, w});
+            adj.get(v).add(new int[]{u, w});
+        }
+
+        int totalMasks = 1 << k;
+        int INF = Integer.MAX_VALUE / 2;
+        int[][] dist = new int[n + 1][totalMasks];
+        for (int i = 0; i <= n; i++) Arrays.fill(dist[i], INF);
+
+        PriorityQueue<int[]> pq = new PriorityQueue<>(Comparator.comparingInt(a -> a[2]));
+        int startMask = fishMask[1];
+        dist[1][startMask] = 0;
+        pq.add(new int[]{1, startMask, 0});
+
+        while (!pq.isEmpty()) {
+            int[] cur = pq.poll();
+            int u = cur[0], mask = cur[1], cost = cur[2];
+            if (cost > dist[u][mask]) continue;
+            for (int[] edge : adj.get(u)) {
+                int v = edge[0], w = edge[1];
+                int newMask = mask | fishMask[v];
+                int newCost = cost + w;
+                if (newCost < dist[v][newMask]) {
+                    dist[v][newMask] = newCost;
+                    pq.add(new int[]{v, newMask, newCost});
+                }
+            }
+        }
+
+        int[] best = new int[totalMasks];
+        Arrays.fill(best, INF);
+        for (int mask = 0; mask < totalMasks; mask++) {
+            best[mask] = dist[n][mask];
+        }
+
+        // SOS DP: best[mask] = min cost to collect at least 'mask'
+        for (int i = 0; i < k; i++) {
+            for (int mask = 0; mask < totalMasks; mask++) {
+                if ((mask & (1 << i)) == 0) {
+                    best[mask] = Math.min(best[mask], best[mask | (1 << i)]);
+                }
+            }
+        }
+
+        int all = totalMasks - 1;
+        int ans = INF;
+        for (int mask = 0; mask <= all; mask++) {
+            int other = all ^ mask;
+            if (best[mask] != INF && best[other] != INF) {
+                ans = Math.min(ans, Math.max(best[mask], best[other]));
+            }
+        }
+
+        System.out.println(ans);
+    }
+}
