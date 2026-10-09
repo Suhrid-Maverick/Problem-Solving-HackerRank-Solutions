@@ -1,0 +1,46 @@
+import java.util.*;
+
+public class Solution {
+
+    public static List<Integer> getMax(List<String> operations) {
+        Deque<Integer> stack = new ArrayDeque<>();
+        Deque<Integer> maxStack = new ArrayDeque<>();
+        List<Integer> res = new ArrayList<>();
+
+        for (String op : operations) {
+            String[] parts = op.split(" ");
+            int type = Integer.parseInt(parts[0]);
+
+            if (type == 1) {
+                int val = Integer.parseInt(parts[1]);
+                stack.push(val);
+                if (maxStack.isEmpty()) {
+                    maxStack.push(val);
+                } else {
+                    maxStack.push(Math.max(val, maxStack.peek()));
+                }
+            } else if (type == 2) {
+                stack.pop();
+                maxStack.pop();
+            } else if (type == 3) {
+                res.add(maxStack.peek());
+            }
+        }
+
+        return res;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = Integer.parseInt(sc.nextLine().trim());
+        List<String> operations = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            operations.add(sc.nextLine().trim());
+        }
+        List<Integer> result = getMax(operations);
+        for (int x : result) {
+            System.out.println(x);
+        }
+        sc.close();
+    }
+}
