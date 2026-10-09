@@ -1,0 +1,77 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int m = Integer.parseInt(st.nextToken());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        char[][] board = new char[m][n];
+        for (int i = 0; i < m; i++) {
+            String line = br.readLine().trim();
+            for (int j = 0; j < n; j++) {
+                board[i][j] = line.charAt(j);
+            }
+        }
+
+        int[][][] dist = new int[m][n][k + 1];
+        for (int[][] a : dist)
+            for (int[] b : a)
+                Arrays.fill(b, Integer.MAX_VALUE);
+
+        dist[0][0][0] = 0;
+        Deque<int[]> deque = new ArrayDeque<>();
+        deque.addFirst(new int[]{0, 0, 0});
+
+        int[] dr = {-1, 1, 0, 0};
+        int[] dc = {0, 0, -1, 1};
+        char[] dirs = {'U', 'D', 'L', 'R'};
+
+        int ans = Integer.MAX_VALUE;
+
+        while (!deque.isEmpty()) {
+            int[] cur = deque.pollFirst();
+            int r = cur[0], c = cur[1], t = cur[2];
+            int cost = dist[r][c][t];
+
+            if (board[r][c] == '*') {
+                ans = Math.min(ans, cost);
+                continue;
+            }
+
+            if (t == k) continue;
+
+            // Follow the existing arrow
+            char ch = board[r][c];
+            int nr = r, nc = c;
+            if (ch == 'U') nr--;
+            else if (ch == 'D') nr++;
+            else if (ch == 'L') nc--;
+            else if (ch == 'R') nc++;
+
+            if (nr >= 0 && nr < m && nc >= 0 && nc < n) {
+                if (dist[nr][nc][t + 1] > cost) {
+                    dist[nr][nc][t + 1] = cost;
+                    deque.addFirst(new int[]{nr, nc, t + 1});
+                }
+            }
+
+            // Change the current cell to any direction (cost +1)
+            for (int d = 0; d < 4; d++) {
+                int nr2 = r + dr[d];
+                int nc2 = c + dc[d];
+                if (nr2 >= 0 && nr2 < m && nc2 >= 0 && nc2 < n) {
+                    if (dist[nr2][nc2][t + 1] > cost + 1) {
+                        dist[nr2][nc2][t + 1] = cost + 1;
+                        deque.addLast(new int[]{nr2, nc2, t + 1});
+                    }
+                }
+            }
+        }
+
+        System.out.println(ans == Integer.MAX_VALUE ? -1 : ans);
+    }
+}
