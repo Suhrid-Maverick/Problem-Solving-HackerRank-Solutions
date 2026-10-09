@@ -1,0 +1,73 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    private static PrintWriter out;
+    public static int mod = 1000000007;
+
+    static byte[] inbuf = new byte[1 << 16];
+    static int inptr = 0, inlen = 0;
+    static InputStream in;
+
+    static int readByte() throws IOException {
+        if (inptr >= inlen) {
+            inlen = in.read(inbuf);
+            inptr = 0;
+            if (inlen <= 0) return -1;
+        }
+        return inbuf[inptr++];
+    }
+
+    static int nextInt() throws IOException {
+        int c;
+        while ((c = readByte()) <= ' ') if (c < 0) return -1;
+        int num = 0;
+        while (c > ' ') {
+            num = num * 10 + (c - '0');
+            c = readByte();
+        }
+        return num;
+    }
+
+    public static void main(String[] args) throws IOException {
+        in = new BufferedInputStream(System.in, 1 << 16);
+        out = new PrintWriter(System.out);
+
+        int M = nextInt();
+        int R = nextInt();
+        int S = nextInt();
+
+        if ((R + S) % 2 != 0 || S >= R) {
+            out.println("0");
+            out.flush();
+            return;
+        }
+
+        int P = (R + S) / 2;
+        int Q = (R - S) / 2;
+
+        long[][] nways = new long[M + 1][P + 1];
+        nways[0][0] = 1;
+
+        for (int i = 1; i <= M; i++) {
+            int x = nextInt();
+            if (x > P) continue;
+            for (int j = Math.min(i, M); j >= 1; j--) {
+                long[] cur = nways[j];
+                long[] prv = nways[j - 1];
+                for (int k = P; k >= x; k--) {
+                    long v = cur[k] + prv[k - x];
+                    if (v >= mod) v -= mod;
+                    cur[k] = v;
+                }
+            }
+        }
+
+        long total = 0;
+        for (int i = 0; i <= M; i++) {
+            total = (total + nways[i][P] * nways[i][Q]) % mod;
+        }
+        out.println(total);
+        out.flush();
+    }
+}
