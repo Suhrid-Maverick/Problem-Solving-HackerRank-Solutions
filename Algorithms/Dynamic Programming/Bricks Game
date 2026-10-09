@@ -1,0 +1,40 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            long[] arr = new long[n];
+            StringTokenizer st = new StringTokenizer(br.readLine());
+
+            for (int i = 0; i < n; i++) {
+                arr[i] = Long.parseLong(st.nextToken());
+            }
+
+            long[] suffix = new long[n + 1];
+            for (int i = n - 1; i >= 0; i--) {
+                suffix[i] = suffix[i + 1] + arr[i];
+            }
+
+            long[] dp = new long[n + 1];
+
+            for (int i = n - 1; i >= 0; i--) {
+                long best = Long.MIN_VALUE;
+                for (int k = 1; k <= 3 && i + k <= n; k++) {
+                    long val = suffix[i] - dp[i + k];
+                    if (val > best) best = val;
+                }
+                dp[i] = best;
+            }
+
+            sb.append(dp[0]).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
