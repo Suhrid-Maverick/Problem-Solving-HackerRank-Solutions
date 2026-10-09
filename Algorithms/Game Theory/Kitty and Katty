@@ -1,0 +1,21 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        while (t-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            // Special case: n = 1 -> Kitty wins immediately
+            // Otherwise, if n is even -> Kitty wins; if n is odd -> Katty wins
+            if (n == 1 || n % 2 == 0) {
+                sb.append("Kitty\n");
+            } else {
+                sb.append("Katty\n");
+            }
+        }
+        System.out.print(sb);
+    }
+}
