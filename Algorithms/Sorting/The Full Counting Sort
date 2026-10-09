@@ -1,0 +1,40 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        int half = n / 2;
+
+        List<List<String>> buckets = new ArrayList<>(100);
+        for (int i = 0; i < 100; i++) {
+            buckets.add(new ArrayList<>());
+        }
+
+        for (int i = 0; i < n; i++) {
+            String line = br.readLine();
+            int spaceIdx = line.indexOf(' ');
+            int x = Integer.parseInt(line.substring(0, spaceIdx));
+            String s = line.substring(spaceIdx + 1);
+
+            if (i < half) {
+                buckets.get(x).add("-");
+            } else {
+                buckets.get(x).add(s);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        for (List<String> bucket : buckets) {
+            for (String s : bucket) {
+                if (!first) sb.append(' ');
+                sb.append(s);
+                first = false;
+            }
+        }
+
+        System.out.println(sb.toString());
+    }
+}
