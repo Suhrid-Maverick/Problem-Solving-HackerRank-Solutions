@@ -1,0 +1,54 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine().trim();
+
+        int[] cnt = new int[26];
+        for (int i = 0; i < s.length(); i++) {
+            cnt[s.charAt(i) - 'a']++;
+        }
+
+        Map<Integer, Integer> freqOfFreq = new HashMap<>();
+        for (int f : cnt) {
+            if (f > 0) {
+                freqOfFreq.put(f, freqOfFreq.getOrDefault(f, 0) + 1);
+            }
+        }
+
+        if (freqOfFreq.size() == 1) {
+            System.out.println("YES");
+            return;
+        }
+
+        if (freqOfFreq.size() == 2) {
+            int a = 0, b = 0, ca = 0, cb = 0;
+            boolean first = true;
+            for (Map.Entry<Integer, Integer> e : freqOfFreq.entrySet()) {
+                if (first) {
+                    a = e.getKey();
+                    ca = e.getValue();
+                    first = false;
+                } else {
+                    b = e.getKey();
+                    cb = e.getValue();
+                }
+            }
+
+            if (a > b) {
+                int temp = a; a = b; b = temp;
+                temp = ca; ca = cb; cb = temp;
+            }
+
+            if ((a == 1 && ca == 1) || (b == a + 1 && cb == 1)) {
+                System.out.println("YES");
+            } else {
+                System.out.println("NO");
+            }
+        } else {
+            System.out.println("NO");
+        }
+    }
+}
