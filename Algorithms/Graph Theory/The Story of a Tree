@@ -1,0 +1,118 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                st = new StringTokenizer(br.readLine());
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int T = fs.nextInt();
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            int N = fs.nextInt();
+            List<Integer>[] adj = new ArrayList[N + 1];
+            for (int i = 1; i <= N; i++) adj[i] = new ArrayList<>();
+            for (int i = 0; i < N - 1; i++) {
+                int u = fs.nextInt();
+                int v = fs.nextInt();
+                adj[u].add(v);
+                adj[v].add(u);
+            }
+
+            int[] parent = new int[N + 1];
+            int[] tin = new int[N + 1];
+            int[] tout = new int[N + 1];
+            int[] order = new int[N];
+            Arrays.fill(parent, -1);
+            parent[1] = 0;
+
+            Stack<Integer> stack = new Stack<>();
+            stack.push(1);
+            int timer = 0;
+            while (!stack.isEmpty()) {
+                int u = stack.pop();
+                tin[u] = timer;
+                order[timer++] = u;
+                for (int v : adj[u]) {
+                    if (v != parent[u]) {
+                        parent[v] = u;
+                        stack.push(v);
+                    }
+                }
+            }
+
+            int[] size = new int[N + 1];
+            Arrays.fill(size, 1);
+            for (int i = N - 1; i > 0; i--) {
+                int u = order[i];
+                size[parent[u]] += size[u];
+            }
+            for (int i = 1; i <= N; i++) {
+                tout[i] = tin[i] + size[i] - 1;
+            }
+
+            int Q = fs.nextInt();
+            int K = fs.nextInt();
+            int[] diff = new int[N + 2];
+
+            for (int i = 0; i < Q; i++) {
+                int u = fs.nextInt();
+                int v = fs.nextInt();
+                if (parent[u] == v) {
+                    // v is parent of u, guess u->v is true if root is in subtree(u)
+                    diff[tin[u]]++;
+                    diff[tout[u] + 1]--;
+                } else {
+                    // u is parent of v, guess u->v is true if root is NOT in subtree(v)
+                    diff[0]++;
+                    diff[tin[v]]--;
+                    diff[tout[v] + 1]++;
+                }
+            }
+
+            int[] score = new int[N];
+            int cur = 0;
+            for (int i = 0; i < N; i++) {
+                cur += diff[i];
+                score[i] = cur;
+            }
+
+            int winCount = 0;
+            for (int i = 1; i <= N; i++) {
+                if (score[tin[i]] >= K) winCount++;
+            }
+
+            int g = gcd(winCount, N);
+            int p = winCount / g;
+            int q = N / g;
+            if (p == 0) {
+                sb.append("0/1\n");
+            } else if (p == q) {
+                sb.append("1/1\n");
+            } else {
+                sb.append(p).append('/').append(q).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    static int gcd(int a, int b) {
+        return b == 0 ? a : gcd(b, a % b);
+    }
+}
