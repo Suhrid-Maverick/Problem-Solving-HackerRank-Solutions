@@ -1,0 +1,85 @@
+import java.util.Scanner;
+
+public class DortmundDilemma {
+    static final long MOD = 1000000007L;
+
+    static long[][] ans = {
+        {1},
+        {1, 1},
+        {1, 2, 1},
+        {1, 3, 3, 1},
+        {1, 4, 6, 4, 1}
+    };
+
+    static long modPow(long base, long exp, long mod) {
+        long res = 1;
+        base %= mod;
+        while (exp > 0) {
+            if ((exp & 1) == 1) res = (res * base) % mod;
+            base = (base * base) % mod;
+            exp >>= 1;
+        }
+        return res;
+    }
+
+    static long S(int n) {
+        if (n < 5) {
+            long[] arr = ans[n];
+            long sum = 0;
+            for (int i = 0; i < arr.length; i += 4) {
+                sum = (sum + arr[i]) % MOD;
+            }
+            return sum;
+        }
+        long r = (modPow(2, n - 2, MOD) - modPow(2, n / 2, MOD) + MOD) % MOD;
+        int half = (n - 3) / 2;
+        int start = ((0 - half) % 4 + 4) % 4;
+        long[] arr = ((n & 1) == 1) ? ans[3] : ans[4];
+        long sum = 0;
+        for (int i = start; i < arr.length; i += 4) {
+            sum = (sum + arr[i]) % MOD;
+        }
+        r = (r + modPow(2, half, MOD) * sum) % MOD;
+        return r;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int k = sc.nextInt();
+        int[] a = new int[n];
+        for (int i = 0; i < n; i++) {
+            a[i] = sc.nextInt();
+        }
+
+        long[] det = new long[n];
+        for (int i = 0; i < n; i++) {
+            det[i] = S(a[i]);
+        }
+
+        // Rolling DP: only keep columns 0..k (k+1 values)
+        long[] prev = new long[k + 1];
+        prev[0] = 1;
+        long sumDet = 0;
+
+        for (int i = 1; i <= n; i++) {
+            sumDet = (sumDet + det[i - 1]) % MOD;
+            long[] cur = new long[k + 1];
+
+            if (k >= 1) {
+                cur[1] = sumDet;
+            }
+            if (i <= k) {
+                cur[i] = prev[i - 1] * det[i - 1] % MOD;
+            }
+            int maxJ = Math.min(i - 1, k);
+            for (int j = 2; j <= maxJ; j++) {
+                cur[j] = (prev[j] + prev[j - 1] * det[i - 1]) % MOD;
+            }
+            prev = cur;
+        }
+
+        System.out.println(k <= n ? prev[k] : 0);
+        sc.close();
+    }
+}
