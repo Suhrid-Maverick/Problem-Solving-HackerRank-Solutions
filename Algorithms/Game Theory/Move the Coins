@@ -1,0 +1,79 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+  static Node[] nodes;
+  static int tick;
+  
+  static class Node {
+    List<Integer> adjacents = new ArrayList<>();
+    int c;
+    int dep;
+    int pre;
+    int post;
+    int[] nim = new int[2];
+
+    public Node(int c) {
+      this.c = c;
+    }
+  }
+  
+    static void dfs(int u, int d, int p) {
+      Node node = nodes[u]; 
+      node.nim[d] += node.c;
+      node.dep = d;
+      node.pre = tick++;
+      for (int v: node.adjacents) {
+        if (v != p) {
+          dfs(v, d ^ 1, u);
+          for (int i = 0; i < 2; i++) {
+            node.nim[i] ^= nodes[v].nim[i];
+          }
+        }
+      }
+      node.post = tick;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+      StringTokenizer st = new StringTokenizer(br.readLine());
+      int n = Integer.parseInt(st.nextToken());
+
+      st = new StringTokenizer(br.readLine());
+      nodes = new Node[n];
+      for (int i = 0; i < n; i++) {
+        int c = Integer.parseInt(st.nextToken());
+        nodes[i] = new Node(c);
+      }
+      
+      for (int i = 0; i < n - 1; i++) {
+        st = new StringTokenizer(br.readLine());
+        int u = Integer.parseInt(st.nextToken()) - 1;
+        int v = Integer.parseInt(st.nextToken()) - 1;
+        nodes[u].adjacents.add(v);
+        nodes[v].adjacents.add(u);
+      }
+      
+      dfs(0, 0, -1);
+
+      st = new StringTokenizer(br.readLine());
+      int q = Integer.parseInt(st.nextToken());
+      while (q-- > 0) {
+        st = new StringTokenizer(br.readLine());
+        Node u = nodes[Integer.parseInt(st.nextToken()) - 1];
+        Node v = nodes[Integer.parseInt(st.nextToken()) - 1];
+        if (u.pre <= v.pre && v.pre < u.post) {
+          bw.write("INVALID");
+        } else {
+          int temp = (u.dep ^ v.dep) > 0 ? 0 : u.nim[0] ^ u.nim[1];
+          bw.write(((nodes[0].nim[1] ^ temp) > 0 ? "YES" : "NO"));
+        }
+        bw.newLine();
+      }
+      bw.close();
+      br.close();
+    }
+}
