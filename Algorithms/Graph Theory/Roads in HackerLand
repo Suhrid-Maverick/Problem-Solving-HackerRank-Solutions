@@ -1,0 +1,128 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int[] parent, rank;
+    
+    static int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+    
+    static boolean union(int a, int b) {
+        int ra = find(a), rb = find(b);
+        if (ra == rb) return false;
+        if (rank[ra] < rank[rb]) parent[ra] = rb;
+        else if (rank[ra] > rank[rb]) parent[rb] = ra;
+        else { parent[rb] = ra; rank[ra]++; }
+        return true;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        int[][] edges = new int[m][3];
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int c = Integer.parseInt(st.nextToken());
+            edges[i][0] = u;
+            edges[i][1] = v;
+            edges[i][2] = c;
+        }
+
+        // Sort edges by exponent (which corresponds to weight 2^c)
+        Arrays.sort(edges, (a, b) -> Integer.compare(a[2], b[2]));
+
+        parent = new int[n + 1];
+        rank = new int[n + 1];
+        for (int i = 1; i <= n; i++) parent[i] = i;
+
+        List<int[]>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) adj[i] = new ArrayList<>();
+
+        // Kruskal's algorithm to build MST
+        for (int[] e : edges) {
+            int u = e[0], v = e[1], c = e[2];
+            if (union(u, v)) {
+                adj[u].add(new int[]{v, c});
+                adj[v].add(new int[]{u, c});
+            }
+        }
+
+        if (n == 1) {
+            System.out.println("0");
+            return;
+        }
+
+        // Iterative DFS to establish parent-child relationships and order
+        int[] parentNode = new int[n + 1];
+        int[] edgeC = new int[n + 1];
+        int[] order = new int[n];
+        int orderSize = 0;
+
+        Stack<Integer> stack = new Stack<>();
+        stack.push(1);
+        parentNode[1] = 0;
+        boolean[] visited = new boolean[n + 1];
+        visited[1] = true;
+
+        while (!stack.isEmpty()) {
+            int u = stack.pop();
+            order[orderSize++] = u;
+            for (int[] edge : adj[u]) {
+                int v = edge[0];
+                int c = edge[1];
+                if (!visited[v]) {
+                    visited[v] = true;
+                    parentNode[v] = u;
+                    edgeC[v] = c;
+                    stack.push(v);
+                }
+            }
+        }
+
+        int[] size = new int[n + 1];
+        Arrays.fill(size, 1);
+
+        int maxC = 0;
+        for (int i = 1; i <= n; i++) {
+            if (edgeC[i] > maxC) maxC = edgeC[i];
+        }
+
+        // bits array to accumulate binary representation
+        long[] bits = new long[maxC + 64];
+
+        // Process nodes in reverse order to compute subtree sizes and contributions
+        for (int i = orderSize - 1; i > 0; i--) {
+            int u = order[i];
+            int p = parentNode[u];
+            size[p] += size[u];
+            long sz = size[u];
+            bits[edgeC[u]] += sz * (n - sz);
+        }
+
+        // Carry propagation to get binary digits
+        for (int i = 0; i < bits.length - 1; i++) {
+            if (bits[i] >= 2) {
+                long carry = bits[i] / 2;
+                bits[i] %= 2;
+                bits[i + 1] += carry;
+            }
+        }
+
+        // Find highest set bit
+        int highest = bits.length - 1;
+        while (highest > 0 && bits[highest] == 0) highest--;
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = highest; i >= 0; i--) {
+            sb.append(bits[i]);
+        }
+        System.out.println(sb.toString());
+    }
+}
