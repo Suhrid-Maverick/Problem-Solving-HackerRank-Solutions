@@ -1,0 +1,135 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    static final int nax = 1000005;
+    static int n, b, f, c;
+    static int[] to;
+    static int[] nxt;
+    static int[] headChildren;
+    static int[] tailChildren;
+    static int[] headTmp;
+    static int[] tailTmp;
+    static int edgeCnt = 0;
+    static ArrayList<int[]> cross = new ArrayList<>();
+    static ArrayList<int[]> down = new ArrayList<>();
+    static int[] ancestors = new int[nax];
+    static int ancSize = 0;
+
+    static void addEdge(int u, int v, int[] head, int[] tail) {
+        to[edgeCnt] = v;
+        nxt[edgeCnt] = -1;
+        if (head[u] == -1) {
+            head[u] = edgeCnt;
+            tail[u] = edgeCnt;
+        } else {
+            nxt[tail[u]] = edgeCnt;
+            tail[u] = edgeCnt;
+        }
+        edgeCnt++;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int nOrig = Integer.parseInt(st.nextToken());
+        int bOrig = Integer.parseInt(st.nextToken());
+        int f = Integer.parseInt(st.nextToken());
+        int c = Integer.parseInt(st.nextToken());
+
+        n = nOrig + 1;
+        b = bOrig - nOrig;
+        int maxDown = Math.max(f, b);
+
+        int maxEdges = nOrig + c + f + 2 * bOrig + 5;
+        to = new int[maxEdges];
+        nxt = new int[maxEdges];
+        headChildren = new int[nax];
+        tailChildren = new int[nax];
+        headTmp = new int[nax];
+        tailTmp = new int[nax];
+        Arrays.fill(headChildren, -1);
+        Arrays.fill(tailChildren, -1);
+        Arrays.fill(headTmp, -1);
+        Arrays.fill(tailTmp, -1);
+
+        // iterative dfs
+        int a = 1;
+        for (int next = 2; next <= n; ++next) {
+            for (int i = 0; i < ancSize && down.size() < maxDown; ++i) {
+                down.add(new int[]{ancestors[i], next});
+            }
+            addEdge(a, next, headChildren, tailChildren);
+            int rem = n - next + 1;
+            if (c - cross.size() >= rem - 1) {
+                for (int i = next + 1; i <= n && cross.size() < c; ++i) {
+                    cross.add(new int[]{i, next});
+                }
+            } else {
+                ancestors[ancSize++] = a;
+                a = next;
+            }
+        }
+
+        if (down.size() < maxDown || cross.size() < c) {
+            System.out.println("-1");
+            return;
+        }
+
+        b += nOrig;
+
+        // tmp generation
+        for (int a2 = 1; a2 <= n; ++a2) {
+            for (int e = headChildren[a2]; e != -1; e = nxt[e]) {
+                int x = to[e];
+                if (b > 0) {
+                    --b;
+                    addEdge(x, a2, headTmp, tailTmp);
+                }
+            }
+        }
+
+        // append tmp to children
+        for (int a2 = 1; a2 <= n; ++a2) {
+            if (headTmp[a2] != -1) {
+                if (headChildren[a2] == -1) {
+                    headChildren[a2] = headTmp[a2];
+                    tailChildren[a2] = tailTmp[a2];
+                } else {
+                    nxt[tailChildren[a2]] = headTmp[a2];
+                    tailChildren[a2] = tailTmp[a2];
+                }
+            }
+        }
+
+        // cross edges
+        for (int[] p : cross) {
+            addEdge(p[0], p[1], headChildren, tailChildren);
+        }
+
+        // down edges
+        for (int[] p : down) {
+            if (f > 0) {
+                --f;
+                addEdge(p[0], p[1], headChildren, tailChildren);
+            }
+            if (b > 0) {
+                --b;
+                addEdge(p[1], p[0], headChildren, tailChildren);
+            }
+        }
+
+        PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+        out.println(n);
+        for (int i = 1; i <= n; ++i) {
+            int sz = 0;
+            for (int e = headChildren[i]; e != -1; e = nxt[e]) sz++;
+            out.print(sz + " ");
+            for (int e = headChildren[i]; e != -1; e = nxt[e]) {
+                out.print(to[e] + " ");
+            }
+            out.println();
+        }
+        out.flush();
+    }
+}
