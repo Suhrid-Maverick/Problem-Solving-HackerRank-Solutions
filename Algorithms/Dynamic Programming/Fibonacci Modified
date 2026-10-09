@@ -1,0 +1,42 @@
+import java.io.*;
+import java.math.BigInteger;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+
+        BigInteger t1 = new BigInteger(firstMultipleInput[0]);
+        BigInteger t2 = new BigInteger(firstMultipleInput[1]);
+        int n = Integer.parseInt(firstMultipleInput[2]);
+
+        // Base cases
+        if (n == 1) {
+            bufferedWriter.write(t1.toString());
+        } else if (n == 2) {
+            bufferedWriter.write(t2.toString());
+        } else {
+            BigInteger t3 = BigInteger.ZERO;
+            for (int i = 3; i <= n; i++) {
+                // Calculate the next term: T(i+2) = T(i) + T(i+1)^2
+                // Since our loop variables are T(i-2) and T(i-1)
+                // New term = T(old) + T(current)^2
+                t3 = t1.add(t2.pow(2));
+                
+                // Update for the next iteration
+                t1 = t2;
+                t2 = t3;
+            }
+            bufferedWriter.write(t3.toString());
+        }
+        
+        bufferedWriter.newLine();
+        
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
