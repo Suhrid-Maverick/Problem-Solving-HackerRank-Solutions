@@ -1,0 +1,49 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static int poisonousPlants(List<Integer> p) {
+        int maxDay = 0;
+        Deque<int[]> stack = new ArrayDeque<>();
+
+        for (int i : p) {
+            if (stack.isEmpty() || i <= stack.peekFirst()[0]) {
+                stack.clear();
+                stack.addLast(new int[]{i, 0});
+            } else if (i > stack.peekLast()[0]) {
+                stack.addLast(new int[]{i, 1});
+            } else {
+                int d = 1;
+                while (!stack.isEmpty() && i <= stack.peekLast()[0]) {
+                    d = Math.max(d, stack.removeLast()[1] + 1);
+                }
+                stack.addLast(new int[]{i, d});
+            }
+            maxDay = Math.max(maxDay, stack.peekLast()[1]);
+        }
+
+        return maxDay;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        List<Integer> p = new ArrayList<>();
+        String[] parts = br.readLine().trim().split(" ");
+        for (int i = 0; i < n; i++) {
+            p.add(Integer.parseInt(parts[i]));
+        }
+
+        int result = poisonousPlants(p);
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
