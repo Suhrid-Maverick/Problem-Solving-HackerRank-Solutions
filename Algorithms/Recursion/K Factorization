@@ -1,0 +1,65 @@
+import java.io.*;
+import java.util.*;
+import java.util.stream.*;
+
+public class Solution {
+
+    private static final Map<Integer, List<Integer>> cache = new HashMap<>();
+    private static final List<Integer> one = Collections.singletonList(1);
+    
+    private static List<Integer> findBest(final int number, final Set<Integer> divisors) {
+        if (number == 1)
+            return one;
+        if (cache.containsKey(number))
+            return cache.get(number);
+        List<Integer> best = null;
+        for (final int divisor : divisors) {
+            if (number % divisor == 0) {
+                best = bestOf2(best, findBest(number / divisor, divisors));
+            }
+        }
+        if (best == null)
+            return null;
+        best = new ArrayList<>(best);
+        best.add(number);
+        cache.put(number, best);
+        return best;
+    }
+    
+    private static List<Integer> bestOf2(final List<Integer> list1, final List<Integer> list2) {
+        if (list1 == null)
+            return list2;
+        if (list2 == null)
+            return list1;
+        if (list1.size() < list2.size())
+            return list1;
+        if (list2.size() < list1.size())
+            return list2;
+        for (int i = 0; i < list1.size(); i++) {
+            final int x1 = list1.get(i);
+            final int x2 = list2.get(i);
+            if (x1 < x2)
+                return list1;
+            if (x2 < x1)
+                return list2;
+        }
+        return list1;
+    }
+    
+    public static void main(String[] args) {
+        final Scanner scan = new Scanner(System.in);
+        final int number = scan.nextInt();
+        final int nDivisors = scan.nextInt();
+        final Set<Integer> divisors = 
+            IntStream
+            .generate(() -> scan.nextInt())
+            .limit(nDivisors)
+            .boxed()
+            .collect(Collectors.toSet());
+        final List<Integer> solution = findBest(number, divisors);
+        if (solution == null)
+            System.out.println(-1);
+        else
+            solution.stream().forEach(el -> System.out.print(el + " "));
+    }
+}
