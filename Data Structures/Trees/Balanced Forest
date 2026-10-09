@@ -1,0 +1,147 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Node {
+        Set<Integer> children = new HashSet<>();
+        long val;
+    }
+
+    public static long balancedForest(int[] c, int[][] edges) {
+        if (c == null || c.length == 0 || edges == null || edges.length == 0) return -1;
+
+        int n = c.length;
+        Map<Integer, Node> tree = new HashMap<>();
+        for (int i = 1; i <= n; i++) {
+            Node node = new Node();
+            node.val = c[i - 1];
+            tree.put(i, node);
+        }
+
+        for (int[] edge : edges) {
+            int a = edge[0], b = edge[1];
+            tree.get(a).children.add(b);
+            tree.get(b).children.add(a);
+        }
+
+        int[] parent = new int[n + 1];
+        Map<Long, Integer> vMap = new HashMap<>();
+
+        Deque<Integer> stack = new ArrayDeque<>();
+        List<Integer> order = new ArrayList<>();
+        boolean[] visited = new boolean[n + 1];
+
+        stack.push(1);
+        visited[1] = true;
+        parent[1] = 0;
+        while (!stack.isEmpty()) {
+            int u = stack.pop();
+            order.add(u);
+            for (int v : tree.get(u).children) {
+                if (!visited[v]) {
+                    visited[v] = true;
+                    parent[v] = u;
+                    stack.push(v);
+                }
+            }
+        }
+
+        for (int i = order.size() - 1; i >= 0; i--) {
+            int u = order.get(i);
+            long val = c[u - 1];
+            for (int v : tree.get(u).children) {
+                if (v != parent[u]) {
+                    val += tree.get(v).val;
+                }
+            }
+            tree.get(u).val = val;
+            vMap.merge(val, 1, Integer::sum);
+        }
+
+        long total = tree.get(1).val;
+        long ret = -1;
+
+        Map<Long, Integer> pathCounts = new HashMap<>();
+        Deque<long[]> stack2 = new ArrayDeque<>();
+        stack2.push(new long[]{1, 0});
+
+        while (!stack2.isEmpty()) {
+            long[] top = stack2.pop();
+            int u = (int) top[0];
+            int state = (int) top[1];
+            long uVal = tree.get(u).val;
+
+            if (state == 0) {
+                vMap.merge(uVal, -1, Integer::sum);
+                pathCounts.merge(uVal, 1, Integer::sum);
+                stack2.push(new long[]{u, 1});
+                for (int v : tree.get(u).children) {
+                    if (v != parent[u]) {
+                        stack2.push(new long[]{v, 0});
+                    }
+                }
+            } else {
+                pathCounts.merge(uVal, -1, Integer::sum);
+                if (u != 1) {
+                    long v1 = uVal;
+                    long rest = total - v1;
+
+                    if (rest == v1) {
+                        if (ret == -1 || ret > v1) ret = v1;
+                    } else {
+                        long[] candidates;
+                        if (rest % 2 == 0) {
+                            candidates = new long[]{rest / 2, v1, rest - v1};
+                        } else {
+                            candidates = new long[]{v1, rest - v1};
+                        }
+                        for (long v2 : candidates) {
+                            boolean hasV2 = vMap.getOrDefault(v2, 0) > 0;
+                            boolean hasV1V2 = pathCounts.getOrDefault(v1 + v2, 0) > 0;
+                            if (!hasV2 && !hasV1V2) continue;
+                            long v3 = rest - v2;
+                            long[] arr = {v1, v2, v3};
+                            Arrays.sort(arr);
+                            long a = arr[2], b = arr[1], c2 = arr[0];
+                            if (a != b) continue;
+                            long diff = a - c2;
+                            if (ret == -1 || ret > diff) ret = diff;
+                        }
+                    }
+                }
+            }
+        }
+
+        return ret;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+
+        int q = Integer.parseInt(br.readLine().trim());
+        for (int t = 0; t < q; t++) {
+            int n = Integer.parseInt(br.readLine().trim());
+
+            int[] c = new int[n];
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) c[i] = Integer.parseInt(st.nextToken());
+
+            int[][] edges = new int[n - 1][2];
+            for (int i = 0; i < n - 1; i++) {
+                st = new StringTokenizer(br.readLine());
+                edges[i][0] = Integer.parseInt(st.nextToken());
+                edges[i][1] = Integer.parseInt(st.nextToken());
+            }
+
+            long result = balancedForest(c, edges);
+            bw.write(Long.toString(result));
+            bw.newLine();
+        }
+
+        bw.flush();
+        bw.close();
+        br.close();
+    }
+}
