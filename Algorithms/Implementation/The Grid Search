@@ -1,0 +1,59 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int R = Integer.parseInt(st.nextToken());
+            int C = Integer.parseInt(st.nextToken());
+
+            String[] G = new String[R];
+            for (int i = 0; i < R; i++) {
+                G[i] = br.readLine().trim();
+            }
+
+            st = new StringTokenizer(br.readLine());
+            int r = Integer.parseInt(st.nextToken());
+            int c = Integer.parseInt(st.nextToken());
+
+            String[] P = new String[r];
+            for (int i = 0; i < r; i++) {
+                P[i] = br.readLine().trim();
+            }
+
+            boolean found = false;
+
+            for (int i = 0; i <= R - r && !found; i++) {
+                int idx = G[i].indexOf(P[0]);
+
+                while (idx != -1 && !found) {
+                    if (idx + c <= C) {
+                        boolean ok = true;
+
+                        for (int k = 1; k < r; k++) {
+                            if (!G[i + k].startsWith(P[k], idx)) {
+                                ok = false;
+                                break;
+                            }
+                        }
+
+                        if (ok) {
+                            found = true;
+                        }
+                    }
+
+                    idx = G[i].indexOf(P[0], idx + 1);
+                }
+            }
+
+            sb.append(found ? "YES\n" : "NO\n");
+        }
+
+        System.out.print(sb);
+    }
+}
