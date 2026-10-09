@@ -1,0 +1,57 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        long n = Long.parseLong(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        st = new StringTokenizer(br.readLine());
+        long r_q = Long.parseLong(st.nextToken());
+        long c_q = Long.parseLong(st.nextToken());
+
+        long up = n - r_q;
+        long down = r_q - 1;
+        long right = n - c_q;
+        long left = c_q - 1;
+        long upRight = Math.min(n - r_q, n - c_q);
+        long upLeft = Math.min(n - r_q, c_q - 1);
+        long downRight = Math.min(r_q - 1, n - c_q);
+        long downLeft = Math.min(r_q - 1, c_q - 1);
+
+        for (int i = 0; i < k; i++) {
+            st = new StringTokenizer(br.readLine());
+            long r_o = Long.parseLong(st.nextToken());
+            long c_o = Long.parseLong(st.nextToken());
+
+            if (r_o == r_q) {
+                if (c_o > c_q) {
+                    right = Math.min(right, c_o - c_q - 1);
+                } else {
+                    left = Math.min(left, c_q - c_o - 1);
+                }
+            } else if (c_o == c_q) {
+                if (r_o > r_q) {
+                    up = Math.min(up, r_o - r_q - 1);
+                } else {
+                    down = Math.min(down, r_q - r_o - 1);
+                }
+            } else if (Math.abs(r_o - r_q) == Math.abs(c_o - c_q)) {
+                if (r_o > r_q && c_o > c_q) {
+                    upRight = Math.min(upRight, r_o - r_q - 1);
+                } else if (r_o > r_q && c_o < c_q) {
+                    upLeft = Math.min(upLeft, r_o - r_q - 1);
+                } else if (r_o < r_q && c_o > c_q) {
+                    downRight = Math.min(downRight, r_q - r_o - 1);
+                } else {
+                    downLeft = Math.min(downLeft, r_q - r_o - 1);
+                }
+            }
+        }
+
+        long total = up + down + left + right + upRight + upLeft + downRight + downLeft;
+        System.out.println(total);
+    }
+}
