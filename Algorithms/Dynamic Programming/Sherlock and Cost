@@ -1,0 +1,61 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Main function to solve the problem
+    public static int sherlockAndCost(List<Integer> A) {
+        int n = A.size();
+        
+        // We only need two variables to track the max cost ending with 1 or A[i-1].
+        // prevLow: max cost ending with b_i-1 = 1
+        // prevHigh: max cost ending with b_i-1 = A[i-1]
+        int prevLow = 0;
+        int prevHigh = 0;
+        
+        for (int i = 1; i < n; i++) {
+            int currentLow = 0;
+            int currentHigh = 0;
+            
+            // Calculate max cost ending with b_i = 1
+            // Case 1: b_i-1 was 1. Cost is |1-1| = 0.
+            // Case 2: b_i-1 was A[i-1]. Cost is |A[i-1]-1|.
+            currentLow = Math.max(prevLow, prevHigh + Math.abs(A.get(i - 1) - 1));
+            
+            // Calculate max cost ending with b_i = A[i]
+            // Case 1: b_i-1 was 1. Cost is |A[i]-1|.
+            // Case 2: b_i-1 was A[i-1]. Cost is |A[i]-A[i-1]|.
+            currentHigh = Math.max(prevLow + Math.abs(A.get(i) - 1), prevHigh + Math.abs(A.get(i) - A.get(i - 1)));
+            
+            prevLow = currentLow;
+            prevHigh = currentHigh;
+        }
+        
+        return Math.max(prevLow, prevHigh);
+    }
+    
+    // HackerRank standard I/O boilerplate
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = Integer.parseInt(bufferedReader.readLine().trim());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            int n = Integer.parseInt(bufferedReader.readLine().trim());
+            String[] aTemp = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+            List<Integer> A = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                A.add(Integer.parseInt(aTemp[i]));
+            }
+
+            int result = sherlockAndCost(A);
+
+            bufferedWriter.write(String.valueOf(result));
+            bufferedWriter.newLine();
+        }
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
