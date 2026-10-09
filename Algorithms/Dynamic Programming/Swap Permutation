@@ -1,0 +1,72 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int MOD = 1000000007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        // Special case: only one city/element, no adjacent swaps possible
+        if (n == 1) {
+            int S1 = (k == 0 ? 1 : 0);
+            System.out.println(S1 + " " + 1);
+            return;
+        }
+
+        // ---------- S1: exact k adjacent swaps ----------
+        // Number of permutations with inversion count <= k and same parity as k
+        int[] dp = new int[k + 1];
+        dp[0] = 1;
+
+        for (int i = 1; i <= n; i++) {
+            int[] ndp = new int[k + 1];
+            long window = 0;
+            for (int j = 0; j <= k; j++) {
+                window += dp[j];
+                if (window >= MOD) window -= MOD;
+                if (j - i >= 0) {
+                    window -= dp[j - i];
+                    if (window < 0) window += MOD;
+                }
+                ndp[j] = (int) window;
+            }
+            dp = ndp;
+        }
+
+        int S1 = 0;
+        for (int j = 0; j <= k; j++) {
+            if ((j & 1) == (k & 1)) {
+                S1 += dp[j];
+                if (S1 >= MOD) S1 -= MOD;
+            }
+        }
+
+        // ---------- S2: at most k arbitrary swaps ----------
+        // Count permutations with (n - number_of_cycles) <= k
+        int[] dp2 = new int[k + 1];
+        dp2[0] = 1;
+
+        for (int i = 2; i <= n; i++) {
+            int[] ndp2 = new int[k + 1];
+            ndp2[0] = dp2[0];
+            for (int m = 1; m <= k; m++) {
+                long val = dp2[m] + (long) (i - 1) * dp2[m - 1] % MOD;
+                if (val >= MOD) val -= MOD;
+                ndp2[m] = (int) val;
+            }
+            dp2 = ndp2;
+        }
+
+        int S2 = 0;
+        for (int m = 0; m <= k; m++) {
+            S2 += dp2[m];
+            if (S2 >= MOD) S2 -= MOD;
+        }
+
+        System.out.println(S1 + " " + S2);
+    }
+}
