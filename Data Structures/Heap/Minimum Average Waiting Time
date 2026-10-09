@@ -1,0 +1,106 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+
+    public static long minimumAverage(List<List<Integer>> customers) {
+        customers.sort(new Comparator<List<Integer>>() {
+            public int compare(List<Integer> o1, List<Integer> o2) {
+                return o1.get(0) - o2.get(0);
+            }
+        });
+
+        PriorityQueue<List<Integer>> cookQueue = new PriorityQueue<>(new Comparator<List<Integer>>() {
+            public int compare(List<Integer> o1, List<Integer> o2) {
+                return o1.get(0) - o2.get(0);
+            }
+        });
+
+        PriorityQueue<List<Integer>> orderQueue = new PriorityQueue<>(new Comparator<List<Integer>>() {
+            public int compare(List<Integer> o1, List<Integer> o2) {
+                return o1.get(1) - o2.get(1);
+            }
+        });
+
+        long totalCookTime = 0;
+        long totalWaitTime = 0;
+
+        if (customers.isEmpty())
+            return 0;
+
+        cookQueue.add(customers.get(0));
+
+        for (int i = 1; i < customers.size(); i++)
+            orderQueue.add(customers.get(i));
+
+        long firstOrderTime = cookQueue.peek().get(0);
+
+        while (!cookQueue.isEmpty()) {
+            List<Integer> order = cookQueue.remove();
+            int orderTime = order.get(0);
+            int cookTime = order.get(1);
+
+            totalCookTime += cookTime;
+            totalWaitTime += (totalCookTime + firstOrderTime - orderTime);
+
+            List<List<Integer>> holding = new ArrayList<>();
+
+            while (!orderQueue.isEmpty() && orderQueue.peek().get(0) > (totalCookTime + firstOrderTime))
+                holding.add(orderQueue.remove());
+
+            if (!orderQueue.isEmpty())
+                cookQueue.add(orderQueue.remove());
+
+            if (!holding.isEmpty())
+                orderQueue.addAll(holding);
+
+            if (cookQueue.isEmpty() && !orderQueue.isEmpty()) {
+                cookQueue.add(orderQueue.remove());
+                firstOrderTime = cookQueue.peek().get(0);
+                totalWaitTime = 0;
+            }
+        }
+
+        return totalWaitTime / customers.size();
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = Integer.parseInt(bufferedReader.readLine().trim());
+
+        List<List<Integer>> customers = new ArrayList<>();
+
+        IntStream.range(0, n).forEach(i -> {
+            try {
+                customers.add(
+                    Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+                        .map(Integer::parseInt)
+                        .collect(toList())
+                );
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        long result = Result.minimumAverage(customers);
+
+        bufferedWriter.write(String.valueOf(result));
+        bufferedWriter.newLine();
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
