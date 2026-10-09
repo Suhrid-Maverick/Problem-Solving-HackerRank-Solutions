@@ -1,0 +1,50 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        
+        final int MAX = 15;
+        int[][] grundy = new int[MAX + 1][MAX + 1];
+        int[] dx = {-2, -2, -1, 1};
+        int[] dy = {-1, 1, -2, -2};
+        
+        // Compute Grundy numbers for all cells (1..15, 1..15)
+        // Since moves always decrease x+y, we can process by increasing sum.
+        for (int sum = 2; sum <= 2 * MAX; sum++) {
+            for (int x = 1; x <= MAX; x++) {
+                int y = sum - x;
+                if (y < 1 || y > MAX) continue;
+                
+                boolean[] seen = new boolean[100];
+                for (int k = 0; k < 4; k++) {
+                    int nx = x + dx[k];
+                    int ny = y + dy[k];
+                    if (nx >= 1 && nx <= MAX && ny >= 1 && ny <= MAX) {
+                        seen[grundy[nx][ny]] = true;
+                    }
+                }
+                
+                int g = 0;
+                while (seen[g]) g++;
+                grundy[x][y] = g;
+            }
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            int xor = 0;
+            for (int i = 0; i < n; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                int x = Integer.parseInt(st.nextToken());
+                int y = Integer.parseInt(st.nextToken());
+                xor ^= grundy[x][y];
+            }
+            sb.append(xor != 0 ? "First\n" : "Second\n");
+        }
+        System.out.print(sb);
+    }
+}
