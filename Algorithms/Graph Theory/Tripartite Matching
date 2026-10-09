@@ -1,0 +1,138 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner(System.in);
+        int N = sc.nextInt();
+
+        // Use a HashMap to accumulate color masks for each undirected pair (u < v)
+        // Mask bits: 1 = G1, 2 = G2, 4 = G3
+        HashMap<Long, Integer> edgeMask = new HashMap<>();
+
+        // Read G1
+        int M1 = sc.nextInt();
+        for (int i = 0; i < M1; i++) {
+            int u = sc.nextInt();
+            int v = sc.nextInt();
+            if (u > v) { int t = u; u = v; v = t; }
+            long key = ((long)u << 32) | v;
+            edgeMask.put(key, edgeMask.getOrDefault(key, 0) | 1);
+        }
+        // Read G2
+        int M2 = sc.nextInt();
+        for (int i = 0; i < M2; i++) {
+            int u = sc.nextInt();
+            int v = sc.nextInt();
+            if (u > v) { int t = u; u = v; v = t; }
+            long key = ((long)u << 32) | v;
+            edgeMask.put(key, edgeMask.getOrDefault(key, 0) | 2);
+        }
+        // Read G3
+        int M3 = sc.nextInt();
+        for (int i = 0; i < M3; i++) {
+            int u = sc.nextInt();
+            int v = sc.nextInt();
+            if (u > v) { int t = u; u = v; v = t; }
+            long key = ((long)u << 32) | v;
+            edgeMask.put(key, edgeMask.getOrDefault(key, 0) | 4);
+        }
+
+        // Build union graph adjacency and degrees
+        int[] deg = new int[N + 1];
+        for (Map.Entry<Long, Integer> e : edgeMask.entrySet()) {
+            long key = e.getKey();
+            int u = (int)(key >> 32);
+            int v = (int)(key & 0xFFFFFFFFL);
+            deg[u]++;
+            deg[v]++;
+        }
+
+        // Build oriented out-edges (from lower degree to higher degree)
+        int[] outHead = new int[N + 1];
+        Arrays.fill(outHead, -1);
+        int totalEdges = edgeMask.size();
+        int[] outNext = new int[totalEdges];
+        int[] outTo = new int[totalEdges];
+        int[] outMask = new int[totalEdges];
+        int outIdx = 0;
+
+        for (Map.Entry<Long, Integer> e : edgeMask.entrySet()) {
+            long key = e.getKey();
+            int u = (int)(key >> 32);
+            int v = (int)(key & 0xFFFFFFFFL);
+            int mask = e.getValue();
+
+            if (deg[u] < deg[v] || (deg[u] == deg[v] && u < v)) {
+                // u -> v
+                outTo[outIdx] = v;
+                outMask[outIdx] = mask;
+                outNext[outIdx] = outHead[u];
+                outHead[u] = outIdx++;
+            } else {
+                // v -> u
+                outTo[outIdx] = u;
+                outMask[outIdx] = mask;
+                outNext[outIdx] = outHead[v];
+                outHead[v] = outIdx++;
+            }
+        }
+
+        // Triangle counting
+        int[] mark = new int[N + 1];
+        int[] maskFromU = new int[N + 1];
+        int curMark = 0;
+        long total = 0;
+
+        for (int u = 1; u <= N; u++) {
+            if (outHead[u] == -1) continue;
+            curMark++;
+            // Mark out-neighbors of u and record the edge mask from u
+            for (int e = outHead[u]; e != -1; e = outNext[e]) {
+                int v = outTo[e];
+                mark[v] = curMark;
+                maskFromU[v] = outMask[e];
+            }
+            // Iterate over out-neighbors of u
+            for (int e = outHead[u]; e != -1; e = outNext[e]) {
+                int v = outTo[e];
+                int m1 = outMask[e]; // mask of (u,v)
+                // Iterate over out-neighbors of v
+                for (int e2 = outHead[v]; e2 != -1; e2 = outNext[e2]) {
+                    int w = outTo[e2];
+                    if (mark[w] == curMark) {
+                        int m2 = outMask[e2];       // mask of (v,w)
+                        int m3 = maskFromU[w];      // mask of (u,w)
+                        // Check all 6 permutations of (u,v,w) as (a,b,c)
+                        // Required: (a,b) has bit 1, (b,c) has bit 2, (a,c) has bit 3
+                        if ((m1 & 1) != 0 && (m2 & 2) != 0 && (m3 & 4) != 0) total++;
+                        if ((m3 & 1) != 0 && (m2 & 2) != 0 && (m1 & 4) != 0) total++;
+                        if ((m1 & 1) != 0 && (m3 & 2) != 0 && (m2 & 4) != 0) total++;
+                        if ((m2 & 1) != 0 && (m3 & 2) != 0 && (m1 & 4) != 0) total++;
+                        if ((m3 & 1) != 0 && (m1 & 2) != 0 && (m2 & 4) != 0) total++;
+                        if ((m2 & 1) != 0 && (m1 & 2) != 0 && (m3 & 4) != 0) total++;
+                    }
+                }
+            }
+        }
+
+        System.out.println(total);
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner(InputStream is) {
+            br = new BufferedReader(new InputStreamReader(is));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+    }
+}
