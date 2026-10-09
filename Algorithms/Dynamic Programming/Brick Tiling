@@ -1,0 +1,154 @@
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+
+public class Solution {
+
+  static int MOD = 1000000007;
+
+  static int[][][] patterns = {
+      {{0, 0}, {0, 1}, {1, 0}, {2, 0}},
+      {{0, 0}, {0, 1}, {0, 2}, {1, 2}},
+      {{0, 0}, {1, 0}, {2, 0}, {2, -1}},
+      {{0, 0}, {1, 0}, {1, 1}, {1, 2}},
+      {{0, 0}, {0, 1}, {1, 1}, {2, 1}},
+      {{0, 0}, {1, 0}, {1, -1}, {1, -2}},
+      {{0, 0}, {1, 0}, {2, 0}, {2, 1}},
+      {{0, 0}, {1, 0}, {0, 1}, {0, 2}},
+  };
+
+  static boolean canApply(int[][] pattern, int[] arr, int x, int y, int rows, int cols) {
+    for (int[] p : pattern) {
+      int nx = x + p[0];
+      int ny = y + p[1];
+      if (nx < 0 || nx >= rows || ny < 0 || ny >= cols || (arr[nx] & (1 << (cols - ny - 1))) > 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  static void setValue(int[][] pattern, int[] arr, int x, int y, int rows, int cols, int val) {
+    for (int[] p : pattern) {
+      int nx = x + p[0];
+      int ny = y + p[1];
+      if (val == 1) {
+        arr[nx] = arr[nx] | (1 << (cols - ny - 1));
+      } else {
+        arr[nx] = arr[nx] & ~(1 << (cols - ny - 1));
+      }
+    }
+  }
+
+  static void printArr(int[] arr, int rows, int cols) {
+    for (int i = 0; i < rows; i++) {
+      StringBuilder s = new StringBuilder();
+      for (int j = 0; j < cols; j++) {
+        s.append((arr[i] & (1 << (cols - j - 1))) > 0 ? '#' : '.');
+      }
+      System.out.println(s);
+    }
+    System.out.println();
+  }
+
+  static int[] copy(int[] arr) {
+    int[] narr = new int[arr.length];
+    System.arraycopy(arr, 0, narr, 0, arr.length);
+    return narr;
+  }
+
+  static int calc(int[] arr, int rows, int cols, Map<Integer, Integer> memo, Map<Integer, int[]> memo2) {
+    int hash = Arrays.hashCode(arr);
+    if (memo.containsKey(hash) && Arrays.equals(arr, memo2.get(hash))) {
+      return memo.get(hash);
+    }
+
+    for (int i = 0; i < rows; i++) {
+      for (int j = 0; j < cols; j++) {
+        int matched = arr[i] & 1 << (cols - j - 1);
+        if (matched == 0) {
+          int ans = 0;
+          for (int[][] pattern : patterns) {
+            if (canApply(pattern, arr, i, j, rows, cols)) {
+              setValue(pattern, arr, i, j, rows, cols, 1);
+              ans += calc(arr, rows, cols, memo, memo2);
+              ans %= MOD;
+              setValue(pattern, arr, i, j, rows, cols, 0);
+            }
+          }
+          memo.put(hash, ans);
+          memo2.put(hash, copy(arr));
+          return ans;
+        }
+      }
+    }
+
+    memo.put(hash, 1);
+    memo2.put(hash, copy(arr));
+    return 1;
+  }
+
+  /*
+   * Complete the brickTiling function below.
+   */
+  static int brickTiling(String[] grid) {
+    /*
+     * Write your code here.
+     */
+    int rows = grid.length;
+    int cols = grid[0].length();
+
+    int[] arr = new int[rows];
+    for (int i = 0; i < rows; i++) {
+      int val = 0;
+      for (int k = 0; k < cols; k++) {
+        if (grid[i].charAt(k) == '#') {
+          val |= (1 << (cols - k - 1));
+        }
+      }
+      arr[i] = val;
+    }
+
+    return calc(arr, rows, cols, new HashMap<>(), new HashMap<>());
+  }
+
+  private static final Scanner scanner = new Scanner(System.in);
+
+  public static void main(String[] args) throws IOException {
+
+    BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+    int t = scanner.nextInt();
+    scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+    for (int tItr = 0; tItr < t; tItr++) {
+      String[] nm = scanner.nextLine().split(" ");
+      scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+      int n = Integer.parseInt(nm[0]);
+
+      int m = Integer.parseInt(nm[1]);
+
+      String[] grid = new String[n];
+
+      for (int gridItr = 0; gridItr < n; gridItr++) {
+        String gridItem = scanner.nextLine();
+        scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+        grid[gridItr] = gridItem;
+      }
+
+      int result = brickTiling(grid);
+
+      bufferedWriter.write(String.valueOf(result));
+      bufferedWriter.newLine();
+    }
+
+    bufferedWriter.close();
+
+    scanner.close();
+  }
+}
