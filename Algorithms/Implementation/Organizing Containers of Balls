@@ -1,0 +1,33 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+
+            long[] rowSum = new long[n];
+            long[] colSum = new long[n];
+
+            for (int i = 0; i < n; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                for (int j = 0; j < n; j++) {
+                    int balls = Integer.parseInt(st.nextToken());
+                    rowSum[i] += balls;
+                    colSum[j] += balls;
+                }
+            }
+
+            Arrays.sort(rowSum);
+            Arrays.sort(colSum);
+
+            sb.append(Arrays.equals(rowSum, colSum) ? "Possible\n" : "Impossible\n");
+        }
+
+        System.out.print(sb);
+    }
+}
