@@ -1,0 +1,76 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Edge {
+        int to, weight;
+        Edge(int to, int weight) { this.to = to; this.weight = weight; }
+    }
+
+    // Fast input reader
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner(InputStream is) {
+            br = new BufferedReader(new InputStreamReader(is));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner(System.in);
+        int n = sc.nextInt();
+
+        List<Edge>[] graph = new ArrayList[n];
+        for (int i = 0; i < n; i++) graph[i] = new ArrayList<>();
+
+        for (int i = 0; i < n - 1; i++) {
+            int a = sc.nextInt() - 1;
+            int b = sc.nextInt() - 1;
+            int c = sc.nextInt();
+            graph[a].add(new Edge(b, c));
+            graph[b].add(new Edge(a, c));
+        }
+
+        long sum1 = computeDistanceSum(graph, 0);
+        long sum2 = computeDistanceSum(graph, n - 1);
+
+        System.out.println(Math.min(sum1, sum2));
+    }
+
+    // Iterative BFS to avoid recursion depth issues
+    static long computeDistanceSum(List<Edge>[] graph, int start) {
+        int n = graph.length;
+        long[] dist = new long[n];
+        boolean[] visited = new boolean[n];
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
+
+        queue.add(start);
+        visited[start] = true;
+        dist[start] = 0;
+
+        while (!queue.isEmpty()) {
+            int u = queue.poll();
+            for (Edge e : graph[u]) {
+                if (!visited[e.to]) {
+                    visited[e.to] = true;
+                    dist[e.to] = dist[u] + e.weight;
+                    queue.add(e.to);
+                }
+            }
+        }
+
+        long sum = 0;
+        for (long d : dist) sum += d;
+        return sum;
+    }
+}
