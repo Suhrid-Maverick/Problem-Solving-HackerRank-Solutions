@@ -1,0 +1,50 @@
+import java.util.Scanner;
+
+public class Main {
+
+    // Counts total set bits from 0 to n (inclusive) for a 32-bit unsigned interpretation.
+    // n is assumed to be in [0, 2^32 - 1].
+    static long count1s(long n, int i) {
+        if (i == 1) {
+            return n & 1;
+        }
+        long mask = 1L << (i - 1);
+        long remainder = (0xFFFFFFFFL >> (32 - i + 1)) & n;
+
+        long add = 0;
+        if ((n & mask) > 0) {
+            add = ((mask * (i - 1)) >> 1) + 1 + remainder;
+        }
+        return add + count1s(remainder, i - 1);
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int iterations = sc.nextInt();
+        long[][] queries = new long[iterations][2];
+
+        for (int i = 0; i < iterations; i++) {
+            queries[i][0] = sc.nextLong();
+            queries[i][1] = sc.nextLong();
+        }
+
+        for (long[] q : queries) {
+            long n1 = q[0];
+            long n2 = q[1];
+
+            if (n1 > 0 || n2 < 0) {
+                // Range is entirely positive or entirely negative
+                long high = count1s(n2 & 0xFFFFFFFFL, 32);
+                long low = count1s((n1 - 1) & 0xFFFFFFFFL, 32);
+                System.out.println(high - low);
+            } else {
+                // Range crosses zero
+                long totalBits = 1L << 36;
+                long low = count1s((n1 - 1) & 0xFFFFFFFFL, 32);
+                long high = count1s(n2 & 0xFFFFFFFFL, 32);
+                System.out.println(totalBits - low + high);
+            }
+        }
+        sc.close();
+    }
+}
