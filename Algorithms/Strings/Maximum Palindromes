@@ -1,0 +1,76 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1_000_000_007;
+    static long[] fact;
+    static long[] invFact;
+
+    static long modPow(long base, long exp) {
+        long res = 1;
+        base %= MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) res = (res * base) % MOD;
+            base = (base * base) % MOD;
+            exp >>= 1;
+        }
+        return res;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String s = br.readLine().trim();
+        int n = s.length();
+
+        // Prefix frequency counts
+        int[][] prefix = new int[n + 1][26];
+        for (int i = 1; i <= n; i++) {
+            System.arraycopy(prefix[i - 1], 0, prefix[i], 0, 26);
+            prefix[i][s.charAt(i - 1) - 'a']++;
+        }
+
+        // Precompute factorials and inverse factorials
+        fact = new long[n + 1];
+        invFact = new long[n + 1];
+        fact[0] = 1;
+        for (int i = 1; i <= n; i++) {
+            fact[i] = fact[i - 1] * i % MOD;
+        }
+        invFact[n] = modPow(fact[n], MOD - 2);
+        for (int i = n - 1; i >= 0; i--) {
+            invFact[i] = invFact[i + 1] * (i + 1) % MOD;
+        }
+
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int l = Integer.parseInt(st.nextToken());
+            int r = Integer.parseInt(st.nextToken());
+
+            int oddCount = 0;
+            int totalPairs = 0;
+
+            for (int c = 0; c < 26; c++) {
+                int f = prefix[r][c] - prefix[l - 1][c];
+                totalPairs += f / 2;
+                if ((f & 1) == 1) oddCount++;
+            }
+
+            long ans = fact[totalPairs];
+            for (int c = 0; c < 26; c++) {
+                int f = prefix[r][c] - prefix[l - 1][c];
+                ans = ans * invFact[f / 2] % MOD;
+            }
+
+            if (oddCount > 0) {
+                ans = ans * oddCount % MOD;
+            }
+
+            sb.append(ans).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
