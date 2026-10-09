@@ -1,0 +1,159 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int N, M, K;
+    static int[][] bikers, bikes;
+    static long[][] dist;
+    static int[] pairU, pairV, distU;
+    static List<Integer>[] adj;
+    static final long INF = Long.MAX_VALUE / 4;
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner(System.in);
+        N = fs.nextInt();
+        M = fs.nextInt();
+        K = fs.nextInt();
+
+        bikers = new int[N][2];
+        for (int i = 0; i < N; i++) {
+            bikers[i][0] = fs.nextInt();
+            bikers[i][1] = fs.nextInt();
+        }
+
+        bikes = new int[M][2];
+        for (int i = 0; i < M; i++) {
+            bikes[i][0] = fs.nextInt();
+            bikes[i][1] = fs.nextInt();
+        }
+
+        dist = new long[N][M];
+        for (int i = 0; i < N; i++) {
+            long bx = bikers[i][0];
+            long by = bikers[i][1];
+            for (int j = 0; j < M; j++) {
+                long dx = bx - bikes[j][0];
+                long dy = by - bikes[j][1];
+                dist[i][j] = dx * dx + dy * dy;
+            }
+        }
+
+        long low = 0;
+        long high = Long.MAX_VALUE / 4;
+        while (low < high) {
+            long mid = low + (high - low) / 2;
+            if (canMatch(mid)) {
+                high = mid;
+            } else {
+                low = mid + 1;
+            }
+        }
+
+        System.out.println(low);
+    }
+
+    static boolean canMatch(long limit) {
+        adj = new List[N];
+        for (int i = 0; i < N; i++) {
+            adj[i] = new ArrayList<>();
+            for (int j = 0; j < M; j++) {
+                if (dist[i][j] <= limit) {
+                    adj[i].add(j);
+                }
+            }
+        }
+
+        pairU = new int[N];
+        pairV = new int[M];
+        distU = new int[N];
+        Arrays.fill(pairU, -1);
+        Arrays.fill(pairV, -1);
+
+        int matching = 0;
+        while (bfs()) {
+            for (int u = 0; u < N; u++) {
+                if (pairU[u] == -1 && dfs(u)) {
+                    matching++;
+                }
+            }
+        }
+        return matching >= K;
+    }
+
+    static boolean bfs() {
+        Queue<Integer> queue = new LinkedList<>();
+        for (int u = 0; u < N; u++) {
+            if (pairU[u] == -1) {
+                distU[u] = 0;
+                queue.add(u);
+            } else {
+                distU[u] = Integer.MAX_VALUE;
+            }
+        }
+        boolean found = false;
+        while (!queue.isEmpty()) {
+            int u = queue.poll();
+            for (int v : adj[u]) {
+                int pu = pairV[v];
+                if (pu == -1) {
+                    found = true;
+                } else if (distU[pu] == Integer.MAX_VALUE) {
+                    distU[pu] = distU[u] + 1;
+                    queue.add(pu);
+                }
+            }
+        }
+        return found;
+    }
+
+    static boolean dfs(int u) {
+        for (int v : adj[u]) {
+            int pu = pairV[v];
+            if (pu == -1 || (distU[pu] == distU[u] + 1 && dfs(pu))) {
+                pairU[u] = v;
+                pairV[v] = u;
+                return true;
+            }
+        }
+        distU[u] = Integer.MAX_VALUE;
+        return false;
+    }
+
+    static class FastScanner {
+        private final InputStream in;
+        private final byte[] buffer = new byte[1 << 16];
+        private int ptr = 0, len = 0;
+
+        FastScanner(InputStream is) {
+            this.in = is;
+        }
+
+        private int read() throws IOException {
+            if (ptr >= len) {
+                len = in.read(buffer);
+                ptr = 0;
+                if (len <= 0) return -1;
+            }
+            return buffer[ptr++];
+        }
+
+        int nextInt() throws IOException {
+            int c;
+            do {
+                c = read();
+            } while (c <= ' ' && c != -1);
+            int sign = 1;
+            if (c == '-') {
+                sign = -1;
+                c = read();
+            }
+            int val = 0;
+            while (c > ' ') {
+                val = val * 10 + c - '0';
+                c = read();
+            }
+            return val * sign;
+        }
+    }
+}
