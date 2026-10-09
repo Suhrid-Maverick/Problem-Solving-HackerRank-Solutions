@@ -1,0 +1,321 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final long LIMIT = 1000000000000000000L;
+
+    // Fast input reader
+    static class FastScanner {
+        private final int BUFFER_SIZE = 1 << 16;
+        private DataInputStream din;
+        private byte[] buffer;
+        private int bufferPointer, bytesRead;
+
+        FastScanner() {
+            din = new DataInputStream(System.in);
+            buffer = new byte[BUFFER_SIZE];
+            bufferPointer = bytesRead = 0;
+        }
+
+        int nextInt() throws IOException {
+            int ret = 0;
+            byte c = read();
+            while (c <= ' ') c = read();
+            boolean neg = (c == '-');
+            if (neg) c = read();
+            do {
+                ret = ret * 10 + c - '0';
+            } while ((c = read()) >= '0' && c <= '9');
+            return neg ? -ret : ret;
+        }
+
+        long nextLong() throws IOException {
+            long ret = 0;
+            byte c = read();
+            while (c <= ' ') c = read();
+            boolean neg = (c == '-');
+            if (neg) c = read();
+            do {
+                ret = ret * 10 + c - '0';
+            } while ((c = read()) >= '0' && c <= '9');
+            return neg ? -ret : ret;
+        }
+
+        String nextLine() throws IOException {
+            StringBuilder sb = new StringBuilder();
+            byte c = read();
+            while (c <= ' ') c = read();
+            do {
+                sb.append((char) c);
+            } while ((c = read()) > ' ');
+            return sb.toString();
+        }
+
+        private byte read() throws IOException {
+            if (bufferPointer == bytesRead) fillBuffer();
+            return buffer[bufferPointer++];
+        }
+
+        private void fillBuffer() throws IOException {
+            bytesRead = din.read(buffer, 0, BUFFER_SIZE);
+            if (bytesRead == -1) buffer[0] = -1;
+            bufferPointer = 0;
+        }
+    }
+
+    // Suffix Automaton
+    static class SuffixAutomaton {
+        int maxNodes;
+        int[] next;   // flattened: state * 26 + c
+        int[] len;
+        int[] link;
+        int[] grundy;
+        long[] dp;
+        long[] ways;
+        long[] grundySum; // size 30
+        int nodes, last;
+
+        SuffixAutomaton(int maxLen) {
+            maxNodes = 2 * maxLen + 2;
+            next = new int[maxNodes * 26];
+            len = new int[maxNodes];
+            link = new int[maxNodes];
+            grundy = new int[maxNodes];
+            dp = new long[maxNodes];
+            ways = new long[maxNodes];
+            grundySum = new long[30];
+            init();
+        }
+
+        void init() {
+            nodes = last = 1;
+            len[1] = 0;
+            link[1] = 0;
+            // next array is already zero-initialized
+        }
+
+        void push(int c) {
+            int cur = ++nodes;
+            len[cur] = len[last] + 1;
+            int p = last;
+            while (p != 0 && next[p * 26 + c] == 0) {
+                next[p * 26 + c] = cur;
+                p = link[p];
+            }
+            if (p == 0) {
+                link[cur] = 1;
+            } else {
+                int q = next[p * 26 + c];
+                if (len[p] + 1 == len[q]) {
+                    link[cur] = q;
+                } else {
+                    int clone = ++nodes;
+                    len[clone] = len[p] + 1;
+                    System.arraycopy(next, q * 26, next, clone * 26, 26);
+                    link[clone] = link[q];
+                    while (p != 0 && next[p * 26 + c] == q) {
+                        next[p * 26 + c] = clone;
+                        p = link[p];
+                    }
+                    link[q] = link[cur] = clone;
+                }
+            }
+            last = cur;
+        }
+
+        // Returns states sorted by length ascending (index 0 unused)
+        int[] sortStatesByLengthAsc() {
+            int maxLen = 0;
+            for (int i = 1; i <= nodes; i++) {
+                if (len[i] > maxLen) maxLen = len[i];
+            }
+            int[] cnt = new int[maxLen + 1];
+            for (int i = 1; i <= nodes; i++) {
+                cnt[len[i]]++;
+            }
+            for (int i = 1; i <= maxLen; i++) {
+                cnt[i] += cnt[i - 1];
+            }
+            int[] order = new int[nodes + 1];
+            for (int i = nodes; i >= 1; i--) {
+                int l = len[i];
+                order[cnt[l]--] = i;
+            }
+            return order;
+        }
+
+        void computeGrundy() {
+            int[] order = sortStatesByLengthAsc();
+            for (int i = nodes; i >= 1; i--) {
+                int state = order[i];
+                boolean[] seen = new boolean[30];
+                for (int c = 0; c < 26; c++) {
+                    int nxt = next[state * 26 + c];
+                    if (nxt != 0) {
+                        seen[grundy[nxt]] = true;
+                    }
+                }
+                for (int g = 0; g < 30; g++) {
+                    if (!seen[g]) {
+                        grundy[state] = g;
+                        break;
+                    }
+                }
+            }
+        }
+
+        void computeSubstrCounts() {
+            int[] order = sortStatesByLengthAsc();
+            // dp: number of substrings in subtree (including self)
+            for (int i = nodes; i >= 1; i--) {
+                int state = order[i];
+                dp[state] = 1;
+                for (int c = 0; c < 26; c++) {
+                    int nxt = next[state * 26 + c];
+                    if (nxt != 0) {
+                        dp[state] += dp[nxt];
+                        if (dp[state] > LIMIT) dp[state] = LIMIT;
+                    }
+                }
+            }
+            // ways: number of distinct paths from root to state
+            Arrays.fill(ways, 0);
+            ways[1] = 1;
+            for (int i = 1; i <= nodes; i++) {
+                int state = order[i];
+                long w = ways[state];
+                if (w == 0) continue;
+                for (int c = 0; c < 26; c++) {
+                    int nxt = next[state * 26 + c];
+                    if (nxt != 0) {
+                        ways[nxt] += w;
+                        if (ways[nxt] > LIMIT) ways[nxt] = LIMIT;
+                    }
+                }
+            }
+            // grundySum: number of substrings with each grundy number
+            Arrays.fill(grundySum, 0);
+            for (int i = 1; i <= nodes; i++) {
+                grundySum[grundy[i]] += ways[i];
+                if (grundySum[grundy[i]] > LIMIT) {
+                    grundySum[grundy[i]] = LIMIT;
+                }
+            }
+        }
+
+        // Recompute dp with a forbidden grundy value
+        void dpRecalc(int badValue) {
+            int[] order = sortStatesByLengthAsc();
+            for (int i = nodes; i >= 1; i--) {
+                int state = order[i];
+                dp[state] = (grundy[state] != badValue) ? 1 : 0;
+                for (int c = 0; c < 26; c++) {
+                    int nxt = next[state * 26 + c];
+                    if (nxt != 0) {
+                        dp[state] += dp[nxt];
+                        if (dp[state] > LIMIT) dp[state] = LIMIT;
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int N = fs.nextInt();
+        int M = fs.nextInt();
+        long K = fs.nextLong();
+        String A = fs.nextLine();
+        String B = fs.nextLine();
+
+        SuffixAutomaton sfa1 = new SuffixAutomaton(N);
+        SuffixAutomaton sfa2 = new SuffixAutomaton(M);
+
+        for (int i = 0; i < N; i++) {
+            sfa1.push(A.charAt(i) - 'a');
+        }
+        for (int i = 0; i < M; i++) {
+            sfa2.push(B.charAt(i) - 'a');
+        }
+
+        sfa1.computeGrundy();
+        sfa2.computeGrundy();
+        sfa2.computeSubstrCounts();
+
+        // Compute sfa1.dp
+        int[] order1 = sfa1.sortStatesByLengthAsc();
+        for (int i = sfa1.nodes; i >= 1; i--) {
+            int state = order1[i];
+            long val = sfa2.dp[1] - sfa2.grundySum[sfa1.grundy[state]];
+            if (val < 0) val = 0;
+            for (int c = 0; c < 26; c++) {
+                int nxt = sfa1.next[state * 26 + c];
+                if (nxt != 0) {
+                    val += sfa1.dp[nxt];
+                    if (val > LIMIT) val = LIMIT;
+                }
+            }
+            sfa1.dp[state] = val;
+        }
+
+        if (K > sfa1.dp[1]) {
+            System.out.println("no solution");
+            return;
+        }
+
+        // Build A'
+        StringBuilder A_prime = new StringBuilder();
+        int cur = 1;
+        while (K > 0) {
+            long winCount = sfa2.dp[1] - sfa2.grundySum[sfa1.grundy[cur]];
+            if (winCount < 0) winCount = 0;
+            if (K <= winCount) break;
+            K -= winCount;
+            boolean found = false;
+            for (int c = 0; c < 26; c++) {
+                int nxt = sfa1.next[cur * 26 + c];
+                if (nxt != 0) {
+                    if (K > sfa1.dp[nxt]) {
+                        K -= sfa1.dp[nxt];
+                    } else {
+                        A_prime.append((char) ('a' + c));
+                        cur = nxt;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) break;
+        }
+
+        // Build B'
+        int badValue = sfa1.grundy[cur];
+        sfa2.dpRecalc(badValue);
+        StringBuilder B_prime = new StringBuilder();
+        cur = 1;
+        while (K > 0) {
+            if (sfa2.grundy[cur] != badValue) {
+                K--;
+                if (K == 0) break;
+            }
+            boolean found = false;
+            for (int c = 0; c < 26; c++) {
+                int nxt = sfa2.next[cur * 26 + c];
+                if (nxt != 0) {
+                    if (K > sfa2.dp[nxt]) {
+                        K -= sfa2.dp[nxt];
+                    } else {
+                        B_prime.append((char) ('a' + c));
+                        cur = nxt;
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found) break;
+        }
+
+        System.out.println(A_prime);
+        System.out.println(B_prime);
+    }
+}
