@@ -1,0 +1,83 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MOD = 1000000007;
+    static final long INV6 = 166666668; // modular inverse of 6 modulo 1e9+7
+
+    static class DSU {
+        int[] parent;
+        int[] size;
+
+        DSU(int n) {
+            parent = new int[n];
+            size = new int[n];
+            for (int i = 0; i < n; i++) {
+                parent[i] = i;
+                size[i] = 1;
+            }
+        }
+
+        int find(int x) {
+            if (parent[x] != x) {
+                parent[x] = find(parent[x]);
+            }
+            return parent[x];
+        }
+
+        void union(int x, int y) {
+            int rootX = find(x);
+            int rootY = find(y);
+            if (rootX == rootY) return;
+            if (size[rootX] < size[rootY]) {
+                parent[rootX] = rootY;
+                size[rootY] += size[rootX];
+            } else {
+                parent[rootY] = rootX;
+                size[rootX] += size[rootY];
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int N = Integer.parseInt(br.readLine().trim());
+        DSU dsu = new DSU(N);
+
+        for (int i = 0; i < N - 1; i++) {
+            String[] parts = br.readLine().trim().split(" ");
+            int u = Integer.parseInt(parts[0]) - 1;
+            int v = Integer.parseInt(parts[1]) - 1;
+            char c = parts[2].charAt(0);
+            if (c == 'b') {
+                dsu.union(u, v);
+            }
+        }
+
+        List<Integer> sizes = new ArrayList<>();
+        for (int i = 0; i < N; i++) {
+            if (dsu.find(i) == i) {
+                sizes.add(dsu.size[i]);
+            }
+        }
+
+        long p1 = N % MOD;
+        long p2 = 0, p3 = 0;
+        for (int s : sizes) {
+            long sMod = s % MOD;
+            p2 = (p2 + sMod * sMod) % MOD;
+            p3 = (p3 + sMod * sMod % MOD * sMod) % MOD;
+        }
+
+        long p1_cubed = p1 * p1 % MOD * p1 % MOD;
+        long term1 = p1_cubed;
+        long term2 = 3 * p1 % MOD * p2 % MOD;
+        long term3 = 2 * p3 % MOD;
+
+        long numerator = (term1 - term2 + term3) % MOD;
+        if (numerator < 0) numerator += MOD;
+
+        long ans = numerator * INV6 % MOD;
+        System.out.println(ans);
+    }
+}
