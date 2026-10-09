@@ -1,0 +1,199 @@
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintStream;
+import java.io.PushbackReader;
+import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Queue;
+import java.util.function.Consumer;
+
+public class TeamFormation {
+    public static void main(String[] args) {
+        IOUtils.iterateCases(TeamFormation::runCase);
+    }
+
+    private static void runCase(MyScanner in) {
+        int n = in.nextInt();
+        int[] a = in.nextIntArray(n);
+        System.out.println(solveCase(n, a));
+    }
+
+    private static int solveCase(int n, int[] a) {
+        if (n == 0) {
+            return 0;
+        }
+        Arrays.sort(a);
+
+        int[][] b = new int[n][2];
+        b[0][0] = a[0];
+        b[0][1] = 1;
+        int m = 1;
+        for (int i = 1; i < n; i++) {
+            if (a[i] == b[m - 1][0]) {
+                b[m - 1][1]++;
+            } else {
+                b[m][0] = a[i];
+                b[m][1] = 1;
+                m++;
+            }
+        }
+
+        int pre = Integer.MIN_VALUE;
+        Queue<Integer> activeTeams = new LinkedList<>();
+        int shortest = Integer.MAX_VALUE;
+        for (int i = 0; i < m; i++) {
+            if (b[i][0] == pre + 1) {
+                while (activeTeams.size() > b[i][1]) {
+                    int candidate = activeTeams.remove();
+                    int length = pre - candidate + 1;
+                    shortest = Math.min(shortest, length);
+                }
+                while (activeTeams.size() < b[i][1]) {
+                    activeTeams.add(b[i][0]);
+                }
+            } else {
+                while (!activeTeams.isEmpty()) {
+                    int candidate = activeTeams.remove();
+                    int length = pre - candidate + 1;
+                    shortest = Math.min(shortest, length);
+                }
+                while (activeTeams.size() < b[i][1]) {
+                    activeTeams.add(b[i][0]);
+                }
+            }
+            pre = b[i][0];
+        }
+        while (!activeTeams.isEmpty()) {
+            int candidate = activeTeams.remove();
+            int length = pre - candidate + 1;
+            shortest = Math.min(shortest, length);
+        }
+        return shortest;
+    }
+
+    private static class IOUtils {
+        public static void iterateCases(MyScanner scanner, Consumer<MyScanner> r) {
+            final int t = scanner.nextInt();
+            for (int it = 0; it < t; it++) {
+                r.accept(scanner);
+            }
+        }
+
+        public static void iterateCases(Consumer<MyScanner> runIteration) {
+            run(in -> iterateCases(in, runIteration));
+        }
+
+        public static void run(Consumer<MyScanner> block) {
+            try (MyScanner in = new MyScanner();
+                 MySystemOut ignored = new MySystemOut()) {
+                block.accept(in);
+            }
+        }
+    }
+
+    private static class MyScanner implements AutoCloseable {
+        private final PushbackReader br;
+
+        public MyScanner() {
+            this(System.in);
+        }
+
+        public MyScanner(InputStream in) {
+            br = new PushbackReader(new BufferedReader(new InputStreamReader(in)));
+        }
+
+        public int[] nextIntArray(int n) {
+            int[] arr = new int[n];
+            for (int i = 0; i < n; i++) {
+                arr[i] = nextInt();
+            }
+            return arr;
+        }
+
+        public int nextInt() {
+            return (int) nextLong();
+        }
+
+        public long nextLong() {
+            try {
+                int read = skipNonDigits();
+                boolean minus = false;
+                if (read == '-') {
+                    minus = true;
+                    read = br.read();
+                }
+                long result = 0;
+                while (read >= '0' && read <= '9') {
+                    result = result * 10 + (read - '0');
+                    read = br.read();
+                }
+                if (minus) {
+                    return -result;
+                }
+                return result;
+
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        private int skipNonDigits() {
+            int read;
+            try {
+                read = br.read();
+                while (read != -1 && !isDigit(read)) {
+                    read = br.read();
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+            if (read == -1) {
+                throw new RuntimeException("EOF???");
+            }
+            return read;
+        }
+
+        private boolean isDigit(int read) {
+            return read == '-' || read >= '0' && read <= '9';
+        }
+
+        @Override
+        public void close() {
+            try {
+                br.close();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    private static class MySystemOut implements AutoCloseable {
+        private final PrintStream originalSystemOut;
+
+        public MySystemOut() {
+            originalSystemOut = System.out;
+            try {
+                BufferedOutputStream bufferedOutputStream = new BufferedOutputStream(System.out);
+                String utf8 = StandardCharsets.UTF_8.name();
+                PrintStream newPrintStream = new PrintStream(bufferedOutputStream, false, utf8);
+                System.setOut(newPrintStream);
+            } catch (UnsupportedEncodingException e) {
+                throw new IllegalArgumentException(e);
+            }
+        }
+
+        @Override
+        public void close() {
+            try {
+                System.out.flush();
+            } finally {
+                System.setOut(originalSystemOut);
+            }
+        }
+    }
+}
