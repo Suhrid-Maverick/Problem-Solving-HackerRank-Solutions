@@ -1,0 +1,30 @@
+import java.util.*;
+
+public class Solution {
+
+    public static String nimGame(int[] pile) {
+        int xor = 0;
+        for (int stones : pile) {
+            xor ^= stones;
+        }
+        return xor == 0 ? "Second" : "First";
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int t = sc.nextInt();
+
+        while (t-- > 0) {
+            int n = sc.nextInt();
+            int[] pile = new int[n];
+
+            for (int i = 0; i < n; i++) {
+                pile[i] = sc.nextInt();
+            }
+
+            System.out.println(nimGame(pile));
+        }
+
+        sc.close();
+    }
+}
