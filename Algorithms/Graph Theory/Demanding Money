@@ -1,0 +1,108 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int n, m;
+    static int[] c;
+    static boolean[][] conn;
+    static int N, B;
+    static long[] dpB, cntB;
+    static long maxMoney, maxWays;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        n = Integer.parseInt(st.nextToken());
+        m = Integer.parseInt(st.nextToken());
+
+        c = new int[n];
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) c[i] = Integer.parseInt(st.nextToken());
+
+        conn = new boolean[n][n];
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken()) - 1;
+            int v = Integer.parseInt(st.nextToken()) - 1;
+            conn[u][v] = true;
+            conn[v][u] = true;
+        }
+
+        N = n / 2;
+        B = n - N;
+
+        // DP for second half B: best independent set inside each subset of B
+        int bSize = 1 << B;
+        dpB = new long[bSize];
+        cntB = new long[bSize];
+        dpB[0] = 0;
+        cntB[0] = 1;
+
+        for (int mask = 1; mask < bSize; mask++) {
+            int i = Integer.numberOfTrailingZeros(mask);
+            int withoutI = mask & ~(1 << i);
+
+            // Option 1: exclude node i
+            long best = dpB[withoutI];
+            long ways = cntB[withoutI];
+
+            // Option 2: include node i
+            int withoutNeighbors = withoutI;
+            for (int j = 0; j < B; j++) {
+                if ((withoutI & (1 << j)) != 0 && conn[N + i][N + j]) {
+                    withoutNeighbors &= ~(1 << j);
+                }
+            }
+            long money2 = dpB[withoutNeighbors] + c[N + i];
+            long ways2 = cntB[withoutNeighbors];
+
+            if (money2 > best) {
+                best = money2;
+                ways = ways2;
+            } else if (money2 == best) {
+                ways += ways2;
+            }
+            dpB[mask] = best;
+            cntB[mask] = ways;
+        }
+
+        maxMoney = -1;
+        maxWays = 0;
+        dfsA(0, 0, (1 << B) - 1, (1 << N) - 1);
+
+        System.out.println(maxMoney + " " + maxWays);
+    }
+
+    static void dfsA(int idx, long moneyA, int allowedB, int availableA) {
+        if (idx == N) {
+            long total = moneyA + dpB[allowedB];
+            long ways = cntB[allowedB];
+            if (total > maxMoney) {
+                maxMoney = total;
+                maxWays = ways;
+            } else if (total == maxMoney) {
+                maxWays += ways;
+            }
+            return;
+        }
+
+        if ((availableA & (1 << idx)) == 0) {
+            dfsA(idx + 1, moneyA, allowedB, availableA);
+            return;
+        }
+
+        // Option 1: exclude idx
+        dfsA(idx + 1, moneyA, allowedB, availableA & ~(1 << idx));
+
+        // Option 2: include idx
+        int newAllowedB = allowedB;
+        for (int j = 0; j < B; j++) {
+            if (conn[idx][N + j]) newAllowedB &= ~(1 << j);
+        }
+        int newAvailableA = availableA & ~(1 << idx);
+        for (int j = 0; j < N; j++) {
+            if (conn[idx][j]) newAvailableA &= ~(1 << j);
+        }
+        dfsA(idx + 1, moneyA + c[idx], newAllowedB, newAvailableA);
+    }
+}
