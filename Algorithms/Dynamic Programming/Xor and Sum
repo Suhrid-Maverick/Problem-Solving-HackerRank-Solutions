@@ -1,0 +1,51 @@
+import java.util.*;
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        String a, b;
+        long sum, mod;
+        long max = 314159;
+        mod = 1000000007;
+
+        a = in.next();
+        b = in.next();
+
+        int nA[] = new int[a.length()];
+        int nB[] = new int[b.length()];
+        setInverse(nA, a);
+        setInverse(nB, b);
+
+        sum = 0;
+
+        long pow = 1;
+
+        long count = 0;
+        int len = Math.max(nA.length, nB.length);
+        for (int i = 0; i < max; i++) {
+            if (i < nB.length)
+                count += nB[i];
+            long multiplier = (i < nA.length && nA[i] == 1) ? max - count + 1 : count;
+            sum = (sum + pow * multiplier) % mod;
+            pow = (pow << 1) % mod;
+        }
+        
+        for(int i = 0; i < nB.length; ++i){
+            sum = (sum + pow*count) % mod;
+            pow = (pow << 1L) % mod;
+            count -= nB[i];
+        }
+        
+        System.out.println(sum);
+        
+        in.close();
+    }
+
+    private static void setInverse(int[] nA, String a) {
+        StringBuffer sb = new StringBuffer(a);
+        sb.reverse();
+        for (int i = 0; i < a.length(); i++) {
+            nA[i] = sb.charAt(i) - '0';
+        }
+    }
+}
