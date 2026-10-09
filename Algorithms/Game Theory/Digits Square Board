@@ -1,0 +1,86 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int N;
+    static int[][][][] memo;
+    static int[][] pref;
+    static boolean[][] isPrime;
+
+    static int grundy(int x1, int y1, int x2, int y2) {
+        if (memo[x1][y1][x2][y2] != -1) return memo[x1][y1][x2][y2];
+
+        int area = (x2 - x1 + 1) * (y2 - y1 + 1);
+        int primes = pref[x2 + 1][y2 + 1] - pref[x1][y2 + 1] - pref[x2 + 1][y1] + pref[x1][y1];
+        if (primes == area) {
+            memo[x1][y1][x2][y2] = 0;
+            return 0;
+        }
+
+        boolean[] seen = new boolean[2 * N + 5];
+
+        // horizontal cuts
+        for (int i = x1; i < x2; i++) {
+            int g1 = grundy(x1, y1, i, y2);
+            int g2 = grundy(i + 1, y1, x2, y2);
+            int xor = g1 ^ g2;
+            if (xor < seen.length) seen[xor] = true;
+        }
+
+        // vertical cuts
+        for (int j = y1; j < y2; j++) {
+            int g1 = grundy(x1, y1, x2, j);
+            int g2 = grundy(x1, j + 1, x2, y2);
+            int xor = g1 ^ g2;
+            if (xor < seen.length) seen[xor] = true;
+        }
+
+        int mex = 0;
+        while (mex < seen.length && seen[mex]) mex++;
+        memo[x1][y1][x2][y2] = mex;
+        return mex;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            N = Integer.parseInt(br.readLine().trim());
+            isPrime = new boolean[N][N];
+
+            for (int i = 0; i < N; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                for (int j = 0; j < N; j++) {
+                    int val = Integer.parseInt(st.nextToken());
+                    isPrime[i][j] = (val == 2 || val == 3 || val == 5 || val == 7);
+                }
+            }
+
+            // build prefix sum of prime cells
+            pref = new int[N + 1][N + 1];
+            for (int i = 0; i < N; i++) {
+                for (int j = 0; j < N; j++) {
+                    pref[i + 1][j + 1] = pref[i][j + 1] + pref[i + 1][j] - pref[i][j]
+                            + (isPrime[i][j] ? 1 : 0);
+                }
+            }
+
+            // initialise memoisation table
+            memo = new int[N][N][N][N];
+            for (int[][][] a : memo) {
+                for (int[][] b : a) {
+                    for (int[] c : b) {
+                        Arrays.fill(c, -1);
+                    }
+                }
+            }
+
+            int g = grundy(0, 0, N - 1, N - 1);
+            sb.append(g > 0 ? "First" : "Second").append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
