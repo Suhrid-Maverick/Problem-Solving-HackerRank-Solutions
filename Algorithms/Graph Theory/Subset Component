@@ -1,0 +1,61 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        String line = br.readLine();
+        if (line == null) return;
+        int n = Integer.parseInt(line.trim());
+
+        long[] a = new long[n];
+        if (n > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                a[i] = Long.parseUnsignedLong(st.nextToken());
+            }
+        }
+
+        // Adjacency bitmask: adj[i] = set of j where a[i] & a[j] != 0
+        int[] adj = new int[n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if ((a[i] & a[j]) != 0) {
+                    adj[i] |= (1 << j);
+                }
+            }
+        }
+
+        int full = 1 << n;
+        long[] union = new long[full];
+        for (int mask = 1; mask < full; mask++) {
+            int low = mask & -mask;
+            int idx = Integer.numberOfTrailingZeros(low);
+            union[mask] = union[mask ^ low] | a[idx];
+        }
+
+        long ans = 0;
+        for (int mask = 0; mask < full; mask++) {
+            // Count connected components in the induced subgraph (bitmask BFS)
+            int comp = 0;
+            int remaining = mask;
+            while (remaining != 0) {
+                comp++;
+                int queue = remaining & -remaining;
+                int visited = 0;
+                while (queue != 0) {
+                    int v = queue & -queue;
+                    queue ^= v;
+                    visited |= v;
+                    int idx = Integer.numberOfTrailingZeros(v);
+                    queue |= adj[idx] & mask & ~visited;
+                }
+                remaining &= ~visited;
+            }
+            // value = (uncovered bits) + (number of components)
+            ans += 64 - Long.bitCount(union[mask]) + comp;
+        }
+
+        System.out.println(ans);
+    }
+}
