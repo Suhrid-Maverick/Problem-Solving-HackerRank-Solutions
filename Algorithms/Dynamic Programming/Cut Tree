@@ -1,0 +1,87 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int n, K;
+    static List<Integer>[] adj;
+    static List<Integer>[] children;
+    static long[][] f, g;
+
+    static void dfs(int u, int parent) {
+        for (int v : adj[u]) {
+            if (v != parent) {
+                children[u].add(v);
+                dfs(v, u);
+            }
+        }
+
+        // Compute f[u]: u is included
+        f[u][0] = 1;
+        for (int v : children[u]) {
+            long[] new_f = new long[K + 1];
+            for (int i = 0; i <= K; i++) {
+                if (f[u][i] == 0) continue;
+                // v not included: adds 1 boundary
+                if (i + 1 <= K) {
+                    new_f[i + 1] += f[u][i];
+                }
+                // v included: combine with f[v]
+                for (int j = 0; j <= K - i; j++) {
+                    if (f[v][j] > 0) {
+                        new_f[i + j] += f[u][i] * f[v][j];
+                    }
+                }
+            }
+            f[u] = new_f;
+        }
+
+        // Compute g[u]: u is not included
+        g[u][0] = 1; // empty subtree
+        for (int b = 1; b <= K; b++) {
+            long sum = 0;
+            for (int v : children[u]) {
+                if (b - 1 >= 0) {
+                    sum += f[v][b - 1];
+                }
+                sum += g[v][b];
+            }
+            g[u][b] = sum;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        n = Integer.parseInt(st.nextToken());
+        K = Integer.parseInt(st.nextToken());
+
+        adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        for (int i = 0; i < n - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int a = Integer.parseInt(st.nextToken());
+            int b = Integer.parseInt(st.nextToken());
+            adj[a].add(b);
+            adj[b].add(a);
+        }
+
+        children = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            children[i] = new ArrayList<>();
+        }
+
+        f = new long[n + 1][K + 1];
+        g = new long[n + 1][K + 1];
+
+        dfs(1, 0);
+
+        long ans = 0;
+        for (int b = 0; b <= K; b++) {
+            ans += f[1][b] + g[1][b];
+        }
+        System.out.println(ans);
+    }
+}
