@@ -1,0 +1,165 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Fast input scanner
+    static class FastScanner {
+        private final InputStream in;
+        private final byte[] buffer = new byte[1 << 16];
+        private int ptr = 0, len = 0;
+
+        FastScanner(InputStream is) {
+            in = is;
+        }
+
+        private int read() throws IOException {
+            if (ptr >= len) {
+                len = in.read(buffer);
+                ptr = 0;
+                if (len <= 0) return -1;
+            }
+            return buffer[ptr++];
+        }
+
+        int nextInt() throws IOException {
+            int c;
+            do {
+                c = read();
+            } while (c <= ' ' && c != -1);
+            int sign = 1;
+            if (c == '-') {
+                sign = -1;
+                c = read();
+            }
+            int val = 0;
+            while (c > ' ') {
+                val = val * 10 + (c - '0');
+                c = read();
+            }
+            return val * sign;
+        }
+
+        long nextLong() throws IOException {
+            int c;
+            do {
+                c = read();
+            } while (c <= ' ' && c != -1);
+            int sign = 1;
+            if (c == '-') {
+                sign = -1;
+                c = read();
+            }
+            long val = 0;
+            while (c > ' ') {
+                val = val * 10 + (c - '0');
+                c = read();
+            }
+            return val * sign;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner(System.in);
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+
+        int n = fs.nextInt();
+        int m = fs.nextInt();
+
+        // adjacency list for the DAG
+        ArrayList<Integer>[] adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) {
+            adj[i] = new ArrayList<>();
+        }
+
+        int[] indeg = new int[n + 1];
+
+        for (int i = 0; i < m; i++) {
+            int u = fs.nextInt();
+            int v = fs.nextInt();
+            adj[u].add(v);
+            indeg[v]++;
+        }
+
+        // Kahn's algorithm for topological order
+        ArrayDeque<Integer> queue = new ArrayDeque<>();
+        for (int i = 1; i <= n; i++) {
+            if (indeg[i] == 0) {
+                queue.add(i);
+            }
+        }
+
+        int[] order = new int[n];
+        int idx = 0;
+        while (!queue.isEmpty()) {
+            int u = queue.poll();
+            order[idx++] = u;
+            for (int v : adj[u]) {
+                indeg[v]--;
+                if (indeg[v] == 0) {
+                    queue.add(v);
+                }
+            }
+        }
+
+        // Compute Grundy numbers in reverse topological order
+        int[] grundy = new int[n + 1];
+        boolean[] used = new boolean[n + 1];
+
+        for (int i = n - 1; i >= 0; i--) {
+            int u = order[i];
+            ArrayList<Integer> marks = new ArrayList<>();
+            for (int v : adj[u]) {
+                int g = grundy[v];
+                if (!used[g]) {
+                    used[g] = true;
+                    marks.add(g);
+                }
+            }
+            int mex = 0;
+            while (used[mex]) {
+                mex++;
+            }
+            grundy[u] = mex;
+            for (int val : marks) {
+                used[val] = false;
+            }
+        }
+
+        int q = fs.nextInt();
+        int[] freq = new int[n + 1];
+        ArrayList<Integer> touched = new ArrayList<>();
+
+        for (int qi = 0; qi < q; qi++) {
+            int k = fs.nextInt();
+            touched.clear();
+            for (int i = 0; i < k; i++) {
+                int b = fs.nextInt();
+                if (freq[b] == 0) {
+                    touched.add(b);
+                }
+                freq[b]++;
+            }
+
+            int xor = 0;
+            for (int node : touched) {
+                if ((freq[node] & 1) == 1) {
+                    xor ^= grundy[node];
+                }
+            }
+
+            if (xor != 0) {
+                bw.write("Bumi\n");
+            } else {
+                bw.write("Iroh\n");
+            }
+
+            // reset frequency for the next query
+            for (int node : touched) {
+                freq[node] = 0;
+            }
+        }
+
+        bw.flush();
+    }
+}
