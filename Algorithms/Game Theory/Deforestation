@@ -1,0 +1,72 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            int N = Integer.parseInt(br.readLine().trim());
+
+            // Special case: single node, no edges, first player loses
+            if (N == 1) {
+                sb.append("Bob\n");
+                continue;
+            }
+
+            ArrayList<Integer>[] adj = new ArrayList[N + 1];
+            for (int i = 1; i <= N; i++) {
+                adj[i] = new ArrayList<>();
+            }
+
+            for (int i = 0; i < N - 1; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken());
+                int v = Integer.parseInt(st.nextToken());
+                adj[u].add(v);
+                adj[v].add(u);
+            }
+
+            int[] parent = new int[N + 1];
+            int[] order = new int[N];
+            int idx = 0;
+
+            // Iterative DFS to get post-order
+            Stack<Integer> stack = new Stack<>();
+            stack.push(1);
+            parent[1] = 0;
+
+            while (!stack.isEmpty()) {
+                int u = stack.pop();
+                order[idx++] = u;
+                for (int v : adj[u]) {
+                    if (v != parent[u]) {
+                        parent[v] = u;
+                        stack.push(v);
+                    }
+                }
+            }
+
+            int[] g = new int[N + 1];
+
+            // Process nodes in reverse order (children before parents)
+            for (int i = N - 1; i >= 0; i--) {
+                int u = order[i];
+                int x = 0;
+                for (int v : adj[u]) {
+                    if (parent[v] == u) {
+                        x ^= (g[v] + 1);
+                    }
+                }
+                g[u] = x;
+            }
+
+            // If Grundy value of root is non-zero, Alice wins
+            sb.append(g[1] != 0 ? "Alice\n" : "Bob\n");
+        }
+
+        System.out.print(sb);
+    }
+}
