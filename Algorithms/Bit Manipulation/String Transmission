@@ -1,0 +1,94 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int N = 1001, MOD = 1000000007;
+    static final int SZ = N + 1; // safe upper bound
+    static char[] a = new char[SZ];
+    static int[][] binom = new int[SZ][SZ];
+    static int[] dp = new int[SZ];
+    static int[] pr = new int[200];
+    static int[] mu = new int[SZ];
+    static int np = 0;
+    static boolean[] sieved = new boolean[SZ];
+
+    static void getPrimes() {
+        mu[1] = 1;
+        for (int i = 2; i < SZ; i++) {
+            if (!sieved[i]) {
+                pr[np++] = i;
+                mu[i] = -1;
+            }
+            for (int j = 0; j < np && i * pr[j] < SZ; j++) {
+                sieved[i * pr[j]] = true;
+                if (i % pr[j] == 0) {
+                    mu[i * pr[j]] = 0;
+                    break;
+                }
+                mu[i * pr[j]] = -mu[i];
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        getPrimes();
+
+        // Precompute binomial coefficients
+        for (int i = 0; i < SZ; i++) {
+            binom[i][0] = 1;
+            binom[i][i] = 1;
+            for (int j = 1; j < i; j++) {
+                binom[i][j] = (int) (((long) binom[i - 1][j - 1] + binom[i - 1][j]) % MOD);
+            }
+        }
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        int cc = Integer.parseInt(br.readLine().trim());
+        while (cc-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int k = Integer.parseInt(st.nextToken());
+            String s = br.readLine().trim();
+            for (int i = 0; i < n; i++) a[i] = s.charAt(i);
+
+            long ans = 0;
+
+            for (int i = 2; i <= n; i++) {
+                if (n % i == 0 && mu[i] != 0) {
+                    int m = n / i;
+
+                    Arrays.fill(dp, 0, k + 1, 0);
+                    dp[0] = 1;
+
+                    for (int j = 0; j < m; j++) {
+                        int x = 0;
+                        for (int g = j; g < n; g += m)
+                            if (a[g] == '1') x++;
+                        int y = i - x;
+
+                        for (int g = k; g >= 0; g--) {
+                            long v1 = (g < x) ? 0 : dp[g - x];
+                            long v2 = (g < y) ? 0 : dp[g - y];
+                            dp[g] = (int) ((v1 + v2) % MOD);
+                        }
+                    }
+
+                    long sum = 0;
+                    for (int j = 0; j <= k; j++)
+                        sum = (sum + dp[j]) % MOD;
+
+                    ans = (ans + sum * mu[i]) % MOD;
+                }
+            }
+
+            for (int i = 0; i <= k; i++)
+                ans = (ans + binom[n][i]) % MOD;
+
+            sb.append((ans + MOD) % MOD).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
