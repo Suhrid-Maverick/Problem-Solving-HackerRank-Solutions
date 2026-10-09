@@ -1,0 +1,205 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    static final int N = 50000;
+    static final int NN = (N + 63) / 64;
+
+    static long rev(long x) {
+        x = (x & 0xaaaaaaaaaaaaaaaaL) >>> 1 | (x & 0x5555555555555555L) << 1;
+        x = (x & 0xccccccccccccccccL) >>> 2 | (x & 0x3333333333333333L) << 2;
+        x = (x & 0xf0f0f0f0f0f0f0f0L) >>> 4 | (x & 0x0f0f0f0f0f0f0f0fL) << 4;
+        x = (x & 0xff00ff00ff00ff00L) >>> 8 | (x & 0x00ff00ff00ff00ffL) << 8;
+        x = (x & 0xffff0000ffff0000L) >>> 16 | (x & 0x0000ffff0000ffffL) << 16;
+        return x >>> 32 | x << 32;
+    }
+
+    static class BitSet {
+        long[] a = new long[NN];
+
+        BitSet() {
+            clear();
+        }
+
+        void clear() {
+            Arrays.fill(a, 0L);
+        }
+
+        void flip(int i) {
+            a[i >> 6] ^= 1L << (i & 63);
+        }
+
+        int get(int i) {
+            return (int) (a[i >> 6] >>> (i & 63) & 1);
+        }
+
+        void set(int i, int v) {
+            if (get(i) != v) flip(i);
+        }
+
+        void word(int i, long w) {
+            int j = i >> 6;
+            a[j] |= w << (i & 63);
+            i += 63;
+            j = i >> 6;
+            if (j < NN)
+                a[j] |= w >>> (63 - (i & 63));
+        }
+
+        BitSet shr(int i) {
+            BitSet ret = new BitSet();
+            int o = i & 63, shift = i / 64;
+            if (o == 0) {
+                for (int k = 0; k < NN - shift; k++)
+                    ret.a[k] = a[k + shift];
+            } else {
+                for (int k = 0; k < NN - shift - 1; k++)
+                    ret.a[k] = a[k + shift] >>> o | a[k + shift + 1] << (64 - o);
+                ret.a[NN - shift - 1] = a[NN - 1] >>> o;
+            }
+            return ret;
+        }
+
+        void fill(int l, int r, int v) {
+            for (int i = l; i < r; ) {
+                if ((i & 63) != 0 || i + 63 >= r) {
+                    set(i, v);
+                    i++;
+                } else {
+                    a[i >> 6] = (v != 0) ? -1L : 0L;
+                    i += 64;
+                }
+            }
+        }
+
+        void copy(BitSet o, int l, int r, int to) {
+            int shift = to - l;
+            for (int i = l; i < r; ) {
+                if ((i & 63) != 0 || i + 63 >= r) {
+                    set(i + shift, o.get(i));
+                    i++;
+                } else {
+                    word(i + shift, o.a[i >> 6]);
+                    i += 64;
+                }
+            }
+        }
+
+        void reverse(int l, int r) {
+            BitSet t = clone();
+            fill(l, r, 0);
+            for (int i = l; i < r; ) {
+                if ((i & 63) != 0 || i + 63 >= r) {
+                    set(r - 1 - (i - l), t.get(i));
+                    i++;
+                } else {
+                    word(r - 64 - (i - l), rev(t.a[i >> 6]));
+                    i += 64;
+                }
+            }
+        }
+
+        BitSet xor(BitSet o) {
+            BitSet ret = new BitSet();
+            for (int i = 0; i < NN; i++)
+                ret.a[i] = a[i] ^ o.a[i];
+            return ret;
+        }
+
+        @Override
+        public BitSet clone() {
+            BitSet ret = new BitSet();
+            System.arraycopy(a, 0, ret.a, 0, NN);
+            return ret;
+        }
+    }
+
+    static BufferedReader br;
+    static StringTokenizer st;
+
+    static String next() throws IOException {
+        while (st == null || !st.hasMoreTokens()) {
+            String line = br.readLine();
+            if (line == null) return null;
+            st = new StringTokenizer(line);
+        }
+        return st.nextToken();
+    }
+
+    static int nextInt() throws IOException {
+        return Integer.parseInt(next());
+    }
+
+    public static void main(String[] args) throws IOException {
+        br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        int n = nextInt();
+        String s = next();
+        char[] a = new char[n];
+        for (int i = 0; i < n; i++) a[i] = s.charAt(i);
+
+        BitSet b = new BitSet();
+        for (int i = 0; i < n; i++)
+            if (a[i] == 'b') b.flip(i);
+
+        int m = nextInt();
+        for (int q = 0; q < m; q++) {
+            String opStr = next();
+            char op = opStr.charAt(0);
+            int x = nextInt() - 1;
+            int y = nextInt();
+
+            switch (op) {
+                case 'C': {
+                    char c = next().charAt(0);
+                    b.fill(x, y, c - 'a');
+                    break;
+                }
+                case 'R':
+                    b.reverse(x, y);
+                    break;
+                case 'W': {
+                    StringBuilder out = new StringBuilder();
+                    for (int i = x; i < y; i++)
+                        out.append((char) ('a' + b.get(i)));
+                    sb.append(out).append('\n');
+                    break;
+                }
+                case 'S': {
+                    int xx = nextInt() - 1;
+                    int yy = nextInt();
+                    BitSet t = b.clone();
+                    b.fill(x, yy, 0);
+                    b.copy(t, x, y, yy - (y - x));
+                    b.copy(t, y, xx, x + (yy - xx));
+                    b.copy(t, xx, yy, x);
+                    break;
+                }
+                case 'H': {
+                    y--;
+                    if (x > y) {
+                        int tmp = x;
+                        x = y;
+                        y = tmp;
+                    }
+                    int z = nextInt();
+                    int pop = 0;
+                    BitSet t = b.xor(b.shr(y - x));
+                    for (int i = x; i < x + z; ) {
+                        if ((i & 63) != 0 || i + 63 >= x + z) {
+                            pop += t.get(i++);
+                        } else {
+                            pop += Long.bitCount(t.a[i >> 6]);
+                            i += 64;
+                        }
+                    }
+                    sb.append(pop).append('\n');
+                    break;
+                }
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
