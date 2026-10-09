@@ -1,0 +1,76 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static int minimumMoves(List<String> grid, int startX, int startY, int goalX, int goalY) {
+        int n = grid.size();
+        int m = grid.get(0).length();
+
+        boolean[][] visited = new boolean[n][m];
+        Deque<int[]> queue = new ArrayDeque<>();
+
+        queue.add(new int[]{startX, startY, 0});
+        visited[startX][startY] = true;
+
+        int[][] directions = {{0, 1}, {0, -1}, {1, 0}, {-1, 0}};
+
+        while (!queue.isEmpty()) {
+            int[] cur = queue.poll();
+            int x = cur[0];
+            int y = cur[1];
+            int moves = cur[2];
+
+            if (x == goalX && y == goalY) {
+                return moves;
+            }
+
+            for (int[] d : directions) {
+                int nx = x;
+                int ny = y;
+
+                while (true) {
+                    nx += d[0];
+                    ny += d[1];
+
+                    if (nx < 0 || nx >= n || ny < 0 || ny >= m || grid.get(nx).charAt(ny) == 'X') {
+                        break;
+                    }
+
+                    if (!visited[nx][ny]) {
+                        visited[nx][ny] = true;
+                        queue.add(new int[]{nx, ny, moves + 1});
+                    }
+                }
+            }
+        }
+
+        return -1;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        List<String> grid = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            grid.add(br.readLine());
+        }
+
+        String[] parts = br.readLine().trim().split(" ");
+        int startX = Integer.parseInt(parts[0]);
+        int startY = Integer.parseInt(parts[1]);
+        int goalX = Integer.parseInt(parts[2]);
+        int goalY = Integer.parseInt(parts[3]);
+
+        int result = minimumMoves(grid, startX, startY, goalX, goalY);
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
