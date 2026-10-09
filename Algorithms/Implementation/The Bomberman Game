@@ -1,0 +1,104 @@
+import java.io.*;
+import java.util.*;
+import java.util.stream.Collectors;
+
+public class Solution {
+
+    public static List<String> bomberMan(int n, List<String> grid) {
+        if (n <= 1) {
+            return grid;
+        }
+
+        int rows = grid.size();
+        int cols = grid.get(0).length();
+
+        // Case 1: If n is even, the entire grid is full of bombs.
+        if (n % 2 == 0) {
+            List<String> fullGrid = new ArrayList<>();
+            String rowOfBombs = new String(new char[cols]).replace('\0', 'O');
+            for (int i = 0; i < rows; i++) {
+                fullGrid.add(rowOfBombs);
+            }
+            return fullGrid;
+        }
+
+        // Case 2: If n is odd, the state repeats in a cycle of 4.
+        // n=3, 7, 11... will have the same state.
+        // n=5, 9, 13... will have the same state.
+        // We only need to simulate for n=3 or n=5.
+        
+        List<String> currentGrid = new ArrayList<>(grid);
+        if (n % 4 == 3) {
+            // First detonation at t=3
+            currentGrid = detonate(currentGrid, rows, cols);
+        } else { // n % 4 == 1
+            // Second detonation at t=5 (which is the result of t=3 state becoming full of bombs and then detonating)
+            List<String> fullGridAfterFirstDetonation = detonate(currentGrid, rows, cols);
+            List<String> tempGrid = new ArrayList<>();
+            String rowOfBombs = new String(new char[cols]).replace('\0', 'O');
+            for(int i=0; i<rows; i++) {
+                tempGrid.add(rowOfBombs);
+            }
+            
+            currentGrid = detonate(fullGridAfterFirstDetonation, rows, cols);
+        }
+        
+        return currentGrid;
+    }
+
+    private static List<String> detonate(List<String> grid, int rows, int cols) {
+        char[][] newGrid = new char[rows][cols];
+        for (int i = 0; i < rows; i++) {
+            Arrays.fill(newGrid[i], 'O');
+        }
+
+        for (int i = 0; i < rows; i++) {
+            for (int j = 0; j < cols; j++) {
+                if (grid.get(i).charAt(j) == 'O') {
+                    newGrid[i][j] = '.';
+                    if (i > 0) newGrid[i - 1][j] = '.'; // Up
+                    if (i < rows - 1) newGrid[i + 1][j] = '.'; // Down
+                    if (j > 0) newGrid[i][j - 1] = '.'; // Left
+                    if (j < cols - 1) newGrid[i][j + 1] = '.'; // Right
+                }
+            }
+        }
+
+        List<String> result = new ArrayList<>();
+        for (int i = 0; i < rows; i++) {
+            result.add(new String(newGrid[i]));
+        }
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+
+        int r = Integer.parseInt(firstMultipleInput[0]);
+        int c = Integer.parseInt(firstMultipleInput[1]);
+        int n = Integer.parseInt(firstMultipleInput[2]);
+
+        List<String> grid = new ArrayList<>();
+        for (int i = 0; i < r; i++) {
+            String gridItem = bufferedReader.readLine();
+            grid.add(gridItem);
+        }
+
+        List<String> result = bomberMan(n, grid);
+
+        for (int i = 0; i < result.size(); i++) {
+            bufferedWriter.write(result.get(i));
+            if (i != result.size() - 1) {
+                bufferedWriter.write("\n");
+            }
+        }
+
+        bufferedWriter.newLine();
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
