@@ -1,0 +1,77 @@
+import javafx.beans.property.IntegerProperty;
+
+import java.io.*;
+import java.util.*;
+import java.text.*;
+import java.math.*;
+import java.util.regex.*;
+
+public class Solution {
+    static Scanner in;
+    static PrintWriter out;
+
+    static int N = 4501;
+    static int M = 8192;
+    static int md = (int)1e9 + 7;
+
+    public static boolean prime(int x) {
+        if (x == 1 || x == 0) {
+            return false;
+        }
+        for (int i = 2; i * i <= x; i++) {
+            if (x % i == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public static void main(String[] args) {
+        in = new Scanner(System.in);
+        out = new PrintWriter(System.out);
+
+        int q = in.nextInt();
+        while (q-- > 0) {
+            int n = in.nextInt();
+            int a[] = new int[N];
+            for (int i = 0; i < n; i++) {
+                a[in.nextInt()]++;
+            }
+
+            long dp[][] = new long[2][8192];
+            dp[0][0] = 1;
+
+            for (int i = 3500; i <= 4500; i++) {
+                if (a[i] > 0) {
+
+                    for (int j = 0; j < M; j++) {
+                        if (dp[0][j] > 0 && ((i ^ j) < M)) {
+                            long q0 = a[i] / 2 + 1;
+                            long q1 = (a[i] + 1) / 2;
+                            dp[1][j] = (q0 * dp[0][j] + dp[1][j]) % md;
+                            dp[1][j ^ i] = (q1 * dp[0][j] + dp[1][j ^ i]) % md;
+                        }
+                    }
+
+                    for (int j = 0; j < M; j++) {
+                        dp[0][j] = dp[1][j];
+                        dp[1][j] = 0;
+                    }
+                }
+            }
+
+            int ans = 0;
+            for (int j = 0; j < M; j++) {
+                if (prime(j)) {
+                    ans = (int)(ans + dp[0][j]);
+                    if (ans >= md) {
+                        ans -= md;
+                    }
+                }
+            }
+            out.println(ans);
+        }
+
+        out.close();
+    }
+}
