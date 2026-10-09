@@ -1,0 +1,73 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            sb.append(line).append(' ');
+        }
+        String[] data = sb.toString().trim().split("\\s+");
+        int n = Integer.parseInt(data[0]);
+        int m = Integer.parseInt(data[1]);
+        int d = Integer.parseInt(data[2]);
+
+        long[] edge0 = new long[n];
+        long[] edge1 = new long[n];
+
+        int idx = 3;
+        for (int i = 0; i < m; i++) {
+            int u = Integer.parseInt(data[idx++]) - 1;
+            int v = Integer.parseInt(data[idx++]) - 1;
+            int bit = Integer.parseInt(data[idx++]);
+            if (bit == 0) {
+                edge0[u] |= 1L << v;
+                if (u != v) {
+                    edge0[v] |= 1L << u;
+                }
+            } else {
+                edge1[u] |= 1L << v;
+                if (u != v) {
+                    edge1[v] |= 1L << u;
+                }
+            }
+        }
+
+        long[] dp = new long[1];
+        dp[0] = 1L; // node 0 reachable
+
+        for (int i = 0; i < d; i++) {
+            long[] new_dp = new long[1 << (i + 1)];
+            for (int mask = 0; mask < dp.length; mask++) {
+                if (dp[mask] == 0) continue;
+                long nodes = dp[mask];
+                long next0 = 0;
+                long temp = nodes;
+                while (temp != 0) {
+                    int u = Long.numberOfTrailingZeros(temp);
+                    next0 |= edge0[u];
+                    temp &= temp - 1;
+                }
+                new_dp[mask << 1] |= next0;
+
+                long next1 = 0;
+                temp = nodes;
+                while (temp != 0) {
+                    int u = Long.numberOfTrailingZeros(temp);
+                    next1 |= edge1[u];
+                    temp &= temp - 1;
+                }
+                new_dp[(mask << 1) | 1] |= next1;
+            }
+            dp = new_dp;
+        }
+
+        int count = 0;
+        for (long val : dp) {
+            if (val != 0) count++;
+        }
+        System.out.println(count);
+    }
+}
