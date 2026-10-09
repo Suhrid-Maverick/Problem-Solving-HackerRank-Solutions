@@ -1,0 +1,31 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            int[] prices = new int[n];
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                prices[i] = Integer.parseInt(st.nextToken());
+            }
+
+            long profit = 0;
+            int maxPrice = 0;
+            for (int i = n - 1; i >= 0; i--) {
+                if (prices[i] > maxPrice) {
+                    maxPrice = prices[i];
+                } else {
+                    profit += maxPrice - prices[i];
+                }
+            }
+            sb.append(profit).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
