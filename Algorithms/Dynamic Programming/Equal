@@ -1,0 +1,68 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static int equal(List<Integer> arr) {
+        int min = arr.get(0);
+        for (int x : arr) {
+            if (x < min) {
+                min = x;
+            }
+        }
+
+        int minOperations = Integer.MAX_VALUE;
+
+        // Try five different target values
+        for (int i = 0; i <= 4; i++) {
+            int currentTarget = min - i;
+            int currentOperations = 0;
+            
+            for (int x : arr) {
+                int diff = x - currentTarget;
+                
+                // Add number of 5 operations
+                currentOperations += diff / 5;
+                diff %= 5;
+                
+                // Add number of 2 operations
+                currentOperations += diff / 2;
+                diff %= 2;
+                
+                // Add number of 1 operations
+                currentOperations += diff;
+            }
+            
+            if (currentOperations < minOperations) {
+                minOperations = currentOperations;
+            }
+        }
+        
+        return minOperations;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = Integer.parseInt(bufferedReader.readLine().trim());
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            int n = Integer.parseInt(bufferedReader.readLine().trim());
+
+            String[] arrTemp = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+            List<Integer> arr = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                arr.add(Integer.parseInt(arrTemp[i]));
+            }
+
+            int result = equal(arr);
+
+            bufferedWriter.write(String.valueOf(result));
+            bufferedWriter.newLine();
+        }
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
