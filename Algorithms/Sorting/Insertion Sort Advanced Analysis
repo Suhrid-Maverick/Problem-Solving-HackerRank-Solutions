@@ -1,0 +1,72 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class BIT {
+        int[] tree;
+        int n;
+
+        BIT(int n) {
+            this.n = n;
+            tree = new int[n + 1];
+        }
+
+        void add(int i, int val) {
+            for (; i <= n; i += i & -i) {
+                tree[i] += val;
+            }
+        }
+
+        int sum(int i) {
+            int s = 0;
+            for (; i > 0; i -= i & -i) {
+                s += tree[i];
+            }
+            return s;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            int n = Integer.parseInt(br.readLine().trim());
+            int[] arr = new int[n];
+            int[] sorted = new int[n];
+
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; i++) {
+                arr[i] = Integer.parseInt(st.nextToken());
+                sorted[i] = arr[i];
+            }
+
+            Arrays.sort(sorted);
+
+            // Compress values to unique ranks
+            int[] unique = new int[n];
+            int m = 0;
+            for (int i = 0; i < n; i++) {
+                if (i == 0 || sorted[i] != sorted[i - 1]) {
+                    unique[m++] = sorted[i];
+                }
+            }
+
+            BIT bit = new BIT(m);
+            long shifts = 0;
+
+            // Count inversions from right to left
+            for (int i = n - 1; i >= 0; i--) {
+                int rank = Arrays.binarySearch(unique, 0, m, arr[i]) + 1;
+                shifts += bit.sum(rank - 1); // elements smaller than current
+                bit.add(rank, 1);
+            }
+
+            sb.append(shifts).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
