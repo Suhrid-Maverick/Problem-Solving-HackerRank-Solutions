@@ -1,0 +1,28 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            long b = Long.parseLong(st.nextToken());
+            long w = Long.parseLong(st.nextToken());
+
+            st = new StringTokenizer(br.readLine());
+            long bc = Long.parseLong(st.nextToken());
+            long wc = Long.parseLong(st.nextToken());
+            long z = Long.parseLong(st.nextToken());
+
+            long blackCost = Math.min(bc, wc + z);
+            long whiteCost = Math.min(wc, bc + z);
+
+            sb.append(b * blackCost + w * whiteCost).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
