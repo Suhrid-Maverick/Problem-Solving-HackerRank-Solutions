@@ -1,0 +1,22 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+
+        long sum = 0;
+        int min = Integer.MAX_VALUE;
+        int max = Integer.MIN_VALUE;
+
+        for (int i = 0; i < 5; i++) {
+            int x = Integer.parseInt(st.nextToken());
+            sum += x;
+            if (x < min) min = x;
+            if (x > max) max = x;
+        }
+
+        System.out.println((sum - max) + " " + (sum - min));
+    }
+}
