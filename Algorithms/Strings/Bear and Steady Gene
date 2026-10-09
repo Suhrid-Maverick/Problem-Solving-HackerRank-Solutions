@@ -1,0 +1,59 @@
+import java.io.*;
+
+public class Solution {
+
+    static int idx(char c) {
+        if (c == 'A') return 0;
+        if (c == 'C') return 1;
+        if (c == 'G') return 2;
+        return 3; // 'T'
+    }
+
+    static boolean valid(int[] win, int[] req) {
+        for (int i = 0; i < 4; i++) {
+            if (win[i] < req[i]) return false;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        String gene = br.readLine().trim();
+
+        int[] total = new int[4];
+        for (int i = 0; i < n; i++) {
+            total[idx(gene.charAt(i))]++;
+        }
+
+        int target = n / 4;
+        int[] req = new int[4];
+        int requiredSum = 0;
+
+        for (int i = 0; i < 4; i++) {
+            req[i] = Math.max(0, total[i] - target);
+            requiredSum += req[i];
+        }
+
+        if (requiredSum == 0) {
+            System.out.println(0);
+            return;
+        }
+
+        int[] win = new int[4];
+        int left = 0;
+        int minLen = n;
+
+        for (int right = 0; right < n; right++) {
+            win[idx(gene.charAt(right))]++;
+
+            while (valid(win, req)) {
+                minLen = Math.min(minLen, right - left + 1);
+                win[idx(gene.charAt(left))]--;
+                left++;
+            }
+        }
+
+        System.out.println(minLen);
+    }
+}
