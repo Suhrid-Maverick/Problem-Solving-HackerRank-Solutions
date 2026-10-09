@@ -1,0 +1,108 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+
+    public static List<Integer> specialSubCubes(int n, List<Integer> cube) {
+        int[][][] a = new int[n + 1][n + 1][n + 1];
+
+        {
+            int k = 0;
+            for (int x = 1; x <= n; x++) {
+                for (int y = 1; y <= n; y++) {
+                    for (int z = 1; z <= n; z++) {
+                        a[x][y][z] = cube.get(k);
+                        k++;
+                    }
+                }
+            }
+        }
+
+        int[][][][] m = new int[n + 1][n + 1][n + 1][n + 1];
+        for (int x = 1; x <= n; x++) {
+            for (int y = 1; y <= n; y++) {
+                for (int z = 1; z <= n; z++) {
+                    for (int k = 1; k <= n; k++) {
+                        if (x < k || y < k || z < k) {
+                            m[x][y][z][k] = 0;
+                        } else {
+                            m[x][y][z][k] =
+                                IntStream.of(
+                                    a[x][y][z],
+                                    m[x - 1][y - 1][z - 1][k - 1],
+                                    m[x - 1][y - 1][z][k - 1],
+                                    m[x - 1][y][z - 1][k - 1],
+                                    m[x][y - 1][z - 1][k - 1],
+                                    m[x][y - 1][z][k - 1],
+                                    m[x][y][z - 1][k - 1],
+                                    m[x - 1][y][z][k - 1])
+                                    .max().orElse(0);
+                        }
+                    }
+                }
+            }
+        }
+
+        int[] results = new int[n + 1];
+        for (int x = 1; x <= n; x++) {
+            for (int y = 1; y <= n; y++) {
+                for (int z = 1; z <= n; z++) {
+                    for (int k = 1; k <= n; k++) {
+                        if (m[x][y][z][k] == k) {
+                            results[k]++;
+                        }
+                    }
+                }
+            }
+        }
+
+        List<Integer> result = new ArrayList<>();
+        for (int k = 1; k <= n; k++) {
+            result.add(results[k]);
+        }
+        return result;
+    }
+
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int q = Integer.parseInt(bufferedReader.readLine().trim());
+
+        IntStream.range(0, q).forEach(qItr -> {
+            try {
+                int n = Integer.parseInt(bufferedReader.readLine().trim());
+
+                List<Integer> cube = Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+                    .map(Integer::parseInt)
+                    .collect(toList());
+
+                List<Integer> result = Result.specialSubCubes(n, cube);
+
+                bufferedWriter.write(
+                    result.stream()
+                        .map(Object::toString)
+                        .collect(joining(" "))
+                    + "\n"
+                );
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
