@@ -1,0 +1,25 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] rem = new int[k];
+        long count = 0;
+
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            int x = Integer.parseInt(st.nextToken());
+            int r = x % k;
+            count += rem[(k - r) % k];
+            rem[r]++;
+        }
+
+        System.out.println(count);
+    }
+}
