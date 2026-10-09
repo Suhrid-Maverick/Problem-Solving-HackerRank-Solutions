@@ -1,0 +1,41 @@
+import java.util.*;
+
+public class Solution {
+
+    static int N;
+    static int[] array;
+    static long INF = Long.MAX_VALUE;
+    static long mod = 1000000007;
+
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        int T = in.nextInt();
+        while (T-- != 0) {
+            int m = in.nextInt();
+            int n = in.nextInt();
+            int[] y = new int[m];
+            int[] x = new int[n];
+            for (int i = 1; i < m; i++) y[i] = in.nextInt();
+            for (int i = 1; i < n; i++) x[i] = in.nextInt();
+            Arrays.sort(y);
+            Arrays.sort(x);
+            int i = 1;
+            int j = 1;
+            long count = 0;
+            while (i < n || j < m) {
+                long valX = -1;
+                long valY = -1;
+                if (i < n) valX = x[n - i];
+                if (j < m) valY = y[m - j];
+                if (valX > valY) {
+                    count = (count + j * valX) % mod;
+                    i++;
+                } else {
+                    count = (count + i * valY) % mod;
+                    j++;
+                }
+            }
+            System.out.println(count);
+        }
+    }
+}
