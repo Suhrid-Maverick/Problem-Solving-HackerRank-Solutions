@@ -1,0 +1,102 @@
+import java.util.Arrays;
+import java.util.Scanner;
+
+public class Solution {
+    public static int[][][][] dp;
+
+    public static int[] construct(int nums, int sum1, int sum2) {
+        if (nums == 0) {
+            if (sum1 != 0 || sum2 != 0) {
+                return new int[]{-1};
+            }
+            return new int[]{};
+        }
+
+        if (dp[nums][sum1][sum2] != null) {
+            return dp[nums][sum1][sum2];
+        }
+
+        for (int place = 0; nums * place <= sum1; place++) {
+            int nsum1 = sum1 - place * nums;
+            int nsum2 = sum2 - place * nums - nsum1;
+            if (nsum2 < 0) {
+                continue;
+            }
+
+            int[] xx = construct(nums - 1, nsum1, nsum2);
+            if (xx.length == 1 && xx[0] == -1) {
+                continue;
+            }
+
+            int[] actual = new int[nums];
+            System.arraycopy(xx, 0, actual, 1, xx.length);
+            for (int i = 0; i < nums; i++) {
+                actual[i] += place;
+            }
+
+            return dp[nums][sum1][sum2] = actual;
+        }
+
+        return dp[nums][sum1][sum2] = new int[]{-1};
+    }
+
+    public static void main(String[] args) {
+        dp = new int[51][201][5001][];
+        Scanner in = new Scanner(System.in);
+        int q = in.nextInt();
+
+        while (q-- > 0) {
+            int n = in.nextInt();
+            int s = in.nextInt();
+            int k = in.nextInt();
+
+            int[] min = null;
+
+            for (int start = 0; start * n <= s; start++) {
+                int[] b = construct(n - 1, s - start * n, k);
+                if (b.length == 1 && b[0] == -1) {
+                    continue;
+                }
+
+                int[] xx = new int[n];
+                System.arraycopy(b, 0, xx, 1, b.length);
+                for (int i = 0; i < n; i++) {
+                    xx[i] += start;
+                }
+
+                if (min == null) {
+                    min = xx;
+                    continue;
+                }
+
+                boolean less = false;
+                for (int i = 0; i < n; i++) {
+                    if (min[i] != xx[i]) {
+                        if (xx[i] < min[i]) {
+                            less = true;
+                        }
+                        break;
+                    }
+                }
+
+                if (less) {
+                    min = xx;
+                }
+            }
+
+            if (min != null) {
+                for (int i = 0; i < n; i++) {
+                    if (i != 0) {
+                        System.out.print(" ");
+                    }
+                    System.out.print(min[i]);
+                }
+                System.out.println();
+            } else {
+                System.out.println(-1);
+            }
+        }
+
+        System.exit(0);
+    }
+}
