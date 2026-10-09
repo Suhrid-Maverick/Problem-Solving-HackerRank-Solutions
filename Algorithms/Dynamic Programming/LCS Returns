@@ -1,0 +1,77 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        char[] a = br.readLine().trim().toCharArray();
+        char[] b = br.readLine().trim().toCharArray();
+
+        int n = a.length, m = b.length;
+
+        byte[] bId = new byte[m];
+        for (int j = 0; j < m; j++) bId[j] = id(b[j]);
+
+        short[][] pref = new short[n + 1][m + 1];
+
+        for (int i = 1; i <= n; i++) {
+            char ai = a[i - 1];
+            short[] prev = pref[i - 1];
+            short[] cur = pref[i];
+            for (int j = 1; j <= m; j++) {
+                if (ai == b[j - 1]) {
+                    cur[j] = (short) (prev[j - 1] + 1);
+                } else {
+                    cur[j] = prev[j] >= cur[j - 1] ? prev[j] : cur[j - 1];
+                }
+            }
+        }
+
+        int lcs = pref[n][m];
+        long ans = 0;
+
+        short[] suffNext = new short[m + 1];
+        short[] suffCur = new short[m + 1];
+
+        ans += countWays(pref[n], suffNext, bId, lcs);
+
+        for (int i = n - 1; i >= 0; i--) {
+            char ai = a[i];
+            suffCur[m] = 0;
+
+            for (int j = m - 1; j >= 0; j--) {
+                if (ai == b[j]) {
+                    suffCur[j] = (short) (suffNext[j + 1] + 1);
+                } else {
+                    suffCur[j] = suffNext[j] >= suffCur[j + 1] ? suffNext[j] : suffCur[j + 1];
+                }
+            }
+
+            ans += countWays(pref[i], suffCur, bId, lcs);
+
+            short[] tmp = suffNext;
+            suffNext = suffCur;
+            suffCur = tmp;
+        }
+
+        System.out.println(ans);
+    }
+
+    private static int countWays(short[] prefRow, short[] suffRow, byte[] bId, int lcs) {
+        long mask = 0;
+        int target = lcs + 1;
+
+        for (int j = 0; j < bId.length; j++) {
+            if (prefRow[j] + 1 + suffRow[j + 1] == target) {
+                mask |= 1L << bId[j];
+            }
+        }
+
+        return Long.bitCount(mask);
+    }
+
+    private static byte id(char c) {
+        if (c >= '0' && c <= '9') return (byte) (c - '0');
+        if (c >= 'A' && c <= 'Z') return (byte) (c - 'A' + 10);
+        return (byte) (c - 'a' + 36);
+    }
+}
