@@ -1,0 +1,213 @@
+import java.io.*;
+import java.math.BigInteger;
+import java.util.*;
+
+public class Solution {
+
+    static class EdgeNode implements Comparable<EdgeNode> {
+        int u;
+        int v;
+        int w;
+
+        EdgeNode(int u, int v, int w) {
+            this.u = u;
+            this.v = v;
+            this.w = w;
+        }
+
+        @Override
+        public int compareTo(EdgeNode rhs) {
+            return w - rhs.w;
+        }
+    }
+
+    static class DisjointSet {
+        int[] p;
+
+        DisjointSet(int n) {
+            p = new int[n];
+        }
+
+        void clear() {
+            for (int i = 0; i < p.length; i++) {
+                p[i] = i;
+            }
+        }
+
+        int find(int x) {
+            if (x == p[x]) {
+                return x;
+            }
+            return p[x] = find(p[x]);
+        }
+
+        boolean join(int x, int y) {
+            x = find(x);
+            y = find(y);
+            if (x == y) {
+                return false;
+            }
+            p[x] = y;
+            return true;
+        }
+
+    }
+
+    static long getDet(long[][] a, int n) {
+        long ret = 1;
+        for (int i = 1; i <= n - 1; i++) {
+            for (int j = i + 1; j <= n - 1; j++) {
+                while (a[j][i] != 0) {
+                    long t = a[i][i] / a[j][i];
+                    for (int k = i; k <= n - 1; k++) {
+                        a[i][k] -= a[j][k] * t;
+                    }
+                    for (int k = i; k <= n - 1; k++) {
+                        long tmp = a[i][k];
+                        a[i][k] = a[j][k];
+                        a[j][k] = tmp;
+                    }
+                    ret = -ret;
+                }
+            }
+            if (a[i][i] == 0) {
+                return 0;
+            }
+            ret *= a[i][i];
+        }
+        return Math.abs(ret);
+    }
+
+    static void addEdgeToKmat(long[][] a, int x, int y) {
+        addEdgeToKmat(a, x, y, 1);
+    }
+
+    static void addEdgeToKmat(long[][] a, int x, int y, int cnt) {
+        a[x][x] += cnt;
+        a[y][y] += cnt;
+        a[x][y] -= cnt;
+        a[y][x] -= cnt;
+    }
+
+    static int[][] tmpGcnt;
+    static DisjointSet ds;
+    static DisjointSet dsTmp;
+    static boolean[] vis;
+
+    static long getMstCntOneBlock() {
+        Map<Integer, List<Integer>> blocks = new HashMap<>();
+        for (int i = 0; i < vis.length; i++) {
+            if (vis[i]) {
+                vis[i] = false;
+                int index = dsTmp.find(i);
+                List<Integer> l = blocks.get(index);
+                if (l == null) {
+                    l = new ArrayList<>();
+                    blocks.put(index, l);
+                }
+                l.add(i);
+            }
+        }
+
+        long ret = 1;
+        for (Map.Entry<Integer, List<Integer>> block : blocks.entrySet()) {
+            int len = block.getValue().size();
+            if (len <= 1) {
+                continue;
+            }
+            List<Integer> l = block.getValue();
+
+            long[][] kmat = new long[tmpGcnt.length][tmpGcnt.length];
+
+            for (int x = 0; x < len; x++) {
+                for (int y = 0; y < x; y++) {
+                    addEdgeToKmat(kmat, x, y, tmpGcnt[l.get(x)][l.get(y)]);
+                }
+            }
+            ret *= getDet(kmat, len);
+
+            for (int x = 0; x < len; x++) {
+                ds.p[l.get(x)] = block.getKey();
+            }
+        }
+
+        for (int i = 0; i < ds.p.length; i++) {
+            ds.p[i] = dsTmp.p[i] = ds.find(i);
+        }
+        return ret;
+    }
+
+    static long getMstCnt(EdgeNode[] edges) {
+        Arrays.sort(edges);
+        ds.clear();
+        dsTmp.clear();
+        Arrays.fill(vis, false);
+        for (int[] arr : tmpGcnt) {
+            Arrays.fill(arr, 0);
+        }
+
+        int preELen = -1;
+        long ret = 1;
+        for (int i = 0; i < edges.length; i++) {
+            if (preELen != edges[i].w) {
+                ret *= getMstCntOneBlock();
+                preELen = edges[i].w;
+            }
+            int pu = ds.find(edges[i].u);
+            int pv = ds.find(edges[i].v);
+            if (pu == pv) {
+                continue;
+            }
+            vis[pu] = vis[pv] = true;
+            dsTmp.join(pu, pv);
+            tmpGcnt[pu][pv] += 1;
+            tmpGcnt[pv][pu] += 1;
+        }
+        return ret * getMstCntOneBlock();
+    }
+
+    static long getStCnt(EdgeNode[] edges, int n) {
+        long[][] kmat = new long[n][n];
+        for (int i = 0; i < edges.length; i++) {
+            addEdgeToKmat(kmat, edges[i].u, edges[i].v);
+        }
+        return getDet(kmat, n);
+    }
+
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int graphNodes = Integer.parseInt(st.nextToken());
+        int graphEdges = Integer.parseInt(st.nextToken());
+
+        EdgeNode[] edges = new EdgeNode[graphEdges];
+        for (int i = 0; i < graphEdges; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken()) - 1;
+            int v = Integer.parseInt(st.nextToken()) - 1;
+            int w = Integer.parseInt(st.nextToken());
+            edges[i] = new EdgeNode(u, v, w);
+        }
+
+        vis = new boolean[graphNodes];
+        ds = new DisjointSet(graphNodes);
+        dsTmp = new DisjointSet(graphNodes);
+        tmpGcnt = new int[graphNodes][graphNodes];
+
+        long mstCnt = getMstCnt(edges);
+        long stCnt = getStCnt(edges, graphNodes);
+        if (mstCnt == stCnt) {
+            bw.write("1/1");
+        } else {
+            long gcdAb = BigInteger.valueOf(mstCnt).gcd(BigInteger.valueOf(stCnt)).intValue();
+            bw.write((mstCnt / gcdAb) + "/" + (stCnt / gcdAb));
+        }
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
