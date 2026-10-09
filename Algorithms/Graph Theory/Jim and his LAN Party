@@ -1,0 +1,92 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int[] parent;
+    static int[] size;
+
+    static int find(int x) {
+        while (parent[x] != x) {
+            parent[x] = parent[parent[x]];
+            x = parent[x];
+        }
+        return x;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int N = Integer.parseInt(st.nextToken());
+        int M = Integer.parseInt(st.nextToken());
+        int Q = Integer.parseInt(st.nextToken());
+
+        int[] games = new int[N + 1];
+        st = new StringTokenizer(br.readLine());
+        for (int i = 1; i <= N; i++) {
+            games[i] = Integer.parseInt(st.nextToken());
+        }
+
+        int[] totalPlayers = new int[M + 1];
+        for (int i = 1; i <= N; i++) {
+            totalPlayers[games[i]]++;
+        }
+
+        parent = new int[N + 1];
+        size = new int[N + 1];
+        Map<Integer, Integer>[] compMap = new Map[N + 1];
+
+        for (int i = 1; i <= N; i++) {
+            parent[i] = i;
+            size[i] = 1;
+            compMap[i] = new HashMap<>(1);
+            compMap[i].put(games[i], 1);
+        }
+
+        int[] answer = new int[M + 1];
+        Arrays.fill(answer, -1);
+
+        for (int g = 1; g <= M; g++) {
+            if (totalPlayers[g] == 1) {
+                answer[g] = 0;
+            }
+        }
+
+        for (int wire = 1; wire <= Q; wire++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+
+            int ru = find(u);
+            int rv = find(v);
+            if (ru == rv) continue;
+
+            if (compMap[ru].size() > compMap[rv].size()) {
+                int tmp = ru;
+                ru = rv;
+                rv = tmp;
+            }
+
+            parent[ru] = rv;
+            size[rv] += size[ru];
+
+            for (Map.Entry<Integer, Integer> e : compMap[ru].entrySet()) {
+                int g = e.getKey();
+                int cnt = e.getValue();
+                int newCnt = compMap[rv].getOrDefault(g, 0) + cnt;
+                compMap[rv].put(g, newCnt);
+                if (newCnt == totalPlayers[g] && answer[g] == -1) {
+                    answer[g] = wire;
+                }
+            }
+            compMap[ru] = null;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int g = 1; g <= M; g++) {
+            sb.append(answer[g]).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
