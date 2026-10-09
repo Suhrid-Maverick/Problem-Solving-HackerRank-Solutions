@@ -1,0 +1,198 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        StringBuilder allInput = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            allInput.append(line).append(' ');
+        }
+        StringTokenizer st = new StringTokenizer(allInput.toString());
+
+        String strL = decrement(st.nextToken());
+        String strR = st.nextToken();
+
+        int[] intervalDigits = new int[log2(strR.length()) + 3];
+        for (int k = 0; k < intervalDigits.length; k++) {
+            intervalDigits[k] = digitsInInterval(k);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        int endL = strL.length();
+        int endR = strR.length();
+        boolean carry = false;
+        boolean lastIteration = false;
+        int blockCount = 0;
+        int level = 0;
+
+        while (!lastIteration) {
+            int numDigits = intervalDigits[level + 1] - intervalDigits[level];
+            int startL = Math.max(endL - numDigits, 0);
+            int startR = Math.max(endR - numDigits, 0);
+
+            String numL = (endL == 0) ? "0" : strL.substring(startL, endL);
+            if (carry) {
+                numL = incrementString(numL);
+            }
+
+            boolean processBlock;
+            String count = "0";
+
+            if (startR == 0) {
+                String upperBound = strR.substring(0, endR);
+                lastIteration = true;
+                processBlock = true;
+                count = subtractStrings(upperBound, numL);
+            } else {
+                String upperBound = powerOfTenString(numDigits);
+                processBlock = !isZero(numL) && !stringEquals(numL, upperBound);
+                if (processBlock) {
+                    count = powerOfTenMinus(numDigits, numL);
+                }
+            }
+
+            if (processBlock) {
+                carry = true;
+                blockCount++;
+                sb.append(level).append(' ').append(count).append('\n');
+            }
+
+            endL = startL;
+            endR = startR;
+            level++;
+        }
+
+        StringBuilder sb2 = new StringBuilder();
+        level = 0;
+        endR = strR.length();
+
+        while (true) {
+            int numDigits = intervalDigits[level + 1] - intervalDigits[level];
+            int startR = Math.max(endR - numDigits, 0);
+            if (startR == 0) {
+                break;
+            }
+            String count = strR.substring(startR, endR);
+
+            if (!isZero(count)) {
+                blockCount++;
+                sb2.insert(0, level + " " + count + "\n");
+            }
+
+            endR = startR;
+            level++;
+        }
+
+        StringBuilder out = new StringBuilder();
+        out.append(blockCount).append('\n').append(sb).append(sb2).append('\n');
+        System.out.print(out);
+    }
+
+    static int log2(int n) {
+        return 31 - Integer.numberOfLeadingZeros(n);
+    }
+
+    static int digitsInInterval(int k) {
+        return k == 0 ? 1 : (int) (Math.pow(2, k - 1) + 1);
+    }
+
+    static String decrement(String s) {
+        char[] c = s.toCharArray();
+        int i = c.length - 1;
+        while (i >= 0 && c[i] == '0') {
+            c[i] = '9';
+            i--;
+        }
+        c[i]--;
+        return stripLeadingZeros(new String(c));
+    }
+
+    static String incrementString(String s) {
+        char[] c = s.toCharArray();
+        int i = c.length - 1;
+        while (i >= 0 && c[i] == '9') {
+            c[i] = '0';
+            i--;
+        }
+        if (i < 0) return "1" + new String(c);
+        c[i]++;
+        return stripLeadingZeros(new String(c));
+    }
+
+    static String subtractStrings(String a, String b) {
+        a = stripLeadingZeros(a);
+        b = stripLeadingZeros(b);
+        if (b.equals("0")) return a;
+
+        int na = a.length();
+        int nb = b.length();
+        char[] result = new char[na];
+        int borrow = 0;
+        for (int i = 0; i < na; i++) {
+            int digitA = a.charAt(na - 1 - i) - '0';
+            int digitB = (i < nb) ? (b.charAt(nb - 1 - i) - '0') : 0;
+            int diff = digitA - digitB - borrow;
+            if (diff < 0) {
+                diff += 10;
+                borrow = 1;
+            } else {
+                borrow = 0;
+            }
+            result[na - 1 - i] = (char) ('0' + diff);
+        }
+        return stripLeadingZeros(new String(result));
+    }
+
+    static String powerOfTenString(int k) {
+        StringBuilder sb = new StringBuilder(k + 1);
+        sb.append('1');
+        for (int i = 0; i < k; i++) sb.append('0');
+        return sb.toString();
+    }
+
+    static String powerOfTenMinus(int k, String numL) {
+        numL = stripLeadingZeros(numL);
+        if (numL.equals("0")) return powerOfTenString(k);
+
+        int n = numL.length();
+        if (n > k) return "0";
+
+        char[] result = new char[k];
+        int borrow = 0;
+        for (int i = 0; i < k; i++) {
+            int digit = (i < n) ? (numL.charAt(n - 1 - i) - '0') : 0;
+            int diff = -digit - borrow;
+            if (diff < 0) {
+                diff += 10;
+                borrow = 1;
+            } else {
+                borrow = 0;
+            }
+            result[k - 1 - i] = (char) ('0' + diff);
+        }
+        return stripLeadingZeros(new String(result));
+    }
+
+    static String stripLeadingZeros(String s) {
+        if (s.isEmpty()) return "0";
+        int start = 0;
+        while (start < s.length() - 1 && s.charAt(start) == '0') start++;
+        return s.substring(start);
+    }
+
+    static boolean isZero(String s) {
+        if (s == null || s.isEmpty()) return true;
+        for (int i = 0; i < s.length(); i++) {
+            if (s.charAt(i) != '0') return false;
+        }
+        return true;
+    }
+
+    static boolean stringEquals(String a, String b) {
+        return stripLeadingZeros(a).equals(stripLeadingZeros(b));
+    }
+}
