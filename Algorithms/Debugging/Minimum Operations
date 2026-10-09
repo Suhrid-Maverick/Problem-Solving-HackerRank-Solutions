@@ -1,0 +1,48 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+        int n = Integer.parseInt(br.readLine().trim());
+        int[] r = new int[n], g = new int[n], b = new int[n];
+        int required = 0;                     // bitmask of colors that appear
+        for (int i = 0; i < n; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            r[i] = Integer.parseInt(st.nextToken());
+            g[i] = Integer.parseInt(st.nextToken());
+            b[i] = Integer.parseInt(st.nextToken());
+            if (r[i] > 0) required |= 1;      // red present
+            if (g[i] > 0) required |= 2;      // green present
+            if (b[i] > 0) required |= 4;      // blue present
+        }
+
+        final int INF = Integer.MAX_VALUE / 2;
+        int[][] dp = new int[n + 1][8];
+        for (int i = 0; i <= n; i++) Arrays.fill(dp[i], INF);
+        dp[0][0] = 0;
+
+        for (int i = 0; i < n; i++) {
+            int total = r[i] + g[i] + b[i];
+            for (int mask = 0; mask < 8; mask++) {
+                if (dp[i][mask] == INF) continue;
+                // assign current box to red
+                dp[i + 1][mask | 1] = Math.min(dp[i + 1][mask | 1], dp[i][mask] + total - r[i]);
+                // assign current box to green
+                dp[i + 1][mask | 2] = Math.min(dp[i + 1][mask | 2], dp[i][mask] + total - g[i]);
+                // assign current box to blue
+                dp[i + 1][mask | 4] = Math.min(dp[i + 1][mask | 4], dp[i][mask] + total - b[i]);
+            }
+        }
+
+        int ans = INF;
+        for (int mask = 0; mask < 8; mask++) {
+            if ((mask & required) == required) {   // all present colors are covered
+                ans = Math.min(ans, dp[n][mask]);
+            }
+        }
+        bw.write(ans == INF ? "-1\n" : ans + "\n");
+        bw.flush();
+    }
+}
