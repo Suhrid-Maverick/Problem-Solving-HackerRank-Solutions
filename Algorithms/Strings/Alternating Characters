@@ -1,0 +1,24 @@
+import java.io.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int q = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (q-- > 0) {
+            String s = br.readLine().trim();
+            int deletions = 0;
+
+            for (int i = 1; i < s.length(); i++) {
+                if (s.charAt(i) == s.charAt(i - 1)) {
+                    deletions++;
+                }
+            }
+
+            sb.append(deletions).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
