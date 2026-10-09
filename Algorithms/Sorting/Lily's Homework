@@ -1,0 +1,59 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int countSwaps(int[] arr, int[] target) {
+        int n = arr.length;
+        Map<Integer, Integer> posMap = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            posMap.put(target[i], i);
+        }
+
+        int[] perm = new int[n];
+        for (int i = 0; i < n; i++) {
+            perm[i] = posMap.get(arr[i]);
+        }
+
+        boolean[] visited = new boolean[n];
+        int swaps = 0;
+
+        for (int i = 0; i < n; i++) {
+            if (!visited[i]) {
+                int cycleLen = 0;
+                int j = i;
+                while (!visited[j]) {
+                    visited[j] = true;
+                    j = perm[j];
+                    cycleLen++;
+                }
+                swaps += cycleLen - 1;
+            }
+        }
+        return swaps;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+
+        int[] arr = new int[n];
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            arr[i] = Integer.parseInt(st.nextToken());
+        }
+
+        int[] asc = arr.clone();
+        Arrays.sort(asc);
+
+        int[] desc = new int[n];
+        for (int i = 0; i < n; i++) {
+            desc[i] = asc[n - 1 - i];
+        }
+
+        int swapsAsc = countSwaps(arr, asc);
+        int swapsDesc = countSwaps(arr, desc);
+
+        System.out.println(Math.min(swapsAsc, swapsDesc));
+    }
+}
