@@ -1,0 +1,94 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] h = new int[n];
+        int[] c = new int[n];
+        int[] sortedH = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            st = new StringTokenizer(br.readLine());
+            h[i] = Integer.parseInt(st.nextToken());
+            c[i] = Integer.parseInt(st.nextToken()) - 1;
+            sortedH[i] = h[i];
+        }
+
+        // Coordinate compression for heights
+        Arrays.sort(sortedH);
+        int m = 0;
+        for (int i = 0; i < n; i++) {
+            if (i == 0 || sortedH[i] != sortedH[m - 1]) {
+                sortedH[m++] = sortedH[i];
+            }
+        }
+
+        int[] pos = new int[n];
+        for (int i = 0; i < n; i++) {
+            pos[i] = Arrays.binarySearch(sortedH, 0, m, h[i]) + 1;
+        }
+
+        int masks = 1 << k;
+        int full = masks - 1;
+
+        // Fenwick tree stored as a flat array: index = heightIndex * masks + mask
+        int[] bit = new int[(m + 1) * masks];
+
+        int[] add = new int[masks];
+        int[] sum = new int[masks];
+
+        long ans = 0;
+
+        for (int i = 0; i < n; i++) {
+            int p = pos[i];
+            int colorBit = 1 << c[i];
+
+            // Query all masks for heights < p
+            Arrays.fill(sum, 0);
+            for (int idx = p - 1; idx > 0; idx -= idx & -idx) {
+                int base = idx * masks;
+                for (int mask = 0; mask < masks; mask++) {
+                    sum[mask] += bit[base + mask];
+                    if (sum[mask] >= MOD) sum[mask] -= MOD;
+                }
+            }
+
+            // Compute ways to extend subsequences with current candle
+            for (int mask = 0; mask < masks; mask++) {
+                int ways = sum[mask];
+                if (mask == 0) {
+                    ways++;
+                    if (ways >= MOD) ways -= MOD;
+                }
+                add[mask] = ways;
+            }
+
+            // Update Fenwick tree with new subsequences ending at this candle
+            for (int mask = 0; mask < masks; mask++) {
+                if (add[mask] == 0) continue;
+                int nmask = mask | colorBit;
+                int val = add[mask];
+
+                for (int idx = p; idx <= m; idx += idx & -idx) {
+                    int index = idx * masks + nmask;
+                    bit[index] += val;
+                    if (bit[index] >= MOD) bit[index] -= MOD;
+                }
+
+                if (nmask == full) {
+                    ans += val;
+                    if (ans >= MOD) ans -= MOD;
+                }
+            }
+        }
+
+        System.out.println(ans);
+    }
+}
