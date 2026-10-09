@@ -1,0 +1,67 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static final long MOD = 100_000_007;
+
+    static int alienLanguages(int n, int m) {
+        int[][] t = new int[n + 1][20];
+        int nb = n / 2;
+
+        for (int i = n; i > nb; i--) {
+            t[i][0] = 1;
+        }
+
+        int[] words = new int[m + 1];
+        int[] mult = new int[20];
+
+        for (int j = n, k = 0; j > 0; j /= 2, k++) {
+            long d = 0;
+            for (int i = n; i > 0; i--) {
+                d = (d + t[i][k]) % MOD;
+                t[i / 2][k + 1] = (int) d;
+            }
+
+            for (int i = n; i > 0; i--) {
+                mult[k] = (int) ((mult[k] + t[i][k]) % MOD);
+            }
+        }
+
+        words[0] = 1;
+
+        for (int i = 1; i <= m; i++) {
+            long d = words[i - 1];
+            for (int j = 0; mult[j] > 0 && i + j <= m; j++) {
+                words[i + j] = (int) ((words[i + j] + (d * mult[j]) % MOD) % MOD);
+            }
+        }
+
+        return words[m];
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+
+        for (int i = 0; i < t; i++) {
+            st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+
+            int result = alienLanguages(n, m);
+
+            bw.write(String.valueOf(result));
+            bw.newLine();
+        }
+
+        br.close();
+        bw.close();
+    }
+}
