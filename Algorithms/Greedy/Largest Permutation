@@ -1,0 +1,49 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] arr = new int[n];
+        int[] pos = new int[n + 1];
+
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            arr[i] = Integer.parseInt(st.nextToken());
+            pos[arr[i]] = i;
+        }
+
+        for (int i = 0; i < n && k > 0; i++) {
+            int desired = n - i;
+
+            if (arr[i] == desired) continue;
+
+            int j = pos[desired];
+
+            // swap arr[i] and arr[j]
+            int temp = arr[i];
+            arr[i] = arr[j];
+            arr[j] = temp;
+
+            // update positions
+            pos[arr[i]] = i;
+            pos[arr[j]] = j;
+
+            k--;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            if (i > 0) sb.append(' ');
+            sb.append(arr[i]);
+        }
+
+        System.out.println(sb);
+    }
+}
