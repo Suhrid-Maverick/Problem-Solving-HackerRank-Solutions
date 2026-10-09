@@ -1,0 +1,41 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] count = new int[k];
+
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            if (!st.hasMoreTokens()) {
+                st = new StringTokenizer(br.readLine());
+            }
+            int x = Integer.parseInt(st.nextToken());
+            count[x % k]++;
+        }
+
+        int result = 0;
+
+        if (count[0] > 0) {
+            result += 1;
+        }
+
+        for (int r = 1; r <= k / 2; r++) {
+            if (r == k - r) {
+                if (count[r] > 0) {
+                    result += 1;
+                }
+            } else {
+                result += Math.max(count[r], count[k - r]);
+            }
+        }
+
+        System.out.println(result);
+    }
+}
