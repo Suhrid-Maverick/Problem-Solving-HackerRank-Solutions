@@ -1,0 +1,56 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static Deque<Integer> q = new LinkedList<>();
+
+    static int[] dis = new int[1001];
+
+    static int bfs(int n, int m, int x) {
+        Arrays.fill(dis, 1_000_000_000);
+        dis[x] = 0;
+        q.add(x);
+        int mmh = 0;
+        while (!q.isEmpty()) {
+            int k = q.removeFirst();
+            mmh = dis[k];
+            for (int i = 0; i < m; i++) {
+                int j = (k * m + i) % n;
+                if (dis[j] > mmh + 1) {
+                    dis[j] = mmh + 1;
+                    q.add(j);
+                }
+            }
+        }
+        return mmh;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        dis = new int[n];
+
+        int mmh = 0;
+        for (int i = 0; i < n; i++) {
+            mmh = Math.max(mmh, bfs(n, m, i));
+        }
+        bw.write(mmh + "\n");
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                bw.write((i * m + j) % n + " ");
+            }
+            bw.write("\n");
+        }
+
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
