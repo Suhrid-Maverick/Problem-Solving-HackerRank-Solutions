@@ -1,0 +1,29 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (t-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int k = Integer.parseInt(st.nextToken());
+
+            st = new StringTokenizer(br.readLine());
+            int onTime = 0;
+
+            for (int i = 0; i < n; i++) {
+                if (Integer.parseInt(st.nextToken()) <= 0) {
+                    onTime++;
+                }
+            }
+
+            sb.append(onTime < k ? "YES\n" : "NO\n");
+        }
+
+        System.out.print(sb);
+    }
+}
