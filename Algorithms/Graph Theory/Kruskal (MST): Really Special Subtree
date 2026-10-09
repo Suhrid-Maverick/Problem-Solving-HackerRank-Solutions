@@ -1,0 +1,77 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class Edge {
+        int u, v, w;
+        Edge(int u, int v, int w) {
+            this.u = u;
+            this.v = v;
+            this.w = w;
+        }
+    }
+
+    static int[] parent, rank;
+
+    static int find(int x) {
+        if (parent[x] != x) parent[x] = find(parent[x]);
+        return parent[x];
+    }
+
+    static boolean union(int a, int b) {
+        int ra = find(a), rb = find(b);
+        if (ra == rb) return false;
+        if (rank[ra] < rank[rb]) parent[ra] = rb;
+        else if (rank[ra] > rank[rb]) parent[rb] = ra;
+        else {
+            parent[rb] = ra;
+            rank[ra]++;
+        }
+        return true;
+    }
+
+    public static void main(String[] args) throws Exception {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        Edge[] edges = new Edge[m];
+
+        for (int i = 0; i < m; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            int w = Integer.parseInt(st.nextToken());
+            edges[i] = new Edge(u, v, w);
+        }
+
+        Arrays.sort(edges, (a, b) -> {
+            if (a.w != b.w) return Integer.compare(a.w, b.w);
+            int s1 = a.u + a.v;
+            int s2 = b.u + b.v;
+            if (s1 != s2) return Integer.compare(s1, s2);
+            if (a.u != b.u) return Integer.compare(a.u, b.u);
+            return Integer.compare(a.v, b.v);
+        });
+
+        parent = new int[n + 1];
+        rank = new int[n + 1];
+
+        for (int i = 1; i <= n; i++) parent[i] = i;
+
+        long totalWeight = 0;
+        int edgesUsed = 0;
+
+        for (Edge e : edges) {
+            if (union(e.u, e.v)) {
+                totalWeight += e.w;
+                edgesUsed++;
+                if (edgesUsed == n - 1) break;
+            }
+        }
+
+        System.out.println(totalWeight);
+    }
+}
