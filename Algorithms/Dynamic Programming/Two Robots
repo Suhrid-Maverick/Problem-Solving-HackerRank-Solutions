@@ -1,0 +1,106 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final long INF = Long.MAX_VALUE / 4;
+    static long[] plus, minus;
+    static int size;
+
+    static void init(int n) {
+        size = 1;
+        while (size < n) size <<= 1;
+        plus = new long[2 * size];
+        minus = new long[2 * size];
+        Arrays.fill(plus, INF);
+        Arrays.fill(minus, INF);
+    }
+
+    static void update(int pos, long val) {
+        int idx = pos + size - 1;
+        plus[idx] = val + pos;
+        minus[idx] = val - pos;
+        idx >>= 1;
+        while (idx > 0) {
+            plus[idx] = Math.min(plus[2 * idx], plus[2 * idx + 1]);
+            minus[idx] = Math.min(minus[2 * idx], minus[2 * idx + 1]);
+            idx >>= 1;
+        }
+    }
+
+    static long queryPlus(int l, int r) {
+        if (l > r) return INF;
+        l = l + size - 1;
+        r = r + size - 1;
+        long res = INF;
+        while (l <= r) {
+            if ((l & 1) == 1) res = Math.min(res, plus[l++]);
+            if ((r & 1) == 0) res = Math.min(res, plus[r--]);
+            l >>= 1;
+            r >>= 1;
+        }
+        return res;
+    }
+
+    static long queryMinus(int l, int r) {
+        if (l > r) return INF;
+        l = l + size - 1;
+        r = r + size - 1;
+        long res = INF;
+        while (l <= r) {
+            if ((l & 1) == 1) res = Math.min(res, minus[l++]);
+            if ((r & 1) == 0) res = Math.min(res, minus[r--]);
+            l >>= 1;
+            r >>= 1;
+        }
+        return res;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            String[] nm = br.readLine().trim().split("\\s+");
+            int N = Integer.parseInt(nm[0]);
+            int M = Integer.parseInt(nm[1]);
+            int[] a = new int[M];
+            int[] b = new int[M];
+            long base = 0;
+            for (int i = 0; i < M; i++) {
+                String[] ab = br.readLine().trim().split("\\s+");
+                a[i] = Integer.parseInt(ab[0]);
+                b[i] = Integer.parseInt(ab[1]);
+                base += Math.abs(a[i] - b[i]);
+            }
+            if (M <= 1) {
+                sb.append(base).append('\n');
+                continue;
+            }
+            init(N);
+            long globalAdd = 0;
+            long minStored = INF;
+            for (int i = 1; i < M; i++) {
+                int ai = a[i];
+                int bPrev = b[i - 1];
+                long delta = Math.abs(bPrev - ai);
+
+                long minPlus = queryPlus(ai, N);
+                long minMinus = queryMinus(1, ai - 1);
+                long minP = INF;
+                if (minPlus != INF) minP = Math.min(minP, minPlus - ai);
+                if (minMinus != INF) minP = Math.min(minP, minMinus + ai);
+
+                long minVal = globalAdd + Math.min(0, minP);
+                globalAdd += delta;
+                long stored = minVal - globalAdd;
+
+                update(bPrev, stored);
+                if (stored < minStored) minStored = stored;
+            }
+            long minAdditional = globalAdd + Math.min(0, minStored);
+            long ans = base + minAdditional;
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
