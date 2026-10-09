@@ -1,0 +1,257 @@
+import java.io.*;
+import java.util.*;
+import java.util.function.Consumer;
+
+public class Solution {
+
+    static class IntMySet {
+        private static final int MAX_LOAD = 90;
+
+        private int mask;
+        private int len;
+        private int size;
+        private int level;
+        private boolean zeroKey;
+
+        private int maxSize;
+
+        public IntMySet() {
+            reset(2);
+        }
+
+        public IntMySet(int n) {
+            reset(n);
+        }
+
+        public int size() {
+            return size + (zeroKey ? 1 : 0);
+        }
+
+        void checkSizePut() {
+            if (size >= maxSize) {
+                rehash(level + 1);
+            }
+        }
+
+        private void reset(int newLevel) {
+            size = 0;
+            level = newLevel;
+            len = 2 << level;
+            mask = len - 1;
+            maxSize = (int) (len * MAX_LOAD / 100L);
+            keys = new int[len];
+            values = new boolean[len];
+        }
+
+        private int getIndex(int hash) {
+            return hash & mask;
+        }
+
+        public static final boolean NOT_FOUND = false;
+        private int[] keys;
+        private boolean[] values;
+        private boolean zeroValue;
+
+        public void clear() {
+            Arrays.fill(keys, 0);
+            Arrays.fill(values, false);
+            size = 0;
+            zeroKey = false;
+        }
+
+        public void add(int key) {
+            if (key == 0) {
+                zeroKey = true;
+                zeroValue = true;
+                return;
+            }
+            try {
+                checkSizePut();
+            } catch (Exception e) {
+
+            }
+            int index = getIndex(key);
+            int plus = 1;
+            do {
+                int k = keys[index];
+                if (k == 0) {
+                    size++;
+                    keys[index] = key;
+                    values[index] = true;
+                    return;
+                } else if (k == key) {
+                    // update existing
+                    values[index] = true;
+                    return;
+                }
+                index = (index + plus++) & mask;
+            } while (plus <= len);
+        }
+
+        protected void rehash(int newLevel) {
+            int[] oldKeys = keys;
+            boolean[] oldValues = values;
+            reset(newLevel);
+            for (int i = 0; i < oldKeys.length; i++) {
+                int k = oldKeys[i];
+                if (k != 0 && oldValues[i]) {
+                    add(k);
+                }
+            }
+        }
+
+        public void forEach(Consumer<Integer> action) {
+            if (zeroKey) {
+                action.accept(0);
+            }
+            for (int x : keys) {
+                if (x > 0) {
+                    action.accept(x);
+                }
+            }
+        }
+
+        public boolean contains(int key) {
+            if (key == 0) {
+                return zeroKey ? zeroValue : NOT_FOUND;
+            }
+            int index = getIndex(key);
+            int plus = 1;
+            do {
+                int k = keys[index];
+                if (k == 0 && !values[index]) {
+                    // found an empty record
+                    return NOT_FOUND;
+                } else if (k == key) {
+                    // found it
+                    return values[index];
+                }
+                index = (index + plus++) & mask;
+            } while (plus <= len);
+            return NOT_FOUND;
+        }
+
+        public boolean isEmpty() {
+            return size() == 0;
+        }
+    }
+
+    static int[] nxt;
+    static int[] succ;
+    static int[] ptr;
+    static int index = 1;
+
+    static void addEdge(int u, int v) {
+        nxt[index] = ptr[u];
+        ptr[u] = index;
+        succ[index++] = v;
+    }
+
+    static boolean[] vis;
+    static IntMySet group = new IntMySet(10);
+    static Deque<Integer> queue = new ArrayDeque<>();
+
+    static void bfs(int src) {
+        vis[src] = true;
+        group.clear();
+        queue.clear();
+
+        group.add(src * 10);
+        queue.add(src * 10);
+
+        while (!queue.isEmpty()) {
+            int u = queue.removeFirst();
+            int wb = u % 10;
+            u /= 10;
+            for (int i = ptr[u]; i > 0; i = nxt[i]) {
+                int vw = succ[i];
+                int v = vw / 10;
+                int w = (wb + (vw % 10)) % 10;
+                int vwn = v * 10 + w;
+                if (!group.contains(vwn)) {
+                    group.add(vwn);
+                    queue.add(vwn);
+                    vis[v] = true;
+                }
+            }
+        }
+    }
+
+    static long[] ans = new long[10];
+
+    private static void solve() {
+        Map<Integer, Integer> hm = new HashMap<>();
+        Map<Integer, Integer> counts = new HashMap<>();
+        group.forEach(j -> hm.put(j / 10, 0));
+        group.forEach(j -> hm.put(j / 10, hm.get(j / 10) | (1 << j % 10)));
+
+        for (int j : hm.keySet()) {
+            counts.put(hm.get(j), 0);
+        }
+        for (int j : hm.keySet()) {
+            counts.put(hm.get(j), counts.get(hm.get(j)) + 1);
+        }
+        Map<Integer, Set<Integer>> atlas = new HashMap<>();
+        for (int j : counts.keySet()) {
+            atlas.put(j, new HashSet<>());
+            for (int k = 0; k < 10; k++) {
+                if (((1 << k) & j) > 0)
+                    atlas.get(j).add(k);
+            }
+        }
+
+        for (int j : counts.keySet()) {
+            for (int k : counts.keySet()) {
+                for (int c = 0; c < 10; c++) {
+                    for (int b : atlas.get(k)) {
+                        if (atlas.get(j).contains((c + b) % 10)) {
+                            if (j == k)
+                                ans[c] += (long) counts.get(j) * (counts.get(k) - 1);
+                            else
+                                ans[c] += (long) counts.get(j) * counts.get(k);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int roadNodes = Integer.parseInt(st.nextToken());
+        int roadEdges = Integer.parseInt(st.nextToken());
+
+        nxt = new int[2 * roadEdges + 1];
+        succ = new int[2 * roadEdges + 1];
+        ptr = new int[roadEdges];
+
+        for (int i = 0; i < roadEdges; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken()) - 1;
+            int v = Integer.parseInt(st.nextToken()) - 1;
+            int w = Integer.parseInt(st.nextToken()) % 10;
+
+            addEdge(u, v * 10 + w);
+            addEdge(v, u * 10 + (10 - w) % 10);
+        }
+
+        vis = new boolean[roadNodes];
+        for (int i = 0; i < roadNodes; i++) {
+            if (!vis[i]) {
+                bfs(i);
+                solve();
+            }
+        }
+
+        for (long x : ans) {
+            bw.write(x + "\n");
+        }
+
+        bw.close();
+        br.close();
+    }
+}
