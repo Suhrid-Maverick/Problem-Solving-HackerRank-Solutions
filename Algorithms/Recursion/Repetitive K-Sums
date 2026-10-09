@@ -1,0 +1,87 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) {
+        Scanner in = new Scanner(System.in);
+        
+        Long p = in.nextLong();
+        
+        for(long m = 0; m < p; m++) {
+            long n = in.nextLong();//elements
+            long k = in.nextLong();//sums
+            
+            ArrayList<Long> kSums = new ArrayList<Long>();
+
+            long l = 1;
+            if (n - 1 >= k) {
+                for(long i = n + k - 1; i > n - 1; i--) {
+                    l *= i;
+                }
+                for(long i = k; i > 1; i--) {
+                    l /= i;
+                }
+            } else {
+                for(long i = n + k - 1; i > k; i--) {
+                    l *= i;
+                }
+                for(long i = n - 1; i > 1; i--) {
+                    l /= i;
+                }
+            }
+            
+            for(long i = 0; i < l; i++) {
+                kSums.add(in.nextLong());
+            }
+            
+            kSums.sort(null);
+            
+            ArrayList<Long> list2 = new ArrayList<Long>();
+            
+            list2.add(kSums.get(0) / k);
+            
+            if (n > 2) {
+                for(int i = 1; i < kSums.size(); i++) {
+                    if (kSums.get(i) != kSums.get(0)) {
+                        list2.add(kSums.get(i) - ((kSums.get(0) / k) * (k - 1)));
+                        break;
+                    }
+                }
+            }
+            
+            ArrayList<Long> list3 = new ArrayList<Long>();
+            getKSum(list2, k, 0, 0, list3);
+
+            while (list3.size() != l) {
+                ArrayList<Long> list4 = (ArrayList<Long>) kSums.clone();
+                for(long i : list4) {
+                    if (!list3.remove((Long) i)) {
+                        list2.add(i - list2.get(0) * (k - 1));
+                        list3.clear();
+                        getKSum(list2, k, 0, 0, list3);
+                        break;
+                    }
+                }
+                
+                
+            }
+            
+            list2.sort(null);
+            for(long i : list2) {
+                System.out.print(i + " ");
+            }
+            System.out.println();
+        }
+        in.close();
+    }
+    
+    private static void getKSum(ArrayList<Long> l, long k, int i, long s, ArrayList<Long> r){
+        for(; i < l.size(); i++) {
+            if (k == 1) {
+                r.add(s + l.get(i));
+            } else {
+                getKSum(l, k - 1, i, s + l.get(i), r);
+            }
+        }
+    }
+}
