@@ -1,0 +1,74 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Plus {
+        int area;
+        BitSet mask;
+
+        Plus(int area, BitSet mask) {
+            this.area = area;
+            this.mask = mask;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int m = Integer.parseInt(st.nextToken());
+
+        char[][] grid = new char[n][m];
+        for (int i = 0; i < n; i++) {
+            grid[i] = br.readLine().trim().toCharArray();
+        }
+
+        List<Plus> pluses = new ArrayList<>();
+
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < m; j++) {
+                if (grid[i][j] != 'G') continue;
+
+                BitSet mask = new BitSet(n * m);
+                mask.set(i * m + j);
+                pluses.add(new Plus(1, mask));
+
+                int r = 1;
+                while (i - r >= 0 && i + r < n && j - r >= 0 && j + r < m) {
+                    if (grid[i - r][j] != 'G' || grid[i + r][j] != 'G' ||
+                        grid[i][j - r] != 'G' || grid[i][j + r] != 'G') {
+                        break;
+                    }
+
+                    mask.set((i - r) * m + j);
+                    mask.set((i + r) * m + j);
+                    mask.set(i * m + (j - r));
+                    mask.set(i * m + (j + r));
+
+                    pluses.add(new Plus(4 * r + 1, (BitSet) mask.clone()));
+                    r++;
+                }
+            }
+        }
+
+        int maxProduct = 0;
+        int size = pluses.size();
+
+        for (int i = 0; i < size; i++) {
+            Plus p1 = pluses.get(i);
+            for (int j = i + 1; j < size; j++) {
+                Plus p2 = pluses.get(j);
+                if (!p1.mask.intersects(p2.mask)) {
+                    int product = p1.area * p2.area;
+                    if (product > maxProduct) {
+                        maxProduct = product;
+                    }
+                }
+            }
+        }
+
+        System.out.println(maxProduct);
+    }
+}
