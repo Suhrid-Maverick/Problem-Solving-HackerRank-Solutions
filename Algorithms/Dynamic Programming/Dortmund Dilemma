@@ -1,0 +1,52 @@
+import java.util.Scanner;
+
+public class DortmundDilemma {
+    public static final int MAX_N = 100000;
+    public static final int MAX_K = 26;
+    public static final long MOD = 1000000009;
+
+    static long[][] C;
+    static long[][] F;
+    static long[][] G;
+    static long[][] P;
+
+    public static void main(String[] args) {
+        C = new long[MAX_K + 1][MAX_K + 1];
+        for (int i = 0; i <= MAX_K; i++) {
+            C[i][0] = C[i][i] = 1;
+            for (int j = 1; j < i; j++) {
+                C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % MOD;
+            }
+        }
+
+        F = new long[MAX_N + 1][MAX_K + 1];
+        G = new long[MAX_N + 1][MAX_K + 1];
+        P = new long[MAX_N + 1][MAX_K + 1];
+
+        for (int k = 1; k <= MAX_K; k++) {
+            F[1][k] = k;
+            long kn = k;
+
+            for (int n = 2; n <= MAX_N; n++) {
+                kn = kn * k % MOD;
+                if (n % 2 == 1) {
+                    F[n][k] = F[n - 1][k] * k % MOD;
+                } else {
+                    F[n][k] = (F[n - 1][k] * k % MOD - F[n / 2][k] + MOD) % MOD;
+                }
+                G[n][k] = (kn - F[n][k] + MOD) % MOD;
+                P[n][k] = G[n][k];
+                for (int j = 1; j < k; j++) {
+                    P[n][k] = (P[n][k] - P[n][j] * C[k][j] % MOD + MOD) % MOD;
+                }
+            }
+        }
+
+        Scanner scanner = new Scanner(System.in);
+        for (int t = scanner.nextInt(); t > 0; t--) {
+            int N = scanner.nextInt(), K = scanner.nextInt();
+            System.out.println(P[N][K] * C[26][K] % MOD);
+        }
+        scanner.close();
+    }
+}
