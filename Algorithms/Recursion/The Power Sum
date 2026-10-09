@@ -1,0 +1,28 @@
+import java.util.*;
+
+public class Solution {
+    static int X, N;
+    static List<Integer> powers = new ArrayList<>();
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        X = sc.nextInt();
+        N = sc.nextInt();
+
+        for (int i = 1; ; i++) {
+            int p = (int) Math.pow(i, N);
+            if (p > X) break;
+            powers.add(p);
+        }
+
+        System.out.println(count(0, 0));
+        sc.close();
+    }
+
+    static int count(int idx, int sum) {
+        if (sum == X) return 1;
+        if (sum > X || idx == powers.size()) return 0;
+
+        return count(idx + 1, sum) + count(idx + 1, sum + powers.get(idx));
+    }
+}
