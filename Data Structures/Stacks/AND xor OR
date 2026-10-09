@@ -1,0 +1,42 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        String[] parts = br.readLine().trim().split(" ");
+        long[] v = new long[n];
+        for (int i = 0; i < n; i++) {
+            v[i] = Long.parseLong(parts[i]);
+        }
+
+        Deque<Long> s = new ArrayDeque<>();
+        long max = 0;
+
+        for (int i = 0; i < n; i++) {
+            while (!s.isEmpty()) {
+                long c = s.peek() ^ v[i];
+
+                if (c >= max) {
+                    max = c;
+                }
+
+                if (v[i] < s.peek()) {
+                    s.pop();
+                } else {
+                    break;
+                }
+            }
+
+            s.push(v[i]);
+        }
+
+        System.out.println(max);
+
+        br.close();
+    }
+}
