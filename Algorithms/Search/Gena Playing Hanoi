@@ -1,0 +1,87 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int N = Integer.parseInt(br.readLine().trim());
+        int[] a = new int[N + 1];
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 1; i <= N; i++) {
+            a[i] = Integer.parseInt(st.nextToken()) - 1; // 0-indexed peg
+        }
+
+        int initialState = 0;
+        for (int i = 1; i <= N; i++) {
+            initialState |= (a[i] << (2 * (i - 1)));
+        }
+
+        int goalState = 0; // all disks on peg 0
+
+        if (initialState == goalState) {
+            System.out.println(0);
+            return;
+        }
+
+        int maxStates = 1 << (2 * N);
+        int[] dist = new int[maxStates];
+        Arrays.fill(dist, -1);
+        int[] queue = new int[maxStates];
+        int head = 0, tail = 0;
+
+        dist[initialState] = 0;
+        queue[tail++] = initialState;
+
+        while (head < tail) {
+            int state = queue[head++];
+            int d = dist[state];
+
+            for (int i = 1; i <= N; i++) {
+                int fromPeg = (state >> (2 * (i - 1))) & 3;
+
+                // Check if disk i is the top disk on its current peg
+                boolean isTop = true;
+                for (int j = 1; j < i; j++) {
+                    int pegJ = (state >> (2 * (j - 1))) & 3;
+                    if (pegJ == fromPeg) {
+                        isTop = false;
+                        break;
+                    }
+                }
+                if (!isTop) continue;
+
+                // Try moving disk i to every other peg
+                for (int toPeg = 0; toPeg < 4; toPeg++) {
+                    if (toPeg == fromPeg) continue;
+
+                    // Check if destination peg can accept disk i
+                    boolean canPlace = true;
+                    for (int j = 1; j < i; j++) {
+                        int pegJ = (state >> (2 * (j - 1))) & 3;
+                        if (pegJ == toPeg) {
+                            canPlace = false;
+                            break;
+                        }
+                    }
+                    if (!canPlace) continue;
+
+                    // Perform the move
+                    int newState = state;
+                    newState &= ~(3 << (2 * (i - 1)));
+                    newState |= (toPeg << (2 * (i - 1)));
+
+                    if (dist[newState] == -1) {
+                        dist[newState] = d + 1;
+                        if (newState == goalState) {
+                            System.out.println(d + 1);
+                            return;
+                        }
+                        queue[tail++] = newState;
+                    }
+                }
+            }
+        }
+
+        System.out.println(dist[goalState]);
+    }
+}
