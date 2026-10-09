@@ -1,0 +1,85 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MOD = 1_000_000_007;
+    static final int MAXN = 10005;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        PrintWriter out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(System.out)));
+
+        // Precompute factorials modulo MOD
+        long[] fact = new long[MAXN];
+        fact[0] = 1;
+        for (int i = 1; i < MAXN; i++) {
+            fact[i] = (fact[i - 1] * i) % MOD;
+        }
+
+        int T = Integer.parseInt(br.readLine().trim());
+
+        while (T-- > 0) {
+            int N = Integer.parseInt(br.readLine().trim());
+
+            // Adjacency list using arrays for speed
+            List<Integer>[] adj = new List[N];
+            for (int i = 0; i < N; i++) adj[i] = new ArrayList<>();
+
+            for (int i = 0; i < N - 1; i++) {
+                StringTokenizer st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken());
+                int v = Integer.parseInt(st.nextToken());
+                adj[u].add(v);
+                adj[v].add(u);
+            }
+
+            // Identify leaves (degree 1)
+            boolean[] isLeaf = new boolean[N];
+            int nonLeafCount = N;
+            for (int i = 0; i < N; i++) {
+                if (adj[i].size() == 1) {
+                    isLeaf[i] = true;
+                    nonLeafCount--;
+                }
+            }
+
+            long result = 1;
+            boolean possible = true;
+
+            // For each non-leaf node, count non-leaf neighbours and leaf neighbours
+            for (int u = 0; u < N; u++) {
+                if (isLeaf[u]) continue;
+
+                int nonLeafNeighbors = 0;
+                int leafNeighbors = 0;
+
+                for (int v : adj[u]) {
+                    if (isLeaf[v]) leafNeighbors++;
+                    else nonLeafNeighbors++;
+                }
+
+                if (nonLeafNeighbors > 2) {
+                    possible = false;
+                    break;
+                }
+
+                result = (result * fact[leafNeighbors]) % MOD;
+            }
+
+            if (!possible) {
+                out.println(0);
+            } else {
+                // If there is only one non-leaf node (a star), the answer is just result.
+                // Otherwise, there are two possible directions for the cycle.
+                if (nonLeafCount == 1) {
+                    out.println(result);
+                } else {
+                    out.println((2 * result) % MOD);
+                }
+            }
+        }
+
+        out.flush();
+    }
+}
