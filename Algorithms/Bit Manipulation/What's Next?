@@ -1,0 +1,94 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int t = Integer.parseInt(st.nextToken());
+        StringBuilder output = new StringBuilder();
+
+        while (t-- > 0) {
+            st = new StringTokenizer(br.readLine());
+            int m = Integer.parseInt(st.nextToken());
+            long[] A = new long[m];
+            st = new StringTokenizer(br.readLine());
+            for (int i = 0; i < m; i++) {
+                A[i] = Long.parseLong(st.nextToken());
+            }
+
+            List<Long> B = new ArrayList<>();
+
+            if (m == 1) {
+                long S = A[0];
+                B.add(1L);
+                B.add(1L);
+                if (S > 1) B.add(S - 1);
+            } else if (m == 2) {
+                long S = A[0];
+                long Z = A[1];
+                B.add(1L);
+                B.add(Z + 1);
+                if (S > 1) B.add(S - 1);
+            } else {
+                int i = (m % 2 == 1) ? m - 2 : m - 3;
+                long L0 = A[i];
+                long suffixOnes = 0;
+                long S_after = 0;
+                for (int j = i + 1; j < m; j++) {
+                    S_after += A[j];
+                    if (j % 2 == 0) suffixOnes += A[j];
+                }
+                long Z = S_after - suffixOnes + 1;
+                long O = suffixOnes - 1;
+
+                for (int j = 0; j < i; j++) {
+                    B.add(A[j]);
+                }
+                int lastType = 1; // i-1 is even -> ones
+
+                if (L0 - 1 > 0) {
+                    if (lastType == 0) {
+                        B.set(B.size() - 1, B.get(B.size() - 1) + (L0 - 1));
+                    } else {
+                        B.add(L0 - 1);
+                        lastType = 0;
+                    }
+                }
+
+                if (lastType == 1) {
+                    B.set(B.size() - 1, B.get(B.size() - 1) + 1);
+                } else {
+                    B.add(1L);
+                    lastType = 1;
+                }
+
+                // Z is always > 0
+                if (lastType == 0) {
+                    B.set(B.size() - 1, B.get(B.size() - 1) + Z);
+                } else {
+                    B.add(Z);
+                    lastType = 0;
+                }
+
+                if (O > 0) {
+                    if (lastType == 1) {
+                        B.set(B.size() - 1, B.get(B.size() - 1) + O);
+                    } else {
+                        B.add(O);
+                        lastType = 1;
+                    }
+                }
+            }
+
+            output.append(B.size()).append('\n');
+            for (int j = 0; j < B.size(); j++) {
+                if (j > 0) output.append(' ');
+                output.append(B.get(j));
+            }
+            output.append('\n');
+        }
+
+        System.out.print(output);
+    }
+}
