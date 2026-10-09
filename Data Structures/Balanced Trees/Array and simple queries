@@ -1,0 +1,122 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Node {
+        int val, prio, size;
+        Node left, right;
+
+        Node(int v) {
+            val = v;
+            prio = new Random().nextInt();
+            size = 1;
+        }
+    }
+
+    static int size(Node t) {
+        return t == null ? 0 : t.size;
+    }
+
+    static void update(Node t) {
+        if (t != null) {
+            t.size = 1 + size(t.left) + size(t.right);
+        }
+    }
+
+    static Node[] split(Node t, int k) {
+        if (t == null) return new Node[]{null, null};
+
+        if (size(t.left) >= k) {
+            Node[] leftSplit = split(t.left, k);
+            t.left = leftSplit[1];
+            update(t);
+            return new Node[]{leftSplit[0], t};
+        } else {
+            Node[] rightSplit = split(t.right, k - size(t.left) - 1);
+            t.right = rightSplit[0];
+            update(t);
+            return new Node[]{t, rightSplit[1]};
+        }
+    }
+
+    static Node merge(Node a, Node b) {
+        if (a == null) return b;
+        if (b == null) return a;
+
+        if (a.prio > b.prio) {
+            a.right = merge(a.right, b);
+            update(a);
+            return a;
+        } else {
+            b.left = merge(a, b.left);
+            update(b);
+            return b;
+        }
+    }
+
+    static void inorder(Node t, List<Integer> res) {
+        if (t == null) return;
+        inorder(t.left, res);
+        res.add(t.val);
+        inorder(t.right, res);
+    }
+
+    public static void main(String[] args) throws Exception {
+        FastScanner sc = new FastScanner();
+
+        int n = sc.nextInt();
+        int q = sc.nextInt();
+
+        Node root = null;
+
+        for (int i = 0; i < n; i++) {
+            root = merge(root, new Node(sc.nextInt()));
+        }
+
+        while (q-- > 0) {
+            int type = sc.nextInt();
+            int l = sc.nextInt();
+            int r = sc.nextInt();
+
+            Node[] first = split(root, l - 1);
+            Node left = first[0];
+            Node rest = first[1];
+
+            Node[] second = split(rest, r - l + 1);
+            Node mid = second[0];
+            Node right = second[1];
+
+            if (type == 1) {
+                root = merge(mid, merge(left, right));
+            } else {
+                root = merge(left, merge(right, mid));
+            }
+        }
+
+        List<Integer> res = new ArrayList<>();
+        inorder(root, res);
+
+        long diff = res.get(0) - res.get(res.size() - 1);
+        System.out.println(Math.abs(diff));
+
+        for (int v : res) {
+            System.out.print(v + " ");
+        }
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens())
+                st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
