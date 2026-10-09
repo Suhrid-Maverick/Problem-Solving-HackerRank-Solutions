@@ -1,0 +1,85 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int N, M;
+    static List<Integer>[] adj;
+    static int[] distA, distB;
+    static int diameter;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        N = Integer.parseInt(st.nextToken());
+        M = Integer.parseInt(st.nextToken());
+
+        // Build adjacency list
+        adj = new ArrayList[N + 1];
+        for (int i = 1; i <= N; i++) {
+            adj[i] = new ArrayList<>();
+        }
+        for (int i = 0; i < N - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            adj[u].add(v);
+            adj[v].add(u);
+        }
+
+        // First BFS: find one endpoint of the diameter (node A)
+        int[] temp = new int[N + 1];
+        int A = bfs(1, temp);
+
+        // Second BFS: from A find the other endpoint B and distances from A
+        distA = new int[N + 1];
+        int B = bfs(A, distA);
+
+        // Third BFS: from B find distances from B
+        distB = new int[N + 1];
+        bfs(B, distB);
+
+        // Diameter is the distance between A and B
+        diameter = distA[B];
+
+        // Farthest distance for each node
+        int[] farthest = new int[N + 1];
+        for (int i = 1; i <= N; i++) {
+            farthest[i] = Math.max(distA[i], distB[i]);
+        }
+
+        // Process queries
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < M; i++) {
+            st = new StringTokenizer(br.readLine());
+            int v = Integer.parseInt(st.nextToken());
+            long k = Long.parseLong(st.nextToken());
+            long ans = farthest[v] + (k - 1) * diameter;
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+
+    /**
+     * BFS from `start`, filling the `dist` array with distances.
+     * Returns the farthest node reached.
+     */
+    static int bfs(int start, int[] dist) {
+        Arrays.fill(dist, -1);
+        Queue<Integer> q = new LinkedList<>();
+        q.add(start);
+        dist[start] = 0;
+        int last = start;
+
+        while (!q.isEmpty()) {
+            int u = q.poll();
+            last = u;
+            for (int v : adj[u]) {
+                if (dist[v] == -1) {
+                    dist[v] = dist[u] + 1;
+                    q.add(v);
+                }
+            }
+        }
+        return last;
+    }
+}
