@@ -1,0 +1,199 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final long MOD = 1_000_000_007L;
+
+    static int n, q, timer;
+    static int LOG;
+    static int[][] up;
+    static int[] depth, tin, tout;
+    static List<Integer>[] adj;
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner();
+
+        n = sc.nextInt();
+        q = sc.nextInt();
+
+        adj = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) adj[i] = new ArrayList<>();
+
+        for (int i = 0; i < n - 1; i++) {
+            int u = sc.nextInt();
+            int v = sc.nextInt();
+            adj[u].add(v);
+            adj[v].add(u);
+        }
+
+        LOG = 1;
+        while ((1 << LOG) <= n) LOG++;
+        LOG++;
+
+        up = new int[n + 1][LOG];
+        for (int[] row : up) Arrays.fill(row, -1);
+        depth = new int[n + 1];
+        tin = new int[n + 1];
+        tout = new int[n + 1];
+        timer = 0;
+
+        preprocessOriginalTree(1, -1);
+
+        StringBuilder sb = new StringBuilder();
+        for (int qi = 0; qi < q; qi++) {
+            int k = sc.nextInt();
+            int[] queryNodes = new int[k];
+            for (int i = 0; i < k; i++) queryNodes[i] = sc.nextInt();
+            sb.append(solveQuery(queryNodes)).append("\n");
+        }
+        System.out.print(sb);
+    }
+
+    static void preprocessOriginalTree(int node, int parent) {
+        tin[node] = timer++;
+        up[node][0] = parent;
+
+        for (int i = 1; i < LOG; i++) {
+            if (up[node][i - 1] != -1) {
+                up[node][i] = up[up[node][i - 1]][i - 1];
+            }
+        }
+
+        for (int neighbor : adj[node]) {
+            if (neighbor == parent) continue;
+            depth[neighbor] = depth[node] + 1;
+            preprocessOriginalTree(neighbor, node);
+        }
+
+        tout[node] = timer++;
+    }
+
+    static int liftNode(int node, int k) {
+        for (int i = LOG - 1; i >= 0; i--) {
+            if ((k & (1 << i)) != 0) {
+                node = up[node][i];
+            }
+        }
+        return node;
+    }
+
+    static int getLca(int u, int v) {
+        if (depth[u] < depth[v]) {
+            int t = u;
+            u = v;
+            v = t;
+        }
+        u = liftNode(u, depth[u] - depth[v]);
+        if (u == v) return u;
+
+        for (int i = LOG - 1; i >= 0; i--) {
+            if (up[u][i] != up[v][i]) {
+                u = up[u][i];
+                v = up[v][i];
+            }
+        }
+        return up[u][0];
+    }
+
+    static int getDistance(int u, int v) {
+        int ancestor = getLca(u, v);
+        return depth[u] + depth[v] - 2 * depth[ancestor];
+    }
+
+    static Object[] buildVirtualTree(int[] nodes) {
+        Integer[] boxed = new Integer[nodes.length];
+        for (int i = 0; i < nodes.length; i++) boxed[i] = nodes[i];
+
+        Arrays.sort(boxed, (a, b) -> Integer.compare(tin[a], tin[b]));
+
+        int m = boxed.length;
+        List<Integer> vtNodes = new ArrayList<>(2 * m);
+        for (int i = 0; i < m; i++) vtNodes.add(boxed[i]);
+        for (int i = 0; i < m - 1; i++) {
+            vtNodes.add(getLca(boxed[i], boxed[i + 1]));
+        }
+
+        Set<Integer> uniq = new HashSet<>(vtNodes);
+        vtNodes = new ArrayList<>(uniq);
+        vtNodes.sort((a, b) -> Integer.compare(tin[a], tin[b]));
+
+        Map<Integer, List<Integer>> tree = new HashMap<>();
+        for (int node : vtNodes) tree.put(node, new ArrayList<>());
+
+        Deque<Integer> stack = new ArrayDeque<>();
+        for (int node : vtNodes) {
+            while (!stack.isEmpty() && tout[stack.peek()] < tin[node]) {
+                stack.pop();
+            }
+            if (!stack.isEmpty()) {
+                tree.get(stack.peek()).add(node);
+            }
+            stack.push(node);
+        }
+
+        return new Object[]{tree, vtNodes};
+    }
+
+    @SuppressWarnings("unchecked")
+    static long solveQuery(int[] queryNodes) {
+        if (queryNodes.length < 2) return 0;
+
+        long totalSum = 0;
+        Map<Integer, Integer> queryVal = new HashMap<>();
+        for (int node : queryNodes) {
+            totalSum += node;
+            queryVal.put(node, node);
+        }
+
+        Object[] built = buildVirtualTree(queryNodes);
+        Map<Integer, List<Integer>> vt = (Map<Integer, List<Integer>>) built[0];
+        List<Integer> vtNodes = (List<Integer>) built[1];
+
+        long[] res = new long[]{0};
+        long[] sTotalHolder = new long[]{totalSum};
+
+        dp(vtNodes.get(0), vt, queryVal, res, sTotalHolder);
+
+        return res[0];
+    }
+
+    static long dp(int u, Map<Integer, List<Integer>> vt, Map<Integer, Integer> queryVal,
+                   long[] res, long[] sTotalHolder) {
+        long s = queryVal.getOrDefault(u, 0);
+        long sTotal = sTotalHolder[0];
+
+        for (int v : vt.get(u)) {
+            long sub = dp(v, vt, queryVal, res, sTotalHolder);
+            long dist = getDistance(u, v);
+            long contribution = (sub % MOD) * ((sTotal - sub) % MOD) % MOD;
+            contribution = contribution * (dist % MOD) % MOD;
+            res[0] = (res[0] + contribution) % MOD;
+            s += sub;
+        }
+        return s;
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
