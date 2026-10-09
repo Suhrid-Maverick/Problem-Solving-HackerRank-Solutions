@@ -1,0 +1,274 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int HASH_SIZE = 1234555;
+
+    static class Node {
+        int t, i, c, a;
+        Node next;
+        Node(int t, int i, int c, int a) {
+            this.t = t;
+            this.i = i;
+            this.c = c;
+            this.a = a;
+        }
+    }
+
+    static class LNode {
+        int x, w;
+        LNode next;
+        LNode(int x, int w) {
+            this.x = x;
+            this.w = w;
+        }
+    }
+
+    static int N, w, b, ngs;
+    static int[] cans, cdiff, c;
+    static int[] idx = new int[200000];
+    static int[] trace;
+    static int[] mark = new int[200000];
+    static int[] diff = new int[200000];
+    static int[] f = new int[200000];
+    static int[] s = new int[200000];
+    static int[] remain;
+    static LNode[] table;
+    static Node[] hash = new Node[HASH_SIZE];
+
+    static int abss(int x) {
+        return x < 0 ? -x : x;
+    }
+
+    static void insert_edge(int x, int y, int w) {
+        LNode t = new LNode(y, w);
+        t.next = table[x];
+        table[x] = t;
+        t = new LNode(x, w);
+        t.next = table[y];
+        table[y] = t;
+    }
+
+    static void dfs(int x, int col) {
+        trace[x] = 1;
+        if (col != 0) b++; else w++;
+        for (LNode p = table[x]; p != null; p = p.next) {
+            if (trace[p.x] == 0) dfs(p.x, col ^ 1);
+        }
+    }
+
+    static void sort_a2(int[] a, int[] bb, int size) {
+        if (size < 2) return;
+        int m = (size + 1) / 2;
+        int[] left_a = new int[m], right_a = new int[size - m];
+        int[] left_b = new int[m], right_b = new int[size - m];
+        for (int i = 0; i < m; i++) { left_a[i] = a[i]; left_b[i] = bb[i]; }
+        for (int i = 0; i < size - m; i++) { right_a[i] = a[i + m]; right_b[i] = bb[i + m]; }
+        sort_a2(left_a, left_b, m);
+        sort_a2(right_a, right_b, size - m);
+        merge2(a, left_a, right_a, bb, left_b, right_b, m, size - m);
+    }
+
+    static void merge2(int[] a, int[] la, int[] ra, int[] bb, int[] lb, int[] rb, int ls, int rs) {
+        int i = 0, j = 0;
+        while (i < ls || j < rs) {
+            if (i == ls) { a[i + j] = ra[j]; bb[i + j] = rb[j]; j++; }
+            else if (j == rs) { a[i + j] = la[i]; bb[i + j] = lb[i]; i++; }
+            else if (la[i] <= ra[j]) { a[i + j] = la[i]; bb[i + j] = lb[i]; i++; }
+            else { a[i + j] = ra[j]; bb[i + j] = rb[j]; j++; }
+        }
+    }
+
+    static int sort_a_ad(int[] a, int[] cc, int size) {
+        if (size < 2) return size;
+        int m = (size + 1) / 2;
+        int[] left_a = new int[m], right_a = new int[size - m];
+        int[] left_c = new int[m], right_c = new int[size - m];
+        for (int i = 0; i < m; i++) { left_a[i] = a[i]; left_c[i] = cc[i]; }
+        for (int i = 0; i < size - m; i++) { right_a[i] = a[i + m]; right_c[i] = cc[i + m]; }
+        int nl = sort_a_ad(left_a, left_c, m);
+        int nr = sort_a_ad(right_a, right_c, size - m);
+        return merge_ad(a, left_a, right_a, cc, left_c, right_c, nl, nr);
+    }
+
+    static int merge_ad(int[] a, int[] la, int[] ra, int[] cc, int[] lc, int[] rc, int ls, int rs) {
+        int i = 0, j = 0, index = 0;
+        while (i < ls || j < rs) {
+            if (i == ls) { cc[index] = rc[j]; a[index++] = ra[j]; j++; }
+            else if (j == rs) { cc[index] = lc[i]; a[index++] = la[i]; i++; }
+            else if (la[i] <= ra[j]) { cc[index] = lc[i]; a[index++] = la[i]; i++; }
+            else { cc[index] = rc[j]; a[index++] = ra[j]; j++; }
+            if (index > 1 && a[index - 2] == a[index - 1]) {
+                cc[index - 2] += cc[index - 1];
+                index--;
+            }
+        }
+        return index;
+    }
+
+    static void insert(int target, int idx, int c, int a) {
+        int bucket = (int) (((long) target * 200000 + idx) % HASH_SIZE);
+        Node t = new Node(target, idx, c, a);
+        t.next = hash[bucket];
+        hash[bucket] = t;
+    }
+
+    static int search(int target, int idx, int[] c) {
+        int bucket = (int) (((long) target * 200000 + idx) % HASH_SIZE);
+        Node t = hash[bucket];
+        while (t != null) {
+            if (t.t == target && t.i == idx) {
+                c[0] = t.c;
+                return t.a;
+            }
+            t = t.next;
+        }
+        return -1;
+    }
+
+    static int solve(int target, int target2, int idx) {
+        if (target <= 0) return 0;
+        if (target > remain[idx]) return -1;
+        if (target == remain[idx]) {
+            insert(target, idx, -1, target);
+            return target;
+        }
+        if (idx == 0) {
+            int t = (target - 1) / cdiff[idx] + 1;
+            return t * cdiff[idx];
+        }
+        int[] wRef = new int[1];
+        int cached = search(target, idx, wRef);
+        if (cached != -1) return cached;
+
+        int ans = 200000, ansc = 0;
+        for (int i = 0; i <= c[idx]; i++) {
+            int t = solve(target - i * cdiff[idx], target2 - i * cdiff[idx], idx - 1);
+            if (t != -1) {
+                if (t + i * cdiff[idx] < ans) {
+                    ans = t + i * cdiff[idx];
+                    ansc = i;
+                }
+                if (t + i * cdiff[idx] == target || t + i * cdiff[idx] == target2) {
+                    insert(target, idx, i, t + i * cdiff[idx]);
+                    return t + i * cdiff[idx];
+                }
+            }
+            if (target - i * cdiff[idx] <= 0) break;
+        }
+        insert(target, idx, ansc, ans);
+        return ans;
+    }
+
+    static void clean_table() {
+        for (int i = 0; i < N; i++) table[i] = null;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        N = Integer.parseInt(st.nextToken());
+        int M = Integer.parseInt(st.nextToken());
+
+        table = new LNode[N];
+        for (int i = 0; i < M; i++) {
+            st = new StringTokenizer(br.readLine());
+            int x = Integer.parseInt(st.nextToken());
+            int y = Integer.parseInt(st.nextToken());
+            insert_edge(x - 1, y - 1, 1);
+        }
+
+        trace = new int[N];
+        int gs = 0;
+        for (int i = 0; i < N; i++) {
+            if (trace[i] == 0) {
+                w = 0; b = 0;
+                dfs(i, 0);
+                int xx = i;
+                int yy = (table[i] != null) ? table[i].x : -1;
+                if (w > b) {
+                    diff[gs] = w - b;
+                    f[gs] = xx;
+                    s[gs] = yy;
+                } else {
+                    diff[gs] = b - w;
+                    f[gs] = yy;
+                    s[gs] = xx;
+                }
+                idx[gs] = gs;
+                gs++;
+            }
+        }
+
+        clean_table();
+
+        cdiff = new int[gs];
+        c = new int[gs];
+        int sum = 0;
+        for (int i = 0; i < gs; i++) {
+            sum += diff[i];
+            cdiff[i] = diff[i];
+            c[i] = 1;
+        }
+        int target = sum / 2;
+
+        sort_a2(diff, idx, gs);
+        ngs = sort_a_ad(cdiff, c, gs);
+        remain = new int[ngs];
+
+        if (M == 0 || ngs == 1) {
+            System.out.println((gs % 2 * cdiff[0]) + " " + (gs - 1));
+            for (int i = 0; i < gs - 1; i++) {
+                System.out.println((f[i] + 1) + " " + (f[i + 1] + 1));
+            }
+            return;
+        }
+
+        for (int i = 0; i < ngs; i++) {
+            if (i == 0) remain[i] = c[i] * cdiff[i];
+            else remain[i] = remain[i - 1] + c[i] * cdiff[i];
+        }
+
+        int ans = solve(target, (sum + 1) / 2, ngs - 1);
+
+        cans = new int[ngs];
+        for (int i = ngs - 1; i >= 0; i--) {
+            if (target <= 0) break;
+            if (i == 0) {
+                cans[i] = (target - 1) / cdiff[i] + 1;
+                break;
+            }
+            int[] holder = new int[1];
+            search(target, i, holder);
+            cans[i] = holder[0];
+            if (cans[i] == -1) {
+                for (int j = i; j >= 0; j--) cans[j] = c[j];
+                break;
+            }
+            target -= cans[i] * cdiff[i];
+        }
+
+        int jj = 0, kk = 0;
+        while (jj < gs && kk < ngs) {
+            int xx = jj + cans[kk];
+            for (; jj < xx; jj++) mark[jj] = 1;
+            while (jj < gs && diff[jj] == cdiff[kk]) jj++;
+            kk++;
+        }
+
+        System.out.println(abss(2 * ans - sum) + " " + (gs - 1));
+
+        int k = 0;
+        for (int i = 0; i < gs; i++) {
+            if (s[idx[i]] != -1) k = i;
+        }
+        for (int i = 0; i < gs; i++) {
+            if (i == k) continue;
+            if (mark[i] != mark[k]) {
+                System.out.println((f[idx[i]] + 1) + " " + (f[idx[k]] + 1));
+            } else {
+                System.out.println((f[idx[i]] + 1) + " " + (s[idx[k]] + 1));
+            }
+        }
+    }
+}
