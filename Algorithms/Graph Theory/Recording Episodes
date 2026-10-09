@@ -1,0 +1,243 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Graph {
+        int[] ptr;
+        int[] nxt;
+        int[] suc;
+        int index = 1;
+
+        public Graph(int nodes, int egges) {
+            ptr = new int[nodes];
+            nxt = new int[egges];
+            suc = new int[egges];
+        }
+
+        void add(int u, int v) {
+            nxt[index] = ptr[u];
+            ptr[u] = index;
+            suc[index++] = v;
+        }
+
+        void reset() {
+            index = 1;
+            Arrays.fill(ptr, 0);
+        }
+    }
+
+    static class TarjanSCC {
+        public int count;
+        boolean[] marked;
+        int[] id;
+        int[] low;
+        int pre;
+        Stack<Integer> stack;
+        int n;
+
+        public TarjanSCC(Graph g, int n) {
+            this.n = n;
+            marked = new boolean[n];
+            stack = new Stack<Integer>();
+            id = new int[n];
+            low = new int[n];
+            for (int v = 0; v < n; v++) {
+                if (!marked[v]) {
+                    dfs(g, v);
+                }
+            }
+        }
+
+        void dfs(Graph g, int v) {
+            int w;
+            marked[v] = true;
+            low[v] = pre++;
+            int min = low[v];
+            stack.push(v);
+            for (int i = g.ptr[v]; i > 0; i = g.nxt[i]) {
+                w = g.suc[i];
+                if (!marked[w]) {
+                    dfs(g, w);
+                }
+                if (low[w] < min) {
+                    min = low[w];
+                }
+            }
+            if (min < low[v]) {
+                low[v] = min;
+                return;
+            }
+
+            do {
+                w = stack.pop();
+                id[w] = count;
+                low[w] = n;
+            } while (w != v);
+            count++;
+        }
+
+        public boolean stronglyConnected(int u, int v) {
+            return id[u] == id[v];
+        }
+    }
+
+    static class Sat2 {
+        int n = 0;
+        Graph edges = null;
+
+        public Sat2(int n, Graph edges) {
+            this.n = n;
+            this.edges = edges;
+            edges.reset();
+        }
+
+        public int c_not(int a) {
+            return -a - 1;
+        }
+
+        int c_convert(int a) {
+            return a < 0 ? (c_not(a) << 1) ^ 1 : a << 1;
+        }
+
+        void c_must(int a) {
+            edges.add(a ^ 1, a);
+        }
+
+        void c_or(int a, int b) {
+            edges.add(a ^ 1, b);
+            edges.add(b ^ 1, a);
+        }
+
+        public void c_xor(int a, int b) {
+            c_or(a, b);
+            c_or(a ^ 1, b ^ 1);
+        }
+
+        void c_and(int a, int b) {
+            edges.add(a, b);
+            edges.add(b, a);
+        }
+
+        void c_not_and(int a, int b) {
+            edges.add(a, b ^ 1);
+            edges.add(b, a ^ 1);
+        }
+
+        public int not(int a) {
+            return c_not(a);
+        }
+
+        public void must(int a) {
+            c_must(c_convert(a));
+        }
+
+        public void or(int a, int b) {
+            c_or(c_convert(a), c_convert(b));
+        }
+
+        public void xor(int a, int b) {
+            c_xor(c_convert(a), c_convert(b));
+        }
+
+        public void and(int a, int b) {
+            c_and(c_convert(a), c_convert(b));
+        }
+
+        public void notAnd(int a, int b) {
+            c_not_and(c_convert(a), c_convert(b));
+        }
+
+        public boolean possible() {
+            TarjanSCC scc = new TarjanSCC(edges, n * 2);
+            for (int v = 0; v < n; v++) {
+                if (scc.stronglyConnected(v << 1, (v << 1) ^ 1)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int q = Integer.parseInt(st.nextToken());
+
+        int[][] se = new int[200][2];
+        boolean[][] ol = new boolean[200][200];
+        Graph edges = new Graph(200, 500);
+
+        for (int itr = 0; itr < q; itr++) {
+            st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+
+            for (int i = 0; i < n; i++) {
+                st = new StringTokenizer(br.readLine());
+                int sl = Integer.parseInt(st.nextToken());
+                int el = Integer.parseInt(st.nextToken());
+                int sr = Integer.parseInt(st.nextToken());
+                int er = Integer.parseInt(st.nextToken());
+                se[i * 2][0] = sl;
+                se[i * 2][1] = el;
+                se[i * 2 + 1][0] = sr;
+                se[i * 2 + 1][1] = er;
+            }
+
+            for (int i = 0; i < n * 2 - 1; i++) {
+                for (int j = i + 1; j < n * 2; j++) {
+                    ol[i][j] = (se[i][0] <= se[j][1] && se[j][0] <= se[i][1]);
+                    ol[j][i] = ol[i][j];
+                }
+            }
+
+            int ll = 0;
+            int rr = 0;
+
+            int l = ll;
+            int r = rr;
+            while (true) {
+                Sat2 sat2 = new Sat2(n, edges);
+                for (int x = l; x < r; x++) {
+                    for (int y = x + 1; y <= r; y++) {
+                        if (ol[x * 2][y * 2]) {
+                            sat2.or(x, y);
+                        }
+                        if (ol[x * 2 + 1][y * 2]) {
+                            sat2.or(sat2.not(x), y);
+                        }
+                        if (ol[x * 2][y * 2 + 1]) {
+                            sat2.or(x, sat2.not(y));
+                        }
+                        if (ol[x * 2 + 1][y * 2 + 1]) {
+                            sat2.or(sat2.not(x), sat2.not(y));
+                        }
+                    }
+                }
+                if (sat2.possible()) {
+                    if (r - l > rr - ll) {
+                        ll = l;
+                        rr = r;
+                    }
+                    if (r == n - 1) {
+                        break;
+                    }
+                    r++;
+                } else {
+                    l++;
+                    if (r < l) {
+                        r = l;
+                    }
+                }
+            }
+
+            bw.write((ll + 1) + " " + (rr + 1));
+            bw.newLine();
+        }
+
+        bw.close();
+        br.close();
+    }
+}
