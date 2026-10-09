@@ -1,0 +1,147 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+
+    static class Slot {
+        int r, c, dir, len;
+        Slot(int r, int c, int dir, int len) {
+            this.r = r;
+            this.c = c;
+            this.dir = dir; // 0 = horizontal, 1 = vertical
+            this.len = len;
+        }
+    }
+
+    static List<Slot> slots = new ArrayList<>();
+    static List<String> words = new ArrayList<>();
+    static boolean[] used;
+    static char[][] board = new char[10][10];
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+
+        for (int i = 0; i < 10; i++) {
+            String line = br.readLine();
+            for (int j = 0; j < 10; j++) {
+                board[i][j] = line.charAt(j);
+            }
+        }
+
+        String[] wordArr = br.readLine().split(";");
+        words = new ArrayList<>(Arrays.asList(wordArr));
+        used = new boolean[words.size()];
+
+        findSlots();
+
+        solve(0);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < 10; i++) {
+            sb.append(new String(board[i])).append('\n');
+        }
+        System.out.print(sb);
+    }
+
+    static void findSlots() {
+        slots.clear();
+
+        // Horizontal slots
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (board[i][j] == '-' && (j == 0 || board[i][j - 1] != '-')) {
+                    int len = 0;
+                    int k = j;
+                    while (k < 10 && board[i][k] == '-') {
+                        len++;
+                        k++;
+                    }
+                    if (len > 1) {
+                        slots.add(new Slot(i, j, 0, len));
+                    }
+                }
+            }
+        }
+
+        // Vertical slots
+        for (int j = 0; j < 10; j++) {
+            for (int i = 0; i < 10; i++) {
+                if (board[i][j] == '-' && (i == 0 || board[i - 1][j] != '-')) {
+                    int len = 0;
+                    int k = i;
+                    while (k < 10 && board[k][j] == '-') {
+                        len++;
+                        k++;
+                    }
+                    if (len > 1) {
+                        slots.add(new Slot(i, j, 1, len));
+                    }
+                }
+            }
+        }
+    }
+
+    static boolean solve(int idx) {
+        if (idx == slots.size()) {
+            return true;
+        }
+
+        Slot slot = slots.get(idx);
+
+        for (int i = 0; i < words.size(); i++) {
+            if (used[i]) continue;
+            String word = words.get(i);
+            if (word.length() != slot.len) continue;
+
+            if (canPlace(slot, word)) {
+                List<int[]> changed = place(slot, word, true);
+                used[i] = true;
+
+                if (solve(idx + 1)) {
+                    return true;
+                }
+
+                used[i] = false;
+                place(slot, word, false, changed);
+            }
+        }
+
+        return false;
+    }
+
+    static boolean canPlace(Slot slot, String word) {
+        for (int k = 0; k < slot.len; k++) {
+            int r = slot.r + (slot.dir == 1 ? k : 0);
+            int c = slot.c + (slot.dir == 0 ? k : 0);
+            char cell = board[r][c];
+            if (cell != '-' && cell != word.charAt(k)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static List<int[]> place(Slot slot, String word, boolean fill) {
+        List<int[]> changed = new ArrayList<>();
+        for (int k = 0; k < slot.len; k++) {
+            int r = slot.r + (slot.dir == 1 ? k : 0);
+            int c = slot.c + (slot.dir == 0 ? k : 0);
+            if (fill) {
+                if (board[r][c] == '-') {
+                    board[r][c] = word.charAt(k);
+                    changed.add(new int[]{r, c});
+                }
+            } else {
+                board[r][c] = '-';
+            }
+        }
+        return changed;
+    }
+
+    static void place(Slot slot, String word, boolean fill, List<int[]> changed) {
+        if (fill) return;
+        for (int[] pos : changed) {
+            board[pos[0]][pos[1]] = '-';
+        }
+    }
+}
