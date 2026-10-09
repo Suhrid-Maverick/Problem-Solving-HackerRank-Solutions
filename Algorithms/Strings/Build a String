@@ -1,0 +1,65 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        while (T-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int A = Integer.parseInt(st.nextToken());
+            int B = Integer.parseInt(st.nextToken());
+            String s = br.readLine().trim();
+
+            // maxLen[i] = maximum length L such that s[i:i+L] appears in s[0:i]
+            int[] maxLen = new int[n];
+            int[] prev = new int[n]; // prev[j] = LCP(i+1, j) during processing
+
+            for (int i = n - 1; i >= 0; i--) {
+                int maxL = 0;
+                for (int j = 0; j < i; j++) {
+                    if (s.charAt(i) == s.charAt(j)) {
+                        prev[j] = 1 + prev[j + 1];
+                    } else {
+                        prev[j] = 0;
+                    }
+                    // The match cannot extend beyond the already built prefix
+                    int len = Math.min(prev[j], i - j);
+                    if (len > maxL) maxL = len;
+                }
+                maxLen[i] = maxL;
+            }
+
+            int[] dp = new int[n + 1];
+            Arrays.fill(dp, Integer.MAX_VALUE);
+            dp[0] = 0;
+
+            for (int i = 0; i < n; i++) {
+                if (dp[i] == Integer.MAX_VALUE) continue;
+
+                // Operation 1: append a single character
+                int costA = dp[i] + A;
+                if (costA < dp[i + 1]) {
+                    dp[i + 1] = costA;
+                }
+
+                // Operation 2: copy any substring of length up to maxLen[i]
+                int K = maxLen[i];
+                int costB = dp[i] + B;
+                for (int L = 1; L <= K; L++) {
+                    int next = i + L;
+                    if (next <= n && costB < dp[next]) {
+                        dp[next] = costB;
+                    }
+                }
+            }
+
+            sb.append(dp[n]).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
