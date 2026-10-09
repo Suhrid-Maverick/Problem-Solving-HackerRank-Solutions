@@ -1,0 +1,43 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int T = Integer.parseInt(br.readLine().trim());
+
+        // Precompute dp until value exceeds 1e18
+        List<Long> dp = new ArrayList<>();
+        dp.add(1L); // dp[0] = 1
+
+        final long LIMIT = 1_000_000_000_000_000_000L; // 10^18
+
+        for (int m = 1; ; m++) {
+            long val = 0;
+            for (int k = 1; k * k <= m; k++) {
+                val += dp.get(m - k * k);
+                if (val >= LIMIT) break; // prevent overflow
+            }
+            dp.add(val);
+            if (val >= LIMIT) break;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            long N = Long.parseLong(br.readLine().trim());
+
+            // Binary search for the smallest m such that dp[m] >= N
+            int lo = 0, hi = dp.size() - 1;
+            while (lo < hi) {
+                int mid = (lo + hi) / 2;
+                if (dp.get(mid) >= N) {
+                    hi = mid;
+                } else {
+                    lo = mid + 1;
+                }
+            }
+            sb.append(lo).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
