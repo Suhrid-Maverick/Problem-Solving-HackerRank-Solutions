@@ -1,0 +1,346 @@
+import java.io.*;
+import java.math.*;
+import java.text.*;
+import java.util.*;
+import java.util.regex.*;
+
+public class Solution {
+
+    static int MOD = 1000000007;
+
+    static int maxN = 16;
+    static int n;
+    static boolean[][][] tri;
+    static int[][] setPointsInLine = new int[maxN][maxN];
+    static int[][] noPointsInLine = new int[maxN][maxN];
+    static int[] memoMinMap;
+    static int[][] memoVarMap;
+
+    static long[][] C = new long[maxN + 1][maxN + 1];
+    static int[][] mapPoints = new int[1 << maxN + 1][];
+
+    static int[][] resultNCP = new int[maxN + 1][];
+    static int colPoints = 0;
+
+    static {
+        C[0][0] = 1;
+        C[1][0] = 1;
+        C[1][1] = 1;
+        for (int i = 2; i <= maxN; ++i) {
+            C[i][0] = 1;
+            for (int j = 1; j <= 3; ++j) {
+                C[i][j] = (C[i - 1][j] + C[i - 1][j - 1]) % MOD;
+            }
+        }
+
+        for (int i = 1; i <= maxN; ++i) {
+            resultNCP[i] = getResultNCP(i);
+        }
+
+        for (int setPoints = 0; setPoints < (1 << maxN + 1); setPoints++) {
+            int[] ans = new int[maxN + 1];
+            int k = 0;
+            for (int i = 0; i < maxN; i++) {
+                if (((1 << i) & setPoints) > 0) {
+                    ans[++k] = i;
+                }
+            }
+            ans[0] = k;
+            mapPoints[setPoints] = ans;
+        }
+    }
+
+    static int[] pointsInPlane(int[][] coordinates) {
+        tri = new boolean[maxN][maxN][maxN];
+        memoMinMap = new int[1 << (maxN + 1)];
+        Arrays.fill(memoMinMap, -1);
+        memoVarMap = new int[9][];
+        colPoints = 0;
+        for (int i = 1; i <= 8; i++) {
+            memoVarMap[i] = new int[1 << (maxN + 1)];
+            Arrays.fill(memoVarMap[i], -1);
+        }
+        int maxCP = 2;
+        for (int i = 0; i < n; i++) {
+            int xi = coordinates[i][0];
+            int yi = coordinates[i][1];
+            for (int j = i + 1; j < n; j++) {
+                int lineP = 0;
+                int noP = 2;
+                int xj = coordinates[j][0];
+                int yj = coordinates[j][1];
+                for (int k = j + 1; k < n; k++) {
+                    int xk = coordinates[k][0];
+                    int yk = coordinates[k][1];
+                    if ((yk - yi) * (xj - xi) == (yj - yi) * (xk - xi)) {
+                        tri[i][j][k] = true;
+                        lineP += (1 << k);
+                        noP++;
+                    }
+                }
+                if (maxCP < noP) {
+                    maxCP = noP;
+                }
+                setPointsInLine[i][j] = lineP;
+                noPointsInLine[i][j] = noP;
+                if (lineP != 0) {
+                    colPoints = colPoints | lineP;
+                }
+            }
+        }
+        colPoints = ~colPoints;
+        if (maxCP == 2) {
+            return resultNCP[n];
+        }
+        int noMin = calcMin((1 << n) - 1);
+        int noVar = calcV((1 << n) - 1, 1, noMin, n);
+        return new int[]{noMin, noVar};
+    }
+
+    private static int[] getResultNCP(int nNCP) {
+        if (nNCP % 2 == 0) {
+            int noMin = nNCP / 2;
+            long noV = 1;
+            for (int k = nNCP; k >= 4; k = k - 2) {
+                noV = noV * C[k][2];
+            }
+            return new int[]{noMin, (int) (noV % MOD)};
+        } else {
+            int noMin = nNCP / 2 + 1;
+            long noV = 0;
+            for (int k = nNCP; k >= 1; k = k - 2) {
+                long p = 1;
+                for (int i = nNCP; i > k; i = i - 2) {
+                    p = p * C[i][2];
+                }
+                p = p * k;
+                for (int i = k - 1; i >= 4; i = i - 2) {
+                    p = p * C[i][2];
+                }
+                noV = (noV + p) % MOD;
+            }
+            return new int[]{noMin, (int) noV};
+        }
+    }
+
+    private static int calcV(int setPoints, int itr, int noMin, int nP) {
+        if (itr == noMin + 1 && setPoints != 0) {
+            return 0;
+        }
+        if (itr == noMin + 1 && setPoints == 0) {
+            return 1;
+        } else {
+            int ans = memoVarMap[itr][setPoints];
+            if (ans >= 0) {
+                return ans;
+            }
+            int ncp = colPoints & setPoints;
+            if (ncp == setPoints) {
+                ans = (int) Math.ceil(nP / 2.);
+                if (ans > noMin - itr + 1) {
+                    memoVarMap[itr][setPoints] = 0;
+                    return 0;
+                } else {
+                    int pR = resultNCP[nP][1];
+                    memoVarMap[itr][setPoints] = pR;
+                    return pR;
+                }
+            }
+            ans = memoMinMap[setPoints];
+            if (ans >= 0) {
+                if (ans > noMin - itr + 1) {
+                    memoVarMap[itr][setPoints] = 0;
+                    return 0;
+                } else {
+                    if (nP % 2 == 1 && ans == nP / 2 + 1) {
+                        int pR = resultNCP[nP][1];
+                        memoVarMap[itr][setPoints] = pR;
+                        return pR;
+                    }
+                }
+            }
+            int[] points = mapPoints[setPoints];
+            int size = points[0];
+            ans = 0;
+            Set<Integer> set = new HashSet<Integer>();
+            if (size <= 2) {
+                memoVarMap[itr][setPoints] = 1;
+                return 1;
+            }
+            if (size == 3 && itr == noMin && tri[points[1]][points[2]][points[3]]) {
+                memoVarMap[itr][setPoints] = 1;
+                return 1;
+            }
+            if (size == 3 && itr == noMin - 1 && !tri[points[1]][points[2]][points[3]]) {
+                memoVarMap[itr][setPoints] = 6;
+                return 6;
+            }
+            if (size == 4) {
+                if (itr == noMin - 1) {
+                    if (!hasCP(points)) {
+                        memoVarMap[itr][setPoints] = 6;
+                        return 6;
+                    } else {
+                        memoVarMap[itr][setPoints] = 8;
+                        return 8;
+                    }
+                } else if (itr == noMin && colP(points)) {
+                    memoVarMap[itr][setPoints] = 1;
+                    return 1;
+                } else {
+                    memoVarMap[itr][setPoints] = 0;
+                    return 0;
+                }
+            }
+            for (int i = 1; i <= size; i++) {
+                int pi = points[i];
+                int nextP = setPoints - (1 << pi);
+                ans = (ans + calcV(nextP, itr + 1, noMin, nP - 1)) % MOD;
+                for (int j = i + 1; j <= size; j++) {
+                    int pj = points[j];
+                    int start = setPoints - (1 << pi) - (1 << pj);
+                    int newSetPoints = setPointsInLine[pi][pj] & start;
+                    if (newSetPoints == 0) {
+                        ans = (ans + calcV(start, itr + 1, noMin, nP - 2)) % MOD;
+                        continue;
+                    }
+                    int[] pointsLine = mapPoints[newSetPoints];
+                    int pSize = pointsLine[0];
+                    for (int s = 0; s < (1 << pSize); s++) {
+                        nextP = start;
+                        int aP = 0;
+                        for (int t = 0; t < pSize; t++) {
+                            int pt1 = pointsLine[t + 1];
+                            if ((s & (1 << t)) > 0 && tri[pi][pj][pt1]) {
+                                nextP -= (1 << pt1);
+                                aP++;
+                            }
+                        }
+                        if (set.contains(nextP)) {
+                            continue;
+                        }
+                        set.add(nextP);
+                        ans = (ans + calcV(nextP, itr + 1, noMin, nP - 2 - aP)) % MOD;
+                    }
+                }
+            }
+            memoVarMap[itr][setPoints] = ans;
+            return ans;
+        }
+    }
+
+    private static boolean colP(int[] points) {
+        int p1 = points[1];
+        int p2 = points[2];
+        int p3 = points[3];
+        int p4 = points[4];
+        return tri[p1][p2][p3] && tri[p1][p2][p4];
+    }
+
+    private static boolean hasCP(int[] points) {
+        int p1 = points[1];
+        int p2 = points[2];
+        int p3 = points[3];
+        int p4 = points[4];
+        return tri[p1][p2][p3] || tri[p1][p2][p4] || tri[p2][p3][p4] || tri[p1][p3][p4];
+    }
+
+    private static int calcMin(int setPoints) {
+        if (setPoints == 0) {
+            return 0;
+        } else {
+            int ans = memoMinMap[setPoints];
+            if (ans >= 0) {
+                return ans;
+            }
+            int[] points = mapPoints[setPoints];
+            int size = points[0];
+            int ncp = colPoints & setPoints;
+            if (ncp == setPoints) {
+                ans = (int) Math.ceil(size / 2.);
+                memoMinMap[setPoints] = ans;
+                return ans;
+            }
+            if (size <= 2) {
+                memoMinMap[setPoints] = 1;
+                return 1;
+            }
+            if (size == 3) {
+                if (tri[points[1]][points[2]][points[3]]) {
+                    memoMinMap[setPoints] = 1;
+                    return 1;
+                } else {
+                    memoMinMap[setPoints] = 2;
+                    return 2;
+                }
+            }
+            if (size == 4) {
+                int p1 = points[1];
+                int p2 = points[2];
+                int p3 = points[3];
+                int p4 = points[4];
+                if (tri[p1][p2][p3] && tri[p1][p2][p4]) {
+                    memoMinMap[setPoints] = 1;
+                    return 1;
+                } else {
+                    memoMinMap[setPoints] = 2;
+                    return 2;
+                }
+            }
+            int min = 10;
+            for (int i = 1; i <= size; i++) {
+                for (int j = i + 1; j <= size; j++) {
+                    int nextP = (setPoints - (setPoints & (setPointsInLine[points[i]][points[j]] + (1 << points[i]) + (1 << points[j]))));
+                    ans = 1 + calcMin(nextP);
+                    if (ans < min) {
+                        min = ans;
+                    }
+                }
+            }
+            memoMinMap[setPoints] = min;
+            return min;
+        }
+    }
+
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) throws IOException {
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int t = scanner.nextInt();
+        scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+        for (int tItr = 0; tItr < t; tItr++) {
+            n = scanner.nextInt();
+            scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+            int[][] coordinates = new int[n][2];
+
+            for (int coordinatesRowItr = 0; coordinatesRowItr < n; coordinatesRowItr++) {
+                String[] coordinatesRowItems = scanner.nextLine().split(" ");
+                scanner.skip("(\r\n|[\n\r\u2028\u2029\u0085])*");
+
+                for (int coordinatesColumnItr = 0; coordinatesColumnItr < 2; coordinatesColumnItr++) {
+                    int coordinatesItem = Integer.parseInt(coordinatesRowItems[coordinatesColumnItr]);
+                    coordinates[coordinatesRowItr][coordinatesColumnItr] = coordinatesItem;
+                }
+            }
+
+            int[] result = pointsInPlane(coordinates);
+
+            for (int resultItr = 0; resultItr < result.length; resultItr++) {
+                bufferedWriter.write(String.valueOf(result[resultItr]));
+
+                if (resultItr != result.length - 1) {
+                    bufferedWriter.write(" ");
+                }
+            }
+
+            bufferedWriter.newLine();
+        }
+
+        bufferedWriter.close();
+
+        scanner.close();
+    }
+}
