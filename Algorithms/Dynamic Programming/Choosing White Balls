@@ -1,0 +1,225 @@
+import java.io.*;
+import java.text.NumberFormat;
+import java.util.*;
+
+public class Solution {
+
+  static class IntDoubleHashMap {
+
+    private static final int MAX_LOAD = 90;
+
+    int mask;
+    int len;
+    int size;
+    int deletedCount;
+    int level;
+    boolean zeroKey;
+
+    int maxSize, minSize, maxDeleted;
+
+    public IntDoubleHashMap(int n) {
+      reset(n);
+    }
+
+    void checkSizePut() {
+      if (deletedCount > size) {
+        rehash(level);
+      }
+      if (size + deletedCount >= maxSize) {
+        rehash(level + 1);
+      }
+    }
+
+    void resetInt(int newLevel) {
+      minSize = size * 3 / 4;
+      size = 0;
+      level = newLevel;
+      len = 2 << level;
+      mask = len - 1;
+      maxSize = (int) (len * MAX_LOAD / 100L);
+      deletedCount = 0;
+      maxDeleted = 20 + len / 2;
+    }
+
+    int getIndex(int hash) {
+      return hash & mask;
+    }
+
+    public static final double NOT_FOUND = -1;
+
+    static final int DELETED = 1;
+    int[] keys;
+    double[] values;
+    double zeroValue;
+
+    protected void reset(int newLevel) {
+      resetInt(newLevel);
+      keys = new int[len];
+      values = new double[len];
+    }
+
+    public void put(int key, double value) {
+      if (key == 0) {
+        zeroKey = true;
+        zeroValue = value;
+        return;
+      }
+      try {
+        checkSizePut();
+      } catch (Exception e) {
+
+      }
+      int index = getIndex(key);
+      int plus = 1;
+      int deleted = -1;
+      do {
+        int k = keys[index];
+        if (k == 0) {
+          if (values[index] != DELETED) {
+            if (deleted >= 0) {
+              index = deleted;
+              deletedCount--;
+            }
+            size++;
+            keys[index] = key;
+            values[index] = value;
+            return;
+          }
+          if (deleted < 0) {
+            deleted = index;
+          }
+        } else if (k == key) {
+          values[index] = value;
+          return;
+        }
+        index = (index + plus++) & mask;
+      } while (plus <= len);
+    }
+
+    void rehash(int newLevel) {
+      int[] oldKeys = keys;
+      double[] oldValues = values;
+      reset(newLevel);
+      for (int i = 0; i < oldKeys.length; i++) {
+        int k = oldKeys[i];
+        if (k != 0) {
+          put(k, oldValues[i]);
+        }
+      }
+    }
+
+    public double get(int key) {
+      if (key == 0) {
+        return zeroKey ? zeroValue : NOT_FOUND;
+      }
+      int index = getIndex(key);
+      int plus = 1;
+      do {
+        int k = keys[index];
+        if (k == 0 && values[index] == 0) {
+          return NOT_FOUND;
+        } else if (k == key) {
+          return values[index];
+        }
+        index = (index + plus++) & mask;
+      } while (plus <= len);
+      return NOT_FOUND;
+    }
+
+  }
+
+  static int sub(int word, int bitIndex) {
+    if (bitIndex == 0) {
+      word >>>= 1;
+      return word;
+    }
+
+    long m = word & ((1 << bitIndex) - 1);
+    word -= word & ((1 << (bitIndex + 1)) - 1);
+    word >>>= 1;
+    word |= m;
+    return word;
+  }
+
+  static IntDoubleHashMap map;
+
+  static double giveProbability(int balls, int n, int k) {
+    if (k == 0) {
+      return 0;
+    }
+    int key = balls | (1 << n);
+    double v = map.get(key);
+    if (v >= 0) {
+      return v;
+    }
+    double prob = 0;
+    for (int i = 0; i < n / 2; i++) {
+      int matchL = (balls & (1 << i)) != 0 ? 1 : 0;
+      int matchR = (balls & (1 << (n - i - 1))) != 0 ? 1 : 0;
+      double probL = giveProbability(sub(balls, i), n - 1, k - 1);
+      double probR = giveProbability(sub(balls, n - i - 1), n - 1, k - 1);
+      prob += 2 * Math.max(matchL + probL, probR + matchR) / n;
+    }
+    if (n % 2 == 1) {
+      int i = (n - 1) / 2;
+      int matchM = (balls & (1 << i)) != 0 ? 1 : 0;
+      double probM = giveProbability(sub(balls, i), n - 1, k - 1);
+      prob += (matchM + probM) / n;
+    }
+    map.put(key, prob);
+    balls = reverseBits(balls, n);
+    map.put(balls | (1 << n), prob);
+
+    return prob;
+  }
+
+  public static int reverseBits(int n, int nBits) {
+    int rev = 0;
+
+    while (nBits > 0) {
+      rev <<= 1;
+
+      if ((n & 1) == 1) {
+        rev ^= 1;
+      }
+      n >>= 1;
+      nBits--;
+    }
+    return rev;
+  }
+
+  public static void main(String[] args) throws IOException {
+    BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+    StringTokenizer st = new StringTokenizer(br.readLine());
+    int n = Integer.parseInt(st.nextToken());
+    int k = Integer.parseInt(st.nextToken());
+    char[] arr = br.readLine().toCharArray();
+
+    int balls = 0;
+    for (int i = 0; i < arr.length; i++) {
+      if (arr[i] == 'W') {
+        balls |= (1L << i);
+      }
+    }
+
+    if (n >= 29) {
+      map = new IntDoubleHashMap(853);
+    } else if (n > 5) {
+      map = new IntDoubleHashMap(n * n);
+    } else {
+      map = new IntDoubleHashMap(2);
+    }
+
+    NumberFormat nf = NumberFormat.getInstance();
+    nf.setMaximumFractionDigits(10);
+    double result = giveProbability(balls, arr.length, k);
+    bw.write(nf.format(result));
+
+    bw.newLine();
+    bw.close();
+    br.close();
+  }
+
+}
