@@ -1,0 +1,139 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner(System.in);
+        int n = fs.nextInt();
+
+        // toll[i][j] = cost from city i to city j
+        long[][] toll = new long[n][n];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                toll[i][j] = fs.nextLong();
+            }
+        }
+
+        // Karp's minimum mean cycle algorithm.
+        // dp[i][v] = minimum cost of a path with exactly i edges ending at v.
+        // We start from a super-source connected to every vertex with cost 0,
+        // so dp[0][v] = 0 for all v.
+        final long INF = Long.MAX_VALUE / 4;
+        long[][] dp = new long[n + 1][n];
+        for (int v = 0; v < n; v++) {
+            dp[0][v] = 0;
+        }
+
+        for (int i = 1; i <= n; i++) {
+            Arrays.fill(dp[i], INF);
+            for (int u = 0; u < n; u++) {
+                if (dp[i - 1][u] == INF) continue;
+                long base = dp[i - 1][u];
+                for (int v = 0; v < n; v++) {
+                    if (u == v) continue;          // no self-loops
+                    long cand = base + toll[u][v];
+                    if (cand < dp[i][v]) {
+                        dp[i][v] = cand;
+                    }
+                }
+            }
+        }
+
+        // For each vertex v, compute max over k < n of (dp[n][v] - dp[k][v]) / (n - k).
+        // The minimum over all v is the minimum mean cycle weight.
+        // We keep the result as a fraction num/den in lowest terms.
+        long bestNum = Long.MAX_VALUE;
+        long bestDen = 1;
+
+        for (int v = 0; v < n; v++) {
+            if (dp[n][v] == INF) continue;
+
+            long maxNum = Long.MIN_VALUE;
+            long maxDen = 1;
+
+            for (int k = 0; k < n; k++) {
+                if (dp[k][v] == INF) continue;
+                long num = dp[n][v] - dp[k][v];
+                long den = n - k;
+
+                // Compare num/den with maxNum/maxDen
+                if (maxNum == Long.MIN_VALUE) {
+                    maxNum = num;
+                    maxDen = den;
+                } else {
+                    // num/den > maxNum/maxDen  <=>  num * maxDen > maxNum * den
+                    if (num * maxDen > maxNum * den) {
+                        maxNum = num;
+                        maxDen = den;
+                    }
+                }
+            }
+
+            if (maxNum == Long.MIN_VALUE) continue;
+
+            // Reduce fraction maxNum / maxDen
+            long g = gcd(Math.abs(maxNum), maxDen);
+            long rn = maxNum / g;
+            long rd = maxDen / g;
+
+            // Compare rn/rd with bestNum/bestDen
+            if (bestNum == Long.MAX_VALUE) {
+                bestNum = rn;
+                bestDen = rd;
+            } else {
+                // rn/rd < bestNum/bestDen  <=>  rn * bestDen < bestNum * rd
+                if (rn * bestDen < bestNum * rd) {
+                    bestNum = rn;
+                    bestDen = rd;
+                }
+            }
+        }
+
+        // Output the answer as "num/den" in lowest terms.
+        // Ensure denominator is positive (it always is here).
+        System.out.println(bestNum + "/" + bestDen);
+    }
+
+    private static long gcd(long a, long b) {
+        while (b != 0) {
+            long t = a % b;
+            a = b;
+            b = t;
+        }
+        return a;
+    }
+
+    // Fast byte-level input scanner
+    static class FastScanner {
+        private final InputStream in;
+        private final byte[] buf = new byte[1 << 16];
+        private int len = 0, ptr = 0;
+
+        FastScanner(InputStream in) { this.in = in; }
+
+        private byte read() throws IOException {
+            if (ptr >= len) {
+                len = in.read(buf);
+                ptr = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[ptr++];
+        }
+
+        long nextLong() throws IOException {
+            byte c;
+            while ((c = read()) <= ' ') ;
+            boolean neg = false;
+            if (c == '-') { neg = true; c = read(); }
+            long val = 0;
+            while (c > ' ') {
+                val = val * 10 + (c - '0');
+                c = read();
+            }
+            return neg ? -val : val;
+        }
+
+        int nextInt() throws IOException { return (int) nextLong(); }
+    }
+}
