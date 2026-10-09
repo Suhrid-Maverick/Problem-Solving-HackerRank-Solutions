@@ -1,0 +1,106 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static HashMap<Integer, HashSet<Integer>> edges = new HashMap<Integer, HashSet<Integer>>();
+    static HashMap<Integer, Integer> directed = new HashMap<Integer, Integer>();
+    static HashMap<Integer, Integer> values = new HashMap<Integer, Integer>();
+    static HashMap<Integer, int[]> dp;
+
+    public static void main(String[] args) throws Exception {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int Q = Integer.parseInt(br.readLine());
+        HashSet<Integer> sets = new HashSet<Integer>();
+        edges = new HashMap<Integer, HashSet<Integer>>();
+        directed = new HashMap<Integer, Integer>();
+        values = new HashMap<Integer, Integer>();
+        int K = 1;
+        for (int i = 0; i < Q; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            String op = st.nextToken();
+            if (op.equals("A")) {
+                int x = Integer.parseInt(st.nextToken());
+                values.put(K, x);
+                edges.put(K, new HashSet<Integer>());
+                sets.add(K);
+                K++;
+            } else if (op.equals("B")) {
+                int x = Integer.parseInt(st.nextToken());
+                int y = Integer.parseInt(st.nextToken());
+                directed.put(y, x);
+                edges.get(x).add(y);
+                edges.get(y).add(x);
+            } else {
+                dp = new HashMap<Integer, int[]>();
+                int x = Integer.parseInt(st.nextToken());
+                int min = x;
+                HashSet<Integer> used = new HashSet<Integer>();
+                Queue<Integer> stuff = new LinkedList<Integer>();
+                stuff.add(x);
+                used.add(x);
+                sets.remove(x);
+                while (stuff.size() > 0) {
+                    int curr = stuff.remove();
+                    for (int adj : edges.get(curr)) {
+                        if (!used.contains(adj)) {
+                            min = Math.min(min, adj);
+                            stuff.add(adj);
+                            used.add(adj);
+                            sets.remove(adj);
+                        }
+                    }
+                }
+                recur(min);
+                values.put(K, dp.get(min)[0]);
+                edges.put(K, new HashSet<Integer>());
+                sets.add(K);
+                K++;
+            }
+        }
+        int finalans = 0;
+        while (sets.size() > 0) {
+            int x = 0;
+            for (int i : sets) {
+                x = i;
+                break;
+            }
+            int min = x;
+            HashSet<Integer> used = new HashSet<Integer>();
+            Queue<Integer> stuff = new LinkedList<Integer>();
+            stuff.add(x);
+            used.add(x);
+            sets.remove(x);
+            while (stuff.size() > 0) {
+                int curr = stuff.remove();
+                for (int adj : edges.get(curr)) {
+                    if (!used.contains(adj)) {
+                        min = Math.min(min, adj);
+                        stuff.add(adj);
+                        used.add(adj);
+                        sets.remove(adj);
+                    }
+                }
+            }
+            recur(min);
+            finalans += dp.get(min)[0];
+        }
+        System.out.println(finalans);
+    }
+
+    static void recur(int root) {
+        int[] temp = new int[2];
+        for (int child : edges.get(root)) {
+            if (directed.keySet().contains(child) && root == directed.get(child)) {
+                if (!dp.keySet().contains(child)) {
+                    recur(child);
+                }
+                temp[1] += dp.get(child)[0];
+                temp[0] += dp.get(child)[1];
+            }
+        }
+        temp[0] += values.get(root);
+        temp[0] = Math.max(temp[0], temp[1]);
+        dp.put(root, temp);
+    }
+}
