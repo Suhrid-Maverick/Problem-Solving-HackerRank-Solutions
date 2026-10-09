@@ -1,0 +1,66 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int N = Integer.parseInt(br.readLine().trim());
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int sx = Integer.parseInt(st.nextToken());
+        int sy = Integer.parseInt(st.nextToken());
+        int ex = Integer.parseInt(st.nextToken());
+        int ey = Integer.parseInt(st.nextToken());
+
+        int[] dx = {-2, -2, 0, 2, 2, 0};
+        int[] dy = {-1, 1, 2, 1, -1, -2};
+        String[] moves = {"UL", "UR", "R", "LR", "LL", "L"};
+
+        if (sx == ex && sy == ey) {
+            System.out.println(0);
+            return;
+        }
+
+        int[][] parent = new int[N][N];
+        for (int[] row : parent) Arrays.fill(row, -1);
+        parent[sx][sy] = -2;
+
+        Queue<int[]> queue = new LinkedList<>();
+        queue.add(new int[]{sx, sy});
+
+        boolean found = false;
+        while (!queue.isEmpty()) {
+            int[] cur = queue.poll();
+            int x = cur[0], y = cur[1];
+            if (x == ex && y == ey) {
+                found = true;
+                break;
+            }
+            for (int i = 0; i < 6; i++) {
+                int nx = x + dx[i];
+                int ny = y + dy[i];
+                if (nx >= 0 && nx < N && ny >= 0 && ny < N && parent[nx][ny] == -1) {
+                    parent[nx][ny] = i;
+                    queue.add(new int[]{nx, ny});
+                }
+            }
+        }
+
+        if (!found) {
+            System.out.println("Impossible");
+            return;
+        }
+
+        List<String> path = new ArrayList<>();
+        int cx = ex, cy = ey;
+        while (parent[cx][cy] != -2) {
+            int moveIdx = parent[cx][cy];
+            path.add(moves[moveIdx]);
+            cx -= dx[moveIdx];
+            cy -= dy[moveIdx];
+        }
+        Collections.reverse(path);
+
+        System.out.println(path.size());
+        System.out.println(String.join(" ", path));
+    }
+}
