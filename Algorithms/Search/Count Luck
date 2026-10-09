@@ -1,0 +1,109 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+
+        int[] dr = {-1, 1, 0, 0};
+        int[] dc = {0, 0, -1, 1};
+
+        while (t-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+
+            char[][] grid = new char[n][m];
+            int startR = -1, startC = -1, endR = -1, endC = -1;
+
+            for (int i = 0; i < n; i++) {
+                String row = br.readLine();
+                for (int j = 0; j < m; j++) {
+                    grid[i][j] = row.charAt(j);
+                    if (grid[i][j] == 'M') {
+                        startR = i;
+                        startC = j;
+                    } else if (grid[i][j] == '*') {
+                        endR = i;
+                        endC = j;
+                    }
+                }
+            }
+
+            int k = Integer.parseInt(br.readLine().trim());
+
+            // BFS to find the unique path from M to *
+            boolean[][] visited = new boolean[n][m];
+            int[][] parentR = new int[n][m];
+            int[][] parentC = new int[n][m];
+            for (int i = 0; i < n; i++) {
+                Arrays.fill(parentR[i], -1);
+                Arrays.fill(parentC[i], -1);
+            }
+
+            Queue<int[]> queue = new LinkedList<>();
+            queue.add(new int[]{startR, startC});
+            visited[startR][startC] = true;
+
+            while (!queue.isEmpty()) {
+                int[] cur = queue.poll();
+                int r = cur[0], c = cur[1];
+                if (r == endR && c == endC) break;
+
+                for (int d = 0; d < 4; d++) {
+                    int nr = r + dr[d];
+                    int nc = c + dc[d];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < m
+                            && !visited[nr][nc] && grid[nr][nc] != 'X') {
+                        visited[nr][nc] = true;
+                        parentR[nr][nc] = r;
+                        parentC[nr][nc] = c;
+                        queue.add(new int[]{nr, nc});
+                    }
+                }
+            }
+
+            // Reconstruct path from * back to M
+            List<int[]> path = new ArrayList<>();
+            int cr = endR, cc = endC;
+            while (cr != -1) {
+                path.add(new int[]{cr, cc});
+                int pr = parentR[cr][cc];
+                int pc = parentC[cr][cc];
+                cr = pr;
+                cc = pc;
+            }
+            Collections.reverse(path);
+
+            // Count decision points along the path (excluding the portkey)
+            int wand = 0;
+            for (int i = 0; i < path.size() - 1; i++) {
+                int r = path.get(i)[0];
+                int c = path.get(i)[1];
+
+                int choices = 0;
+                for (int d = 0; d < 4; d++) {
+                    int nr = r + dr[d];
+                    int nc = c + dc[d];
+                    if (nr >= 0 && nr < n && nc >= 0 && nc < m
+                            && grid[nr][nc] != 'X') {
+                        // Exclude the previous cell on the path
+                        if (i > 0) {
+                            int pr = path.get(i - 1)[0];
+                            int pc = path.get(i - 1)[1];
+                            if (nr == pr && nc == pc) continue;
+                        }
+                        choices++;
+                    }
+                }
+                if (choices > 1) wand++;
+            }
+
+            sb.append(wand == k ? "Impressed" : "Oops!").append('\n');
+        }
+
+        System.out.print(sb);
+    }
+}
