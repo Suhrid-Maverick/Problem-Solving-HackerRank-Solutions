@@ -1,0 +1,112 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    // transform: p -> rot^k(p) + (dx, dy), where rot(x,y) = (y, -x)
+    static long rotX(long x, long y, int k) {
+        switch (k & 3) {
+            case 0: return x;
+            case 1: return y;
+            case 2: return -x;
+            default: return -y;
+        }
+    }
+    static long rotY(long x, long y, int k) {
+        switch (k & 3) {
+            case 0: return y;
+            case 1: return -x;
+            case 2: return -y;
+            default: return x;
+        }
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer("");
+        String next() throws IOException {
+            while (!st.hasMoreTokens()) st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+        long nextLong() throws IOException { return Long.parseLong(next()); }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        long n = fs.nextLong();
+        int s = fs.nextInt();
+
+        int[] tk = new int[s + 1];
+        long[] tdx = new long[s + 1], tdy = new long[s + 1];
+        long[] cMinX = new long[s + 1], cMinY = new long[s + 1];
+        long[] cMaxX = new long[s + 1], cMaxY = new long[s + 1];
+
+        // identity transform, whole grid as square 0
+        cMinX[0] = 0; cMinY[0] = 0;
+        cMaxX[0] = n - 1; cMaxY[0] = n - 1;
+
+        for (int i = 0; i < s; i++) {
+            long a = fs.nextLong() - 1;
+            long b = fs.nextLong() - 1;
+            long d = fs.nextLong();
+
+            // inverse of transes[i]: k' = -k mod 4, d' = rot^{k'^2}(d)
+            int kp = (-tk[i]) & 3;
+            long dpx = rotX(tdx[i], tdy[i], kp ^ 2);
+            long dpy = rotY(tdx[i], tdy[i], kp ^ 2);
+
+            // map square corners back to original frame
+            long[][] pts = {{a, b}, {a, b + d}, {a + d, b + d}, {a + d, b}};
+            long[] cx = new long[4], cy = new long[4];
+            for (int j = 0; j < 4; j++) {
+                cx[j] = rotX(pts[j][0], pts[j][1], kp) + dpx;
+                cy[j] = rotY(pts[j][0], pts[j][1], kp) + dpy;
+            }
+
+            int ni = i + 1;
+            int k = ni & 3;
+            // translation chosen so ncorns[3] maps to (a, b)
+            long rx = rotX(cx[3], cy[3], k);
+            long ry = rotY(cx[3], cy[3], k);
+            tk[ni] = k;
+            tdx[ni] = a - rx;
+            tdy[ni] = b - ry;
+
+            // axis-aligned bounding square in original frame
+            long mnx = Long.MAX_VALUE, mny = Long.MAX_VALUE;
+            long mxx = Long.MIN_VALUE, mxy = Long.MIN_VALUE;
+            for (int j = 0; j < 4; j++) {
+                if (cx[j] < mnx) mnx = cx[j];
+                if (cx[j] > mxx) mxx = cx[j];
+                if (cy[j] < mny) mny = cy[j];
+                if (cy[j] > mxy) mxy = cy[j];
+            }
+            cMinX[ni] = mnx; cMinY[ni] = mny;
+            cMaxX[ni] = mxx; cMaxY[ni] = mxy;
+        }
+
+        int q = fs.nextInt();
+        StringBuilder sb = new StringBuilder();
+        while (q-- > 0) {
+            long x = fs.nextLong();
+            long px = x / n, py = x % n;
+
+            // deepest command whose original square contains (px, py)
+            int L = 0, R = s + 1;
+            while (R - L > 1) {
+                int M = (L + R) >>> 1;
+                if (cMinX[M] <= px && px <= cMaxX[M]
+                 && cMinY[M] <= py && py <= cMaxY[M]) {
+                    L = M;
+                } else {
+                    R = M;
+                }
+            }
+
+            long ansX = rotX(px, py, tk[L]) + tdx[L];
+            long ansY = rotY(px, py, tk[L]) + tdy[L];
+            sb.append(ansX + 1).append(' ').append(ansY + 1).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
