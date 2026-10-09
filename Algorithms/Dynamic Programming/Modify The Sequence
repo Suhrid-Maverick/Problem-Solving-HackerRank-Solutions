@@ -1,0 +1,59 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int ceilIndex(int tailTable[], int r, int key) {
+        int l = 0;
+        while (l <= r) {
+            int mid = (l + r) >> 1;
+            if (tailTable[mid] <= key) {
+                l = mid + 1;
+            } else {
+                r = mid - 1;
+            }
+        }
+        return l;
+    }
+
+    static int modifySequence(int arr[]) {
+        int[] tailTable = new int[arr.length];
+        int len = 0;
+        for (int i = 0; i < arr.length; i++) {
+            int val = arr[i];
+            if (val < 0) {
+                continue;
+            }
+            int l = ceilIndex(tailTable, len - 1, arr[i]);
+            if (len <= l) {
+                tailTable[len++] = val;
+            } else {
+                tailTable[l] = val;
+            }
+        }
+        return arr.length - len;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int arrCount = Integer.parseInt(st.nextToken());
+
+        int[] arr = new int[arrCount];
+        st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < arrCount; i++) {
+            int item = Integer.parseInt(st.nextToken());
+            arr[i] = item - (i + 1);
+        }
+
+        int result = modifySequence(arr);
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
