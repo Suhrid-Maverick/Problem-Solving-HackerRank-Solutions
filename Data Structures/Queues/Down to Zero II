@@ -1,0 +1,46 @@
+import java.io.*;
+
+public class Solution {
+
+    static final int MAX_N = 1000001;
+    static int[] dp = new int[MAX_N];
+
+    static void precomputeMinMoves() {
+        dp[0] = 0;
+        dp[1] = 1;
+
+        for (int i = 2; i < MAX_N; i++) {
+            // Option 1: Decrement
+            dp[i] = 1 + dp[i - 1];
+
+            // Option 2: Factorization
+            for (int j = 2; j * j <= i; j++) {
+                if (i % j == 0) {
+                    int largestFactor = i / j;
+                    if (dp[i] > 1 + dp[largestFactor]) {
+                        dp[i] = 1 + dp[largestFactor];
+                    }
+                }
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        precomputeMinMoves();
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(System.out));
+
+        int Q = Integer.parseInt(br.readLine().trim());
+
+        while (Q-- > 0) {
+            int N = Integer.parseInt(br.readLine().trim());
+            bw.write(String.valueOf(dp[N]));
+            bw.newLine();
+        }
+
+        bw.flush();
+        bw.close();
+        br.close();
+    }
+}
