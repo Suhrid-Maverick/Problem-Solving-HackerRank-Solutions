@@ -1,0 +1,135 @@
+import java.util.*;
+import java.io.*;
+import static java.lang.Math.*;
+
+public class Main {
+    static ArrayList<Integer> list1[];
+    static ArrayList<Integer> list2[];
+    static int tree[][];
+    static int lazy[][];
+    static int n, m;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        PrintWriter pw = new PrintWriter(System.out, true);
+        StringBuilder sb = new StringBuilder();
+        int t = Integer.parseInt(br.readLine());
+        while (t-- > 0) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            m = Integer.parseInt(st.nextToken());
+            n = Integer.parseInt(st.nextToken());
+            list1 = new ArrayList[m + 1];
+            list2 = new ArrayList[m + 1];
+            for (int i = 0; i <= m; ++i) {
+                list1[i] = new ArrayList();
+                list2[i] = new ArrayList();
+            }
+            StringTokenizer st1 = new StringTokenizer(br.readLine());
+            StringTokenizer st2 = new StringTokenizer(br.readLine());
+            StringTokenizer st3 = new StringTokenizer(br.readLine());
+            for (int i = 0; i < n; ++i) {
+                char c = st1.nextToken().charAt(0);
+                int l = Integer.parseInt(st2.nextToken());
+                int r = Integer.parseInt(st3.nextToken());
+                if (r < l)
+                    continue;
+                if (c == 'E' || c == 'C')
+                    list1[r].add(l);
+                else
+                    list2[r].add(l);
+            }
+            int sz = (int) (pow(2, ceil(log(m + 1) / log(2)) + 1));
+            tree = new int[2][sz];
+            lazy = new int[2][sz];
+            int dp[] = new int[m + 1];
+            for (int i = 2; i <= m; ++i) {
+                for (int e : list1[i])
+                    rangeUpdate(0, 1, e, 1);
+                for (int e : list2[i])
+                    rangeUpdate(1, 1, e, 1);
+                int mx1 = query(0, 1, i - 1);
+                int mx2 = query(1, 1, i - 1);
+                dp[i] = max(mx1, mx2);
+                rangeUpdate(0, i, i, dp[i]);
+                rangeUpdate(1, i, i, dp[i]);
+            }
+            /*pw.println("DP ARRAY : ");
+            for(int i=0;i<=m;++i)
+                pw.print(dp[i]+" ");
+            pw.println();*/
+            for (int i = 1; i <= n; ++i) {
+                if (dp[m] < i) {
+                    pw.print("-1 ");
+                    continue;
+                }
+                int low = 0;
+                int high = m;
+                int mid;
+                while (low < high) {
+                    mid = (low + high) >> 1;
+                    if (dp[mid] >= i) {
+                        if (dp[mid - 1] < i) {
+                            low = mid;
+                            break;
+                        } else
+                            high = --mid;
+                    } else
+                        low = ++mid;
+                }
+                pw.print(low + " ");
+            }
+            pw.println();
+        }
+    }
+
+    static void rangeUpdate(int treeidx, int l, int r, int val) {
+        rangeUpdate(treeidx, 1, 0, m, l, r, val);
+    }
+
+    static int query(int treeidx, int l, int r) {
+        return query(treeidx, 1, 0, m, l, r);
+    }
+
+    static void rangeUpdate(int treeidx, int treein, int low, int high, int l, int r, int val) {
+        if (lazy[treeidx][treein] != 0) {
+            tree[treeidx][treein] += lazy[treeidx][treein];
+            if (low != high) {
+                lazy[treeidx][2 * treein] += lazy[treeidx][treein];
+                lazy[treeidx][2 * treein + 1] += lazy[treeidx][treein];
+            }
+            lazy[treeidx][treein] = 0;
+        }
+        if (l <= low && high <= r) {
+            tree[treeidx][treein] += val;
+            if (low != high) {
+                lazy[treeidx][2 * treein] += val;
+                lazy[treeidx][2 * treein + 1] += val;
+            }
+            return;
+        }
+        if (low > r || high < l)
+            return;
+        int mid = (low + high) >> 1;
+        rangeUpdate(treeidx, 2 * treein, low, mid, l, r, val);
+        rangeUpdate(treeidx, 2 * treein + 1, mid + 1, high, l, r, val);
+        tree[treeidx][treein] = max(tree[treeidx][2 * treein], tree[treeidx][2 * treein + 1]);
+    }
+
+    static int query(int treeidx, int treein, int low, int high, int l, int r) {
+        if (lazy[treeidx][treein] != 0) {
+            tree[treeidx][treein] += lazy[treeidx][treein];
+            if (low != high) {
+                lazy[treeidx][2 * treein] += lazy[treeidx][treein];
+                lazy[treeidx][2 * treein + 1] += lazy[treeidx][treein];
+            }
+            lazy[treeidx][treein] = 0;
+        }
+        if (l <= low && high <= r)
+            return tree[treeidx][treein];
+        if (low > r || high < l)
+            return 0;
+        int mid = (low + high) >> 1;
+        return max(query(treeidx, 2 * treein + 1, mid + 1, high, l, r),
+                   query(treeidx, 2 * treein, low, mid, l, r));
+    }
+}
