@@ -1,0 +1,161 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Edge for min-cost max-flow
+    static class Edge {
+        int to, rev, cap, cost;
+        Edge(int to, int rev, int cap, int cost) {
+            this.to = to;
+            this.rev = rev;
+            this.cap = cap;
+            this.cost = cost;
+        }
+    }
+
+    static List<Edge>[] graph;
+    static int[] pot;
+    static int N;
+
+    static void addEdge(int u, int v, int cap, int cost) {
+        graph[u].add(new Edge(v, graph[v].size(), cap, cost));
+        graph[v].add(new Edge(u, graph[u].size() - 1, 0, -cost));
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+        char[][] board = new char[n][n];
+        for (int i = 0; i < n; i++) {
+            board[i] = br.readLine().trim().toCharArray();
+        }
+
+        // Assign IDs to horizontal blocks (contiguous free cells in a row)
+        int[][] hId = new int[n][n];
+        for (int[] row : hId) Arrays.fill(row, -1);
+        int H = 0;
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (board[i][j] == '.') {
+                    if (j == 0 || board[i][j - 1] == '#') H++;
+                    hId[i][j] = H;
+                }
+            }
+        }
+
+        // Assign IDs to vertical blocks (contiguous free cells in a column)
+        int[][] vId = new int[n][n];
+        for (int[] row : vId) Arrays.fill(row, -1);
+        int V = 0;
+        for (int j = 0; j < n; j++) {
+            for (int i = 0; i < n; i++) {
+                if (board[i][j] == '.') {
+                    if (i == 0 || board[i - 1][j] == '#') V++;
+                    vId[i][j] = V;
+                }
+            }
+        }
+
+        int source = 0;
+        int sink = H + V + 1;
+        N = sink + 1;
+
+        graph = new ArrayList[N];
+        for (int i = 0; i < N; i++) graph[i] = new ArrayList<>();
+
+        // Count sizes of each block
+        int[] sizeH = new int[H + 1];
+        int[] sizeV = new int[V + 1];
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (board[i][j] == '.') {
+                    sizeH[hId[i][j]]++;
+                    sizeV[vId[i][j]]++;
+                }
+            }
+        }
+
+        // Source -> horizontal blocks (cost = 0,1,2,... for successive rooks in that row block)
+        for (int h = 1; h <= H; h++) {
+            for (int c = 0; c < sizeH[h]; c++) {
+                addEdge(source, h, 1, c);
+            }
+        }
+
+        // Vertical blocks -> sink (cost = 0,1,2,... for successive rooks in that column block)
+        for (int v = 1; v <= V; v++) {
+            for (int c = 0; c < sizeV[v]; c++) {
+                addEdge(H + v, sink, 1, c);
+            }
+        }
+
+        // Horizontal block -> vertical block for each free cell (capacity 1, cost 0)
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
+                if (board[i][j] == '.') {
+                    addEdge(hId[i][j], H + vId[i][j], 1, 0);
+                }
+            }
+        }
+
+        pot = new int[N];
+        int flow = 0;
+        long totalCost = 0;
+        final int INF = Integer.MAX_VALUE / 2;
+
+        // Successive shortest augmenting paths with Dijkstra + potentials
+        while (flow < k) {
+            int[] dist = new int[N];
+            Arrays.fill(dist, INF);
+            int[] prevNode = new int[N];
+            int[] prevEdge = new int[N];
+            dist[source] = 0;
+
+            PriorityQueue<int[]> pq = new PriorityQueue<>((a, b) -> a[0] - b[0]);
+            pq.add(new int[]{0, source});
+
+            while (!pq.isEmpty()) {
+                int[] cur = pq.poll();
+                int d = cur[0], u = cur[1];
+                if (d > dist[u]) continue;
+                for (int i = 0; i < graph[u].size(); i++) {
+                    Edge e = graph[u].get(i);
+                    if (e.cap > 0) {
+                        int v = e.to;
+                        int nd = d + e.cost + pot[u] - pot[v];
+                        if (nd < dist[v]) {
+                            dist[v] = nd;
+                            prevNode[v] = u;
+                            prevEdge[v] = i;
+                            pq.add(new int[]{nd, v});
+                        }
+                    }
+                }
+            }
+
+            if (dist[sink] == INF) break;
+
+            int oldPotSink = pot[sink];
+            for (int v = 0; v < N; v++) {
+                if (dist[v] < INF) pot[v] += dist[v];
+            }
+            totalCost += dist[sink] + oldPotSink;
+
+            // Augment one unit of flow
+            int v = sink;
+            while (v != source) {
+                int u = prevNode[v];
+                Edge e = graph[u].get(prevEdge[v]);
+                e.cap -= 1;
+                graph[v].get(e.rev).cap += 1;
+                v = u;
+            }
+            flow++;
+        }
+
+        System.out.println(totalCost);
+    }
+}
