@@ -1,0 +1,105 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+class Result {
+    private static int MODULUS = 1000000000;
+
+    /*
+     * Complete the 'countPaths' function below.
+     *
+     * The function accepts following parameters:
+     *  1. INTEGER n
+     *  2. 2D_INTEGER_ARRAY edges
+     */
+
+    public static void countPaths(int n, List<List<Integer>> edges) {
+        List<List<Integer>> adjacency = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            adjacency.add(new ArrayList<>());
+        }
+        for (List<Integer> edge : edges) {
+            adjacency.get(edge.get(0) - 1).add(edge.get(1) - 1);
+        }
+
+        long paths = countPaths(0, n - 1, adjacency, new boolean[n], new HashMap<>());
+
+        if (paths == -1) {
+            System.out.println("INFINITE PATHS");
+        } else {
+            System.out.println("" + paths);
+        }
+    }
+
+    private static long countPaths(int city, int destination, List<List<Integer>> adjacency, boolean[] visited, Map<Integer, Long> memos) {
+        if (city == destination) {
+            return 1;
+        } else if (visited[city]) {
+            return -2;
+        } else if (memos.containsKey(city)) {
+            return memos.get(city);
+        }
+
+        visited[city] = true;
+
+        long total = 0;
+        boolean looped = false;
+        for (int next : adjacency.get(city)) {
+            long temp = countPaths(next, destination, adjacency, visited, memos);
+            if (temp == -1) {
+                return -1;
+            } else if (temp == -2) {
+                looped = true;
+            } else {
+                total = (total + temp) % MODULUS;
+            }
+
+            if (looped && total > 0) {
+                return -1;
+            }
+        }
+
+        visited[city] = false;
+        memos.put(city, total);
+
+        return total;
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+
+        String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+
+        int nodes = Integer.parseInt(firstMultipleInput[0]);
+
+        int m = Integer.parseInt(firstMultipleInput[1]);
+
+        List<List<Integer>> edges = new ArrayList<>();
+
+        IntStream.range(0, m).forEach(i -> {
+            try {
+                edges.add(
+                        Stream.of(bufferedReader.readLine().replaceAll("\\s+$", "").split(" "))
+                                .map(Integer::parseInt)
+                                .collect(toList())
+                );
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        Result.countPaths(nodes, edges);
+
+        bufferedReader.close();
+    }
+}
