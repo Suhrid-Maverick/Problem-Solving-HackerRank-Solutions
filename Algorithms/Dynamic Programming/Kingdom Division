@@ -1,0 +1,129 @@
+import java.util.*;
+import java.io.*;
+
+public class Solution {
+
+    static final int MOD = 1_000_000_007;
+
+    static BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
+
+    public static void main(String args[]) throws IOException {
+        int n = Integer.parseInt(reader.readLine());
+        Node[] nodes = new Node[n];
+        for (int e = 1; e < n; e++) {
+            int[] edge = Arrays.stream(reader.readLine().split(" ")).mapToInt(Integer::parseInt).toArray();
+            int u = edge[0];
+            int v = edge[1];
+            if (nodes[u - 1] == null) {
+                nodes[u - 1] = new Node(u);
+            }
+            if (nodes[v - 1] == null) {
+                nodes[v - 1] = new Node(v);
+            }
+            nodes[u - 1].add(nodes[v - 1]);
+            nodes[v - 1].add(nodes[u - 1]);
+        }
+        System.out.println(Solution.solve(nodes[0]));
+    }
+
+    static long solve(Node root) {
+        LinkedList<Node> stack = new LinkedList<>();
+        stack.add(0, root);
+        while (!stack.isEmpty()) {
+            stack.peek().checkChild();
+            if (stack.peek().isLeaf() || stack.peek().peekChild().hasWeight()) {
+                stack.poll().computeWeight();
+                continue;
+            }
+            stack.add(0, stack.peek().nextChild());
+        }
+        return root.getWeight();
+    }
+
+    static class Node {
+        Queue<Node> children;
+        long color;
+        long label;
+        Node parent;
+
+        public Node(int label) {
+            this.label = label;
+            this.parent = null;
+            this.children = new LinkedList<>();
+            this.color = -1;
+        }
+
+        private long colorCombos() {
+            if (this.isLeaf()) {
+                return 1;
+            }
+            long colorCombos = 1;
+            for (Node child : this.children) {
+                long childCombos = (child.isLeaf()) ? child.color : child.getWeight();
+                childCombos = (childCombos + child.negCombos()) % Solution.MOD;
+                colorCombos = (colorCombos * childCombos) % Solution.MOD;
+            }
+            return colorCombos;
+        }
+
+        private long negCombos() {
+            if (this.isLeaf()) {
+                return 0;
+            }
+            long negCombos = 1;
+            for (Node child : this.children) {
+                if (child.isLeaf()) {
+                    return 0;
+                }
+                negCombos = (negCombos * child.color) % Solution.MOD;
+            }
+            return negCombos;
+        }
+
+        public void add(Node child) {
+            this.children.add(child);
+        }
+
+        public void checkChild() {
+            if (!this.isLeaf() && this.children.peek() == this.parent) {
+                this.children.poll();
+            }
+            if (!this.isLeaf()) {
+                this.children.peek().parent = this;
+            }
+        }
+
+        public void computeWeight() {
+            long colorCombos = this.colorCombos();
+            long negCombos = this.negCombos();
+            this.color = (colorCombos >= negCombos) ? colorCombos - negCombos : colorCombos + Solution.MOD - negCombos;
+        }
+
+        public long getWeight() {
+            return (2 * this.color) % Solution.MOD;
+        }
+
+        public boolean hasWeight() {
+            return this.color != -1;
+        }
+
+        public boolean isLeaf() {
+            return this.children.isEmpty();
+        }
+
+        public Node nextChild() {
+            this.checkChild();
+            if (this.isLeaf()) {
+                return null;
+            }
+            Node child = this.children.poll();
+            this.children.add(child);
+            return child;
+        }
+
+        public Node peekChild() {
+            this.checkChild();
+            return (this.isLeaf()) ? null : this.children.peek();
+        }
+    }
+}
