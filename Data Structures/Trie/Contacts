@@ -1,0 +1,62 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class TrieNode {
+        Map<Character, TrieNode> children = new HashMap<>();
+        int count = 0;
+    }
+
+    public static List<Integer> contacts(List<List<String>> queries) {
+        TrieNode trie = new TrieNode();
+        List<Integer> result = new ArrayList<>();
+
+        for (List<String> query : queries) {
+            String operation = query.get(0);
+            String name = query.get(1);
+
+            if (operation.equals("add")) {
+                TrieNode cur = trie;
+                cur.count++;
+                for (char c : name.toCharArray()) {
+                    cur = cur.children.computeIfAbsent(c, k -> new TrieNode());
+                    cur.count++;
+                }
+            } else if (operation.equals("find")) {
+                TrieNode cur = trie;
+                for (char c : name.toCharArray()) {
+                    cur = cur.children.get(c);
+                    if (cur == null) break;
+                }
+                result.add(cur == null ? 0 : cur.count);
+            }
+        }
+
+        return result;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        int n = Integer.parseInt(br.readLine().trim());
+
+        List<List<String>> queries = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            String[] parts = br.readLine().trim().split(" ");
+            List<String> query = new ArrayList<>();
+            query.add(parts[0]);
+            query.add(parts[1]);
+            queries.add(query);
+        }
+
+        List<Integer> result = contacts(queries);
+        for (int v : result) {
+            sb.append(v).append("\n");
+        }
+        System.out.print(sb);
+
+        br.close();
+    }
+}
