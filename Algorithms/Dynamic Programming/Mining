@@ -1,0 +1,100 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static long chase2(long dpij0, long dpij1, long[][] cost, int j0, int j1) {
+        long l = j1 + 1;
+        long h = cost.length;
+        while (l < h) {
+            int m = (int) (l + h >> 1);
+            if (dpij0 + cost[j0][m] < dpij1 + cost[j1][m]) {
+                l = m + 1;
+            } else {
+                h = m;
+            }
+        }
+        return l;
+    }
+
+    static long mining(int k, int[] x, int[] w) {
+        long[][] cost = new long[x.length][x.length];
+        long[] dp1 = new long[x.length];
+        long[] dp2 = new long[x.length];
+        long sumi = 0;
+        long sumi2 = 0;
+        for (int i = 0; i < x.length; i++) {
+            int ki = i;
+            long sumk = sumi;
+            long sumk2 = sumi2;
+            long sumj = sumi;
+            long sumj2 = sumi2;
+            for (int j = i; j < x.length; j++) {
+                sumj += w[j];
+                sumj2 += (long) w[j] * x[j];
+                for (; ki < j && x[ki] - x[i] < x[j] - x[ki]; ki++) {
+                    sumk += w[ki];
+                    sumk2 += (long) w[ki] * x[ki];
+                }
+                cost[i][j] = sumk2 - sumi2 - (sumk - sumi) * x[i] + (sumj - sumk) * x[j] - sumj2 + sumk2;
+            }
+            sumi += w[i];
+            sumi2 += (long) w[i] * x[i];
+            dp1[i] = sumi * x[i] - sumi2;
+        }
+        int[] q = new int[x.length];
+        for (int i = 0; i < k - 1; i++) {
+            int hd = 0;
+            int tl = 0;
+            for (int j = 0; j < q.length; j++) {
+                while (hd + 1 < tl && dp1[q[hd]] + cost[q[hd]][j] > dp1[q[hd + 1]] + cost[q[hd + 1]][j]) {
+                    hd++;
+                }
+                dp2[j] = j != 0 ? dp1[q[hd]] + cost[q[hd]][j] : 0;
+                while (hd <= tl - 2 && chase2(dp1[q[tl - 2]], dp1[q[tl - 1]], cost, q[tl - 2],
+                    q[tl - 1]) > chase2(dp1[q[tl - 1]], dp1[j], cost, q[tl - 1], j)) {
+                    tl--;
+                }
+                q[tl++] = j;
+            }
+            long[] t = dp1;
+            dp1 = dp2;
+            dp2 = t;
+        }
+        long ans = Long.MAX_VALUE;
+        long sum = sumi;
+        long sum2 = sumi2;
+        sumi = sumi2 = 0;
+        for (int i = 0; i < x.length; i++) {
+            ans = Math.min(ans, dp1[i] + sum2 - sumi2 - (sum - sumi) * x[i]);
+            sumi += w[i];
+            sumi2 += (long) w[i] * x[i];
+        }
+        return ans;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        int[] x = new int[n];
+        int[] w = new int[n];
+        for (int i = 0; i < n; i++) {
+            st = new StringTokenizer(br.readLine());
+            x[i] = Integer.parseInt(st.nextToken());
+            w[i] = Integer.parseInt(st.nextToken());
+        }
+
+        long result = mining(k, x, w);
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
