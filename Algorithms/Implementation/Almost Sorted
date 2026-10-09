@@ -1,0 +1,70 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static boolean isSorted(int[] a) {
+        for (int i = 0; i < a.length - 1; i++) {
+            if (a[i] > a[i + 1]) return false;
+        }
+        return true;
+    }
+
+    static void swap(int[] a, int i, int j) {
+        int t = a[i];
+        a[i] = a[j];
+        a[j] = t;
+    }
+
+    static void reverse(int[] a, int i, int j) {
+        while (i < j) {
+            swap(a, i, j);
+            i++;
+            j--;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        int[] arr = new int[n];
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        for (int i = 0; i < n; i++) {
+            arr[i] = Integer.parseInt(st.nextToken());
+        }
+
+        if (isSorted(arr)) {
+            System.out.println("yes");
+            return;
+        }
+
+        int l = -1, r = -1;
+        for (int i = 0; i < n - 1; i++) {
+            if (arr[i] > arr[i + 1]) {
+                if (l == -1) l = i;
+                r = i + 1;
+            }
+        }
+
+        // Try swapping the first and last out-of-order elements
+        int[] copy = arr.clone();
+        swap(copy, l, r);
+        if (isSorted(copy)) {
+            System.out.println("yes");
+            System.out.println("swap " + (l + 1) + " " + (r + 1));
+            return;
+        }
+
+        // Try reversing the segment between them
+        copy = arr.clone();
+        reverse(copy, l, r);
+        if (isSorted(copy)) {
+            System.out.println("yes");
+            System.out.println("reverse " + (l + 1) + " " + (r + 1));
+            return;
+        }
+
+        System.out.println("no");
+    }
+}
