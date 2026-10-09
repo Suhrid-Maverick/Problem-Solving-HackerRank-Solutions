@@ -1,0 +1,106 @@
+import java.util.*;
+import java.io.*;
+public class Solution {
+    public static void main(String args[])
+    {
+        new Solution();
+    }
+    
+    HashMap<Integer, Integer> sgnums;
+    ArrayList<ArrayList<Integer>> groups[][];
+     public Solution()
+    {
+         groups = new ArrayList[55][55];
+         sgnums = new HashMap();
+         sgnums.put(0, 0);
+         sgnums.put(1, 0);
+         sgnums.put(2, 0);
+         Scanner sc = new Scanner(System.in);
+        
+        int n = new Integer(sc.nextLine());
+        for(int c = 0; c < n; c++)
+        {
+            sc.nextLine();
+            String[] info = sc.nextLine().split(" ");
+            ArrayList<Integer> position = new ArrayList();
+            for(String s: info)
+            {
+                int pile = new Integer(s);
+                if(pile >= 3)
+                    position.add(pile);
+            }
+            if(sg(position) != 0)
+                System.out.println("ALICE");
+            else
+                System.out.println("BOB");
+        }
+    }
+     
+     public int sg(ArrayList<Integer> arr)
+     {
+         int ret = 0;
+         for(Integer i: arr)
+         {
+             ret ^= sg(i);
+         }
+         return ret;
+     }
+     
+     public int sg(int n)
+     {
+         Integer ret = sgnums.get(n);
+         if(ret != null)
+             return ret;
+         
+         ArrayList<ArrayList<Integer>> groups = groups(1, n);
+         HashSet<Integer> mex = new HashSet();
+         for(ArrayList<Integer> arr: groups)
+         {
+             if(arr.size() > 1)
+                 mex.add(sg(arr));
+         }
+         for(int i = 0; ;i++)
+         {
+             if(!mex.contains(i))
+             {
+                 sgnums.put(n, i);
+                 return i;
+             }
+         }
+     }
+     
+     public ArrayList<ArrayList<Integer>> groups(int startFrom, int target)
+     {
+         if(target == 0)
+         {
+             ArrayList<ArrayList<Integer>> ret = new ArrayList<ArrayList<Integer>>();
+             ret.add(new ArrayList());
+             return ret;
+         }
+         if(startFrom > target)
+             return new ArrayList<ArrayList<Integer>>();
+         if(target < 0)
+             return new ArrayList<ArrayList<Integer>>();
+             
+         if(groups[startFrom][target] != null)
+             return groups[startFrom][target];
+         ArrayList<ArrayList<Integer>> ret = new ArrayList();         
+         ArrayList<ArrayList<Integer>> take = groups(startFrom+1, target-startFrom);
+         for(ArrayList<Integer> arr: take)
+         {
+             ArrayList<Integer> addArr = (ArrayList<Integer>) arr.clone();
+             addArr.add(startFrom);
+             ret.add(addArr);
+         }
+         
+        ArrayList<ArrayList<Integer>> notake = groups(startFrom+1, target);
+        for(ArrayList<Integer> arr: notake)
+         {
+            ArrayList<Integer> addArr = (ArrayList<Integer>) arr.clone();
+             ret.add(addArr);
+         }
+         
+         groups[startFrom][target] = ret;
+         return ret;
+     }
+}
