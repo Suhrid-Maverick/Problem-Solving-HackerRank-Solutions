@@ -1,0 +1,21 @@
+import java.util.*;
+
+public class Solution {
+
+    public static int maximizingXor(int l, int r) {
+        int xor = l ^ r;
+        int mask = 1;
+        while (mask <= xor) {
+            mask <<= 1;
+        }
+        return mask - 1;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int l = sc.nextInt();
+        int r = sc.nextInt();
+        System.out.println(maximizingXor(l, r));
+        sc.close();
+    }
+}
