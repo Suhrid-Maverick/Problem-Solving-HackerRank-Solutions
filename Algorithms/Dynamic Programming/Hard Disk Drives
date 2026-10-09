@@ -1,0 +1,189 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Pll {
+        long fi;
+        long se;
+
+        Pll(long fi, long se) {
+            this.fi = fi;
+            this.se = se;
+        }
+
+        Pll() {
+        }
+    }
+
+    static long[] xs;
+
+    static int lowerBound(long[] arr, long key) {
+        if (key <= arr[0]) {
+            return 0;
+        }
+        if (key > arr[arr.length - 1]) {
+            return 0;
+        }
+
+        int index = Arrays.binarySearch(arr, 0, arr.length, key);
+        if (index < 0) {
+            index = -index - 1;
+            if (index < 0) {
+                return 0;
+            }
+        }
+        while (index > 0 && arr[index - 1] == key) {
+            index--;
+        }
+        return index;
+    }
+
+    static int allo;
+    static long[] segFi;
+    static long[] segSe;
+    static int[] child0;
+    static int[] child1;
+    static long x;
+    static long xx;
+
+    static void insert(int r, int rt, long l, long h) {
+        long m = l + h >> 1;
+        segFi[r] = segFi[rt] + 1;
+        segSe[r] = segSe[rt] + xx;
+        if (l < h - 1) {
+            if (x < m) {
+                child1[r] = child1[rt];
+                child0[r] = allo++;
+                insert(child0[r], child0[rt], l, m);
+            } else {
+                child0[r] = child0[rt];
+                child1[r] = allo++;
+                insert(child1[r], child1[rt], m, h);
+            }
+        }
+    }
+
+    static long[] prefix;
+    static int[] root;
+
+    static long query(int l, int h) {
+        long r = prefix[2 * h] - prefix[2 * l];
+        int rt0 = root[2 * l];
+        int rt1 = root[2 * h];
+        int k = h - l;
+        l = 0;
+        h = xs.length;
+        while (k != 0 && l < h - 1) {
+            int m = l + h >> 1;
+            long t = segFi[child0[rt1]] - segFi[child0[rt0]];
+            if (k < t) {
+                h = m;
+                rt0 = child0[rt0];
+                rt1 = child0[rt1];
+            } else {
+                k -= t;
+                r -= (segSe[child0[rt1]] - segSe[child0[rt0]]) * 2;
+                l = m;
+                rt0 = child1[rt0];
+                rt1 = child1[rt1];
+            }
+        }
+        if (k != 0) {
+            r -= segSe[rt1] / segFi[rt1] * k * 2;
+        }
+        return r;
+    }
+
+    static long[] dp;
+    static long[] dp0;
+
+    static void conquer(int l, int h, int jl, long jh) {
+        if (l >= h) return;
+        int m = l + h >> 1;
+        long opt = Long.MAX_VALUE;
+        int optj = jl;
+        for (int j = jl; j < Math.min(jh, m); j++) {
+            if (dp[j] < Long.MAX_VALUE) {
+                long t = dp[j] + query(j, m);
+                if (t < opt) {
+                    opt = t;
+                    optj = j;
+                }
+            }
+        }
+        dp0[m] = opt;
+        conquer(l, m, jl, optj + 1);
+        conquer(m + 1, h, optj, jh);
+    }
+
+    static int N = 100000;
+    static int LOGN = 63 - Long.numberOfLeadingZeros(N - 1) + 1;
+    static int V = 4 * (LOGN + 1);
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        Pll[] a = new Pll[n];
+        xs = new long[2 * n];
+        for (int i = 0; i < n; i++) {
+            st = new StringTokenizer(br.readLine());
+            int fi = Integer.parseInt(st.nextToken());
+            int se = Integer.parseInt(st.nextToken());
+            a[i] = new Pll(fi, se);
+
+            xs[2 * i] = fi;
+            xs[2 * i + 1] = se;
+        }
+
+        Arrays.sort(a, (u, v) -> {
+            return (int) ((u.fi + u.se) - (v.fi + v.se));
+        });
+
+        prefix = new long[2 * n + 1];
+        for (int i = 0; i < n; i++) {
+            prefix[2 * i + 1] = prefix[2 * i] + a[i].fi;
+            prefix[2 * i + 2] = prefix[2 * i + 1] + a[i].se;
+        }
+        Arrays.sort(xs);
+
+        segFi = new long[2 * n * V];
+        segSe = new long[2 * n * V];
+
+        child0 = new int[2 * n * V];
+        child1 = new int[2 * n * V];
+        root = new int[2 * n + 1];
+        allo = 1;
+        for (int i = 0; i < n; i++) {
+            root[2 * i + 1] = allo++;
+            x = lowerBound(xs, a[i].fi);
+            xx = a[i].fi;
+            insert(root[2 * i + 1], root[2 * i], 0, 2 * n);
+
+            root[2 * i + 2] = allo++;
+            x = lowerBound(xs, a[i].se);
+            xx = a[i].se;
+            insert(root[2 * i + 2], root[2 * i + 1], 0, 2 * n);
+        }
+
+        dp = new long[n + 1];
+        dp0 = new long[n + 1];
+        Arrays.fill(dp, Long.MAX_VALUE);
+        dp[0] = 0;
+        for (int i = 0; i < k; i++) {
+            conquer(1, n + 1, 0, n);
+            System.arraycopy(dp0, 1, dp, 1, n);
+        }
+
+        bw.write(String.valueOf(dp[n]));
+
+        bw.newLine();
+        bw.close();
+        br.close();
+    }
+}
