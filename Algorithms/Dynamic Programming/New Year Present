@@ -1,0 +1,164 @@
+import java.io.*;
+import java.math.*;
+import java.security.*;
+import java.text.*;
+import java.util.*;
+import java.util.concurrent.*;
+import java.util.function.*;
+import java.util.regex.*;
+import java.util.stream.*;
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
+
+public class Solution {
+
+    public static void main(String[] args) {
+        Scanner s = new Scanner(System.in);
+        int N = s.nextInt();
+        int R = 10000001;
+        int[] lenM = new int[R];
+
+        for (int i = 0; i < N; i++) {
+            int it = s.nextInt();
+            lenM[it]++;
+        }
+
+        Node[] nodes = new Node[R];
+        Node[] nodes1 = new Node[R];
+        int nodeLen = 0;
+        int[] vi = new int[R];
+
+        for (int i = 0; i < lenM.length; i++) {
+            if (lenM[i] >= 1) {
+                Node node = new Node(i, lenM[i]);
+                vi[i] = nodeLen;
+                nodes[nodeLen++] = node;
+                nodes1[i] = node;
+            }
+        }
+
+        int last = 0, v;
+        for (int i = R - 1; i >= 0; i--) {
+            v = vi[i];
+            if (v == 0) {
+                vi[i] = last;
+            } else {
+                last = vi[i];
+            }
+        }
+
+        int max = nodes[nodeLen - 1].v;
+        long[] cnTwo = new long[R];
+        long[] cnThree = new long[R];
+        for (int i = 2; i < R; i++) {
+            cnTwo[i] = (long) i * (i - 1) / 2;
+            cnThree[i] = cnTwo[i] * (i - 2) / 3;
+        }
+
+        int[] td = new int[R];
+
+        long ways = 0;
+        for (int i = 0; i < nodeLen; i++) {
+            Node n1 = nodes[i];
+            Node n2, n3, n4;
+            int ind;
+
+            if (n1.num >= 3) {
+                ind = n1.v * 3;
+                if (ind <= max) {
+                    n3 = nodes1[ind];
+                    if (n3 != null) {
+                        ways += (long) cnThree[n1.num] * cnThree[n3.num];
+                    }
+                }
+            }
+
+            for (int j = i + 1; j < nodeLen - 1; j++) {
+                n2 = nodes[j];
+
+                ind = n1.v * 2 + n2.v;
+                if (ind <= max) {
+                    n3 = nodes1[ind];
+                    if (n3 != null) {
+                        ways += (long) cnTwo[n1.num] * n2.num * cnThree[n3.num];
+                    }
+                }
+
+                ind = n1.v + n2.v * 2;
+                if (ind <= max) {
+                    n3 = nodes1[ind];
+                    if (n3 != null) {
+                        ways += (long) n1.num * cnTwo[n2.num] * cnThree[n3.num];
+                    }
+                }
+
+                ind = n1.v + n2.v;
+                if (ind <= max) {
+                    n3 = nodes1[ind];
+                    if (n3 != null) {
+                        ways += (long) td[ind] * n1.num * n2.num * cnTwo[n3.num];
+                        ways += (long) cnTwo[n1.num] * cnTwo[n2.num] * cnTwo[n3.num];
+                        td[ind] += n1.num * n2.num;
+                    }
+                } else {
+                    break;
+                }
+
+                int k = j + 1;
+                n3 = nodes[k];
+
+                ind = n1.v + n2.v + n3.v;
+                if (ind > max)
+                    continue;
+
+                int L = vi[ind];
+                for (; L < nodeLen; L++) {
+                    n4 = nodes[L];
+                    int idx3 = n4.v - n1.v - n2.v;
+                    n3 = nodes1[idx3];
+                    if (n3 != null) {
+                        ways += (long) n1.num * n2.num * n3.num * cnThree[n4.num];
+                    }
+                }
+            }
+        }
+
+        for (int i = 0; i < nodeLen; i++) {
+            Node n1 = nodes[i];
+            Node n3;
+            int idx = n1.v * 2;
+            if (idx <= max) {
+                n3 = nodes1[idx];
+                if (n3 != null) {
+                    ways += (long) td[n3.v] * cnTwo[n1.num] * cnTwo[n3.num];
+                    if (n1.num >= 4)
+                        ways += (long) n1.num * (n1.num - 1) * (n1.num - 2) * (n1.num - 3) / 24 * cnTwo[n3.num];
+                }
+            } else {
+                break;
+            }
+        }
+
+        System.out.println(ways);
+        s.close();
+    }
+
+    public static class Node implements Comparable<Node> {
+        private int v;
+        private int num;
+
+        public Node(int v, int num) {
+            this.v = v;
+            this.num = num;
+        }
+
+        public Node(int v) {
+            this.v = v;
+        }
+
+        @Override
+        public int compareTo(Node o) {
+            return this.v < o.v ? -1 : (this.v == o.v ? 0 : 1);
+        }
+    }
+}
