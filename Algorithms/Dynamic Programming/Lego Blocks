@@ -1,0 +1,71 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    private static final int MOD = 1_000_000_007;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        int[][] queries = new int[t][2];
+        int maxM = 0;
+
+        for (int i = 0; i < t; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            int n = Integer.parseInt(st.nextToken());
+            int m = Integer.parseInt(st.nextToken());
+            queries[i][0] = n;
+            queries[i][1] = m;
+            if (m > maxM) maxM = m;
+        }
+
+        long[] rowWays = new long[maxM + 1];
+        rowWays[0] = 1;
+        for (int i = 1; i <= maxM; i++) {
+            long sum = 0;
+            for (int j = 1; j <= 4 && j <= i; j++) {
+                sum += rowWays[i - j];
+            }
+            rowWays[i] = sum % MOD;
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int[] q : queries) {
+            int n = q[0];
+            int m = q[1];
+
+            long[] powRow = new long[m + 1];
+            for (int i = 0; i <= m; i++) {
+                powRow[i] = modPow(rowWays[i], n);
+            }
+
+            long[] dp = new long[m + 1];
+            for (int i = 1; i <= m; i++) {
+                long val = powRow[i];
+                for (int j = 1; j < i; j++) {
+                    val -= dp[j] * powRow[i - j] % MOD;
+                    if (val < 0) val += MOD;
+                }
+                dp[i] = val % MOD;
+            }
+
+            sb.append(dp[m]).append('\n');
+        }
+
+        System.out.print(sb);
+    }
+
+    private static long modPow(long base, int exp) {
+        long res = 1;
+        base %= MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) {
+                res = res * base % MOD;
+            }
+            base = base * base % MOD;
+            exp >>= 1;
+        }
+        return res;
+    }
+}
