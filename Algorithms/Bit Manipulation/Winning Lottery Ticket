@@ -1,0 +1,37 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        
+        int[] freq = new int[1 << 10];
+        final int FULL = (1 << 10) - 1;
+        
+        for (int i = 0; i < n; i++) {
+            String s = br.readLine().trim();
+            int mask = 0;
+            for (int j = 0; j < s.length(); j++) {
+                mask |= 1 << (s.charAt(j) - '0');
+            }
+            freq[mask]++;
+        }
+        
+        long ans = 0;
+        for (int i = 1; i <= FULL; i++) {
+            if (freq[i] == 0) continue;
+            for (int j = i; j <= FULL; j++) {
+                if ((i | j) == FULL) {
+                    if (i == j) {
+                        ans += (long) freq[i] * (freq[i] - 1) / 2;
+                    } else {
+                        ans += (long) freq[i] * freq[j];
+                    }
+                }
+            }
+        }
+        
+        System.out.println(ans);
+    }
+}
