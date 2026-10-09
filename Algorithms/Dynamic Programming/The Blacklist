@@ -1,0 +1,67 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int INF = Integer.MAX_VALUE / 10;
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int k = Integer.parseInt(st.nextToken());
+
+        // prefix[h][i] = sum of amounts[h][0..i-1]
+        int[][] prefix = new int[k][n + 1];
+        for (int h = 0; h < k; h++) {
+            st = new StringTokenizer(br.readLine());
+            int s = 0;
+            for (int j = 0; j < n; j++) {
+                s += Integer.parseInt(st.nextToken());
+                prefix[h][j + 1] = s;
+            }
+        }
+
+        int maskMax = 1 << k;               // was 2 << k; using bit i for hitman i
+        int[][] dp = new int[maskMax][n + 1];
+        for (int i = 0; i < maskMax; i++) {
+            Arrays.fill(dp[i], INF);
+        }
+        dp[0][0] = 0;
+
+        for (int mask = 0; mask < maskMax; mask++) {
+            int[] dpMask = dp[mask];
+            for (int h = 0; h < k; h++) {
+                int bit = 1 << h;
+                if ((mask & bit) != 0) continue;
+                int newMask = mask | bit;
+                int[] dpNew = dp[newMask];
+                int[] pre = prefix[h];
+                for (int pos = 0; pos < n; pos++) {
+                    int cur = dpMask[pos];
+                    if (cur >= INF) continue;
+                    int base = cur - pre[pos];
+                    for (int end = pos + 1; end <= n; end++) {
+                        int cand = base + pre[end];
+                        if (cand < dpNew[end]) {
+                            dpNew[end] = cand;
+                        }
+                    }
+                }
+            }
+        }
+
+        int result = INF;
+        for (int i = 0; i < maskMax; i++) {
+            if (dp[i][n] < result) result = dp[i][n];
+        }
+
+        bw.write(String.valueOf(result));
+        bw.newLine();
+
+        bw.close();
+        br.close();
+    }
+}
