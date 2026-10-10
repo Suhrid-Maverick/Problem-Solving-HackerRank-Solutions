@@ -1,0 +1,327 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    static final int mod = 1000000007;
+    static ArrayList<Integer>[] myvector;
+    static int N, Q, U;
+    static int[] parent, depth;
+    static long R, Rinv;
+    static long[] Rp, sum;
+    static int[] store;
+    static int[][] Root;
+
+    static class Node {
+        long S, D, B, factD, factB, addB;
+    }
+
+    static Node[] fwd, bck;
+    static Node A = new Node(), B = new Node();
+
+    // Mimics the C++ operator+ (saturating subtract once, matching original)
+    static Node add(Node x, Node y) {
+        Node r = new Node();
+        r.S     = x.S + y.S;         if (r.S     > mod) r.S     -= mod;
+        r.D     = x.D + y.D;         if (r.D     > mod) r.D     -= mod;
+        r.B     = x.B + y.B;         if (r.B     > mod) r.B     -= mod;
+        r.factD = x.factD + y.factD; if (r.factD > mod) r.factD -= mod;
+        r.factB = x.factB + y.factB; if (r.factB > mod) r.factB -= mod;
+        r.addB  = x.addB + y.addB;   if (r.addB  > mod) r.addB  -= mod;
+        return r;
+    }
+
+    static long inverse(long a, long b) {
+        long Remainder, p0 = 0, p1 = 1, pcurr = 1, q, m = b;
+        while (a != 0) {
+            Remainder = b % a;
+            q = b / a;
+            if (Remainder != 0) {
+                pcurr = p0 - (p1 * q) % m;
+                if (pcurr < 0) pcurr += m;
+                p0 = p1;
+                p1 = pcurr;
+            }
+            b = a;
+            a = Remainder;
+        }
+        return pcurr;
+    }
+
+    static void dfs_pre(int root) {
+        parent[root] = root;
+        depth[root] = 0;
+        int[] stack = new int[N + 1];
+        int top = 0;
+        stack[top++] = root;
+        while (top > 0) {
+            int u = stack[--top];
+            for (int v : myvector[u]) {
+                if (v == parent[u]) continue;
+                parent[v] = u;
+                depth[v] = depth[u] + 1;
+                stack[top++] = v;
+            }
+        }
+    }
+
+    static void dfs_cal(int root) {
+        // Iterative post-order traversal
+        int[] stack = new int[N + 1];
+        int[] state = new int[N + 1];
+        int top = 0;
+        stack[top++] = root;
+        while (top > 0) {
+            int u = stack[top - 1];
+            if (state[u] == 0) {
+                state[u] = 1;
+                for (int v : myvector[u]) {
+                    if (v == parent[u]) continue;
+                    stack[top++] = v;
+                }
+            } else {
+                top--;
+                long s  = fwd[u].S,     d  = fwd[u].D,     b  = fwd[u].B;
+                long fd = fwd[u].factD, fb = fwd[u].factB, ab = fwd[u].addB;
+                long bs = bck[u].S,     bd = bck[u].D,     bb = bck[u].B;
+                long bfd = bck[u].factD, bfb = bck[u].factB, bab = bck[u].addB;
+
+                for (int v : myvector[u]) {
+                    if (v == parent[u]) continue;
+                    // forward contributions (R scaled)
+                    s  = (s  + fwd[v].S * R) % mod;
+                    d  = (d  + (fwd[v].D + fwd[v].factD) * R) % mod;
+                    fd = (fd + fwd[v].factD * R) % mod;
+                    b  = (b  + (fwd[v].B + fwd[v].factB) * R) % mod;
+                    fb = (fb + (fwd[v].factB + fwd[v].addB) * R) % mod;
+                    ab = (ab + fwd[v].addB * R) % mod;
+
+                    // backward contributions (Rinv scaled)
+                    bs  = (bck[v].S * Rinv + bs) % mod;
+                    bd  = (bd  + (bck[v].D - bck[v].factD) * Rinv) % mod;
+                    if (bd < 0) bd += mod;
+                    bfd = (bfd + bck[v].factD * Rinv) % mod;
+                    bb  = (bb  + (bck[v].B - bck[v].factB) * Rinv) % mod;
+                    if (bb < 0) bb += mod;
+                    bfb = (bfb + (bck[v].factB - bck[v].addB) * Rinv) % mod;
+                    if (bfb < 0) bfb += mod;
+                    bab = (bab + bck[v].addB * Rinv) % mod;
+                }
+
+                Node nu = new Node();
+                nu.S = s; nu.D = d; nu.B = b;
+                nu.factD = fd; nu.factB = fb; nu.addB = ab;
+                fwd[u] = nu;
+
+                Node nv = new Node();
+                nv.S = bs; nv.D = bd; nv.B = bb;
+                nv.factD = bfd; nv.factB = bfb; nv.addB = bab;
+                bck[u] = nv;
+
+                sum[u] = (sum[u] + s + d + b + bs + bd + bb) % mod;
+            }
+        }
+    }
+
+    static void dfs_sum(int root) {
+        int[] stack = new int[N + 1];
+        int top = 0;
+        stack[top++] = root;
+        while (top > 0) {
+            int u = stack[--top];
+            for (int v : myvector[u]) {
+                if (v == parent[u]) continue;
+                sum[v] = (sum[v] + sum[u]) % mod;
+                stack[top++] = v;
+            }
+        }
+    }
+
+    static void init() {
+        store = new int[100001];
+        store[0] = 0; store[1] = 0; store[2] = 1;
+        int cmp = 4;
+        for (int i = 3; i <= 100000; i++) {
+            if (cmp > i) {
+                store[i] = store[i - 1];
+            } else {
+                store[i] = store[i - 1] + 1;
+                cmp <<= 1;
+            }
+        }
+    }
+
+    static void process(int n) {
+        Root = new int[n + 1][18];
+        for (int[] row : Root) Arrays.fill(row, -1);
+        for (int i = 1; i <= n; i++) Root[i][0] = parent[i];
+        for (int i = 1; (1 << i) <= n; i++)
+            for (int j = 1; j <= n; j++)
+                if (Root[j][i - 1] != -1)
+                    Root[j][i] = Root[Root[j][i - 1]][i - 1];
+    }
+
+    static int lca(int p, int q) {
+        if (depth[p] > depth[q]) { int t = p; p = q; q = t; }
+        int steps = store[depth[q]];
+        for (int i = steps; i >= 0; i--)
+            if (depth[q] - (1 << i) >= depth[p])
+                q = Root[q][i];
+        if (p == q) return p;
+        for (int i = steps; i >= 0; i--) {
+            if (Root[p][i] != Root[q][i]) {
+                p = Root[p][i];
+                q = Root[q][i];
+            }
+        }
+        return parent[p];
+    }
+
+    static void updateForward(long S, long D, long B1, long t, int x, int y) {
+        long brt;
+        A.S = S;
+        B.S = mod - (S * Rp[(int) t]) % mod;
+        A.factD = D;
+        A.D = 0;
+        B.factD = mod - (D * Rp[(int) t]) % mod;
+        if (B.factD < 0) B.factD += mod;
+        B.D = (B.factD * t) % mod;
+        brt = B1;
+        A.B = 0;
+        A.factB = brt;
+        if (A.factB < 0) A.factB += mod;
+        A.addB = (brt + brt) % mod;
+        brt = mod - (B1 * Rp[(int) t]) % mod;
+        if (brt < 0) brt += mod;
+        B.B     = ((t * t) % mod * brt) % mod;
+        B.factB = ((2 * t + 1) * brt) % mod;
+        B.addB  = (brt + brt) % mod;
+        fwd[x] = add(fwd[x], A);
+        if (y != 1) fwd[parent[y]] = add(fwd[parent[y]], B);
+    }
+
+    static void updateBackward(long S, long D, long B1, long t, long g, int y, int x) {
+        long brt;
+        B.S = (S * Rp[(int) t]) % mod;
+        A.S = mod - (S * Rp[(int) g]) % mod;
+        B.factD = (D * Rp[(int) t]) % mod;
+        B.D = (t * B.factD) % mod;
+        A.factD = mod - (D * Rp[(int) g]) % mod;
+        A.D = (g * A.factD) % mod;
+        brt = (B1 * Rp[(int) t]) % mod;
+        B.addB = brt + brt;
+        if (B.addB >= mod) B.addB -= mod;
+        B.factB = ((2 * t - 1) * brt) % mod;
+        if (B.factB < 0) B.factB += mod;
+        B.B = ((t * t) % mod * brt) % mod;
+        brt = mod - (B1 * Rp[(int) g]) % mod;
+        if (brt < 0) brt += mod;
+        A.addB = brt + brt;
+        if (A.addB >= mod) A.addB -= mod;
+        A.factB = ((2 * g - 1) * brt) % mod;
+        if (A.factB < 0) A.factB += mod;
+        A.B = ((g * g) % mod * brt) % mod;
+        bck[y] = add(bck[y], B);
+        bck[x] = add(bck[x], A);
+    }
+
+    public static void main(String[] args) throws Exception {
+        // Large stack for deep DFS
+        Thread th = new Thread(null, Main::solve, "main", 1 << 26);
+        th.start();
+        th.join();
+    }
+
+    @SuppressWarnings("unchecked")
+    static void solve() {
+        try {
+            FastScanner fs = new FastScanner();
+            init();
+
+            N = fs.nextInt();
+            R = fs.nextLong();
+            Rinv = inverse(R, mod);
+
+            myvector = new ArrayList[N + 1];
+            for (int i = 1; i <= N; i++) myvector[i] = new ArrayList<>();
+
+            for (int i = 1; i <= N - 1; i++) {
+                int x = fs.nextInt(), y = fs.nextInt();
+                myvector[x].add(y);
+                myvector[y].add(x);
+            }
+
+            parent = new int[N + 1];
+            depth  = new int[N + 1];
+            fwd = new Node[N + 1];
+            bck = new Node[N + 1];
+            for (int i = 1; i <= N; i++) { fwd[i] = new Node(); bck[i] = new Node(); }
+            sum = new long[N + 1];
+
+            dfs_pre(1);
+            process(N);
+
+            Rp = new long[N + 1];
+            Rp[0] = 1;
+            for (int i = 1; i <= N; i++) Rp[i] = Rp[i - 1] * R % mod;
+
+            U = fs.nextInt();
+            Q = fs.nextInt();
+
+            while (U-- > 0) {
+                int a1 = fs.nextInt(), d1 = fs.nextInt();
+                int a2 = fs.nextInt(), d2 = fs.nextInt();
+                int x  = fs.nextInt(), y  = fs.nextInt();
+
+                long S1 = ((long) a1 * a2) % mod;
+                long D1 = ((long) d1 * a2 + (long) d2 * a1) % mod;
+                long B1 = ((long) d1 * d2) % mod;
+
+                int anc = lca(x, y);
+
+                updateForward(S1, D1, B1,
+                        (long) (depth[x] - depth[anc] + 1), x, anc);
+                updateBackward(S1, D1, B1,
+                        (long) (depth[y] + depth[x] - 2 * depth[anc]),
+                        (long) (depth[x] - depth[anc]), y, anc);
+            }
+
+            dfs_cal(1);
+            dfs_sum(1);
+
+            StringBuilder sb = new StringBuilder();
+            while (Q-- > 0) {
+                int x = fs.nextInt(), y = fs.nextInt();
+                int anc = lca(x, y);
+                long ans;
+                if (anc != 1)
+                    ans = (sum[x] + sum[y] - sum[anc] - sum[parent[anc]]) % mod;
+                else
+                    ans = (sum[x] + sum[y] - sum[anc]) % mod;
+                if (ans < 0) sb.append(ans + mod).append('\n');
+                else         sb.append(ans).append('\n');
+            }
+            System.out.print(sb);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int  nextInt()  throws IOException { return Integer.parseInt(next()); }
+        long nextLong() throws IOException { return Long.parseLong(next()); }
+    }
+}
