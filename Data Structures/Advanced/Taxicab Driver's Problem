@@ -1,0 +1,238 @@
+import java.util.*;
+import java.io.*;
+
+public class Solution {
+    static long H_max, V_max;
+
+    static class Dist {
+        long h, v;
+        Dist(long h, long v) { this.h = h; this.v = v; }
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (!(o instanceof Dist)) return false;
+            Dist d = (Dist) o;
+            return h == d.h && v == d.v;
+        }
+        @Override
+        public int hashCode() {
+            return Objects.hash(h, v);
+        }
+    }
+
+    static void insortRight(List<Dist> arr, Dist dist, boolean hv) {
+        long key = hv ? dist.h : dist.v;
+        int lo = 0, hi = arr.size();
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            Dist midDist = arr.get(mid);
+            long midKey = hv ? midDist.h : midDist.v;
+            if (key < midKey) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        arr.add(lo, dist);
+    }
+
+    static int bisectRight(List<Dist> arr, long xKey, boolean hv) {
+        int lo = 0, hi = arr.size();
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            Dist midDist = arr.get(mid);
+            long midKey = hv ? midDist.h : midDist.v;
+            if (xKey < midKey) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        return lo;
+    }
+
+    static int bisectRightLong(List<Long> arr, long key) {
+        int lo = 0, hi = arr.size();
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (key < arr.get(mid)) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        return lo;
+    }
+
+    static void insortRightLong(List<Long> arr, long val) {
+        int idx = bisectRightLong(arr, val);
+        arr.add(idx, val);
+    }
+
+    static class DistsGroup {
+        long delta_h = 0, delta_v = 0;
+        List<Dist> dists_h_sorted = new ArrayList<>();
+        List<Dist> dists_v_sorted = new ArrayList<>();
+
+        DistsGroup() {
+            Dist d = new Dist(0, 0);
+            dists_h_sorted.add(d);
+            dists_v_sorted.add(d);
+        }
+
+        int append_dist(long h, long v, boolean append) {
+            delta_h += h;
+            delta_v += v;
+            Dist dist = new Dist(-delta_h, -delta_v);
+            if (append) {
+                insortRight(dists_h_sorted, dist, true);
+                insortRight(dists_v_sorted, dist, false);
+            }
+            int index_h = bisectRight(dists_h_sorted, H_max - delta_h, true);
+            List<Dist> toRemove = new ArrayList<>(
+                dists_h_sorted.subList(index_h, dists_h_sorted.size()));
+            dists_h_sorted.subList(index_h, dists_h_sorted.size()).clear();
+            for (Dist elem : toRemove) {
+                dists_v_sorted.remove(elem);
+            }
+            int index_v = bisectRight(dists_v_sorted, V_max - delta_v, false);
+            toRemove = new ArrayList<>(
+                dists_v_sorted.subList(index_v, dists_v_sorted.size()));
+            dists_v_sorted.subList(index_v, dists_v_sorted.size()).clear();
+            for (Dist elem : toRemove) {
+                dists_h_sorted.remove(elem);
+            }
+            if (append) {
+                return Math.max(0, dists_v_sorted.size() - 1);
+            }
+            return 0;
+        }
+
+        int append_group(DistsGroup other, long h, long v) {
+            int good_cross_paths = 0;
+            other.append_dist(h, v, false);
+            List<Dist> dists_h1 = this.dists_h_sorted;
+            long delta_h1 = this.delta_h;
+            long delta_v1 = this.delta_v;
+            List<Dist> dists_h2 = other.dists_h_sorted;
+            long delta_h2 = other.delta_h;
+            long delta_v2 = other.delta_v;
+            List<Long> dists_only_v2 = new ArrayList<>();
+            int dist_h2_index = 0;
+            int dist_h2_len = dists_h2.size();
+
+            if (dists_h1.size() > 0 && dists_h2.size() > 0
+                && this.dists_v_sorted.size() > 0
+                && other.dists_v_sorted.size() > 0
+                && dists_h1.get(dists_h1.size() - 1).h + delta_h1
+                   + dists_h2.get(dists_h2.size() - 1).h + delta_h2 < H_max
+                && this.dists_v_sorted.get(this.dists_v_sorted.size() - 1).v + delta_v1
+                   + other.dists_v_sorted.get(other.dists_v_sorted.size() - 1).v + delta_v2 < V_max) {
+                good_cross_paths += dists_h1.size() * dists_h2.size();
+            } else {
+                for (int i = dists_h1.size() - 1; i >= 0; i--) {
+                    Dist dist_h1 = dists_h1.get(i);
+                    long rest_h = H_max - (dist_h1.h + delta_h1);
+                    long rest_v = V_max - (dist_h1.v + delta_v1);
+                    while (dist_h2_index < dist_h2_len) {
+                        Dist dist_h2 = dists_h2.get(dist_h2_index);
+                        if (dist_h2.h + delta_h2 <= rest_h) {
+                            insortRightLong(dists_only_v2, dist_h2.v + delta_v2);
+                            dist_h2_index++;
+                        } else {
+                            break;
+                        }
+                    }
+                    good_cross_paths += bisectRightLong(dists_only_v2, rest_v);
+                }
+            }
+
+            for (Dist dist_h2 : dists_h2) {
+                Dist dist_new = new Dist(
+                    (dist_h2.h + delta_h2) - delta_h1,
+                    (dist_h2.v + delta_v2) - delta_v1);
+                this.dists_h_sorted.add(dist_new);
+                this.dists_v_sorted.add(dist_new);
+            }
+            Collections.sort(this.dists_h_sorted, (a, b) -> Long.compare(a.h, b.h));
+            Collections.sort(this.dists_v_sorted, (a, b) -> Long.compare(a.v, b.v));
+            return good_cross_paths;
+        }
+    }
+
+    static class Edge {
+        int to;
+        long dH, dV;
+        Edge(int to, long dH, long dV) {
+            this.to = to;
+            this.dH = dH;
+            this.dV = dV;
+        }
+    }
+
+    static class Junction {
+        long x, y;
+        List<Edge> edges = new ArrayList<>();
+        DistsGroup distsGroup;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int N = Integer.parseInt(st.nextToken());
+        H_max = Long.parseLong(st.nextToken());
+        V_max = Long.parseLong(st.nextToken());
+
+        Junction[] junctions = new Junction[N + 1];
+        for (int i = 1; i <= N; i++) junctions[i] = new Junction();
+
+        for (int i = 1; i <= N; i++) {
+            st = new StringTokenizer(br.readLine());
+            junctions[i].x = Long.parseLong(st.nextToken());
+            junctions[i].y = Long.parseLong(st.nextToken());
+        }
+
+        for (int i = 1; i < N; i++) {
+            st = new StringTokenizer(br.readLine());
+            int u = Integer.parseInt(st.nextToken());
+            int v = Integer.parseInt(st.nextToken());
+            long dH = Math.abs(junctions[u].x - junctions[v].x);
+            long dV = Math.abs(junctions[u].y - junctions[v].y);
+            junctions[u].edges.add(new Edge(v, dH, dV));
+            junctions[v].edges.add(new Edge(u, dH, dV));
+        }
+
+        Deque<Integer> oneEdgeQueue = new ArrayDeque<>();
+        for (int i = 1; i <= N; i++) {
+            if (junctions[i].edges.size() == 1) {
+                oneEdgeQueue.add(i);
+                junctions[i].distsGroup = new DistsGroup();
+            }
+        }
+
+        long good_paths = 0;
+        while (oneEdgeQueue.size() > 1) {
+            int junctionId = oneEdgeQueue.pollFirst();
+            Edge edgeToNext = junctions[junctionId].edges.get(0);
+            int nextJunctionId = edgeToNext.to;
+            if (junctions[nextJunctionId].distsGroup != null) {
+                good_paths += junctions[nextJunctionId].distsGroup.append_group(
+                    junctions[junctionId].distsGroup, edgeToNext.dH, edgeToNext.dV);
+            } else {
+                DistsGroup dg = junctions[junctionId].distsGroup;
+                good_paths += dg.append_dist(edgeToNext.dH, edgeToNext.dV, true);
+                junctions[nextJunctionId].distsGroup = dg;
+            }
+            Iterator<Edge> it = junctions[nextJunctionId].edges.iterator();
+            while (it.hasNext()) {
+                if (it.next().to == junctionId) { it.remove(); break; }
+            }
+            if (junctions[nextJunctionId].edges.size() == 1) {
+                oneEdgeQueue.add(nextJunctionId);
+            }
+        }
+
+        long totalPaths = (long) N * (N - 1) / 2;
+        System.out.println(totalPaths - good_paths);
+    }
+}
