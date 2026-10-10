@@ -1,0 +1,160 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int inf = 2100000000;
+    static final int base = 1 << 17;
+
+    static long[] sum = new long[base * 2];
+    static int[] vmin = new int[base * 2];
+    static int[] vmax = new int[base * 2];
+    static int[] add = new int[base * 2];
+
+    static long func(int p, int q) {
+        if (p >= 0) return p / q;
+        return -((-((long) p) + q - 1) / q);
+    }
+
+    static void update(int u) {
+        vmin[u] = Math.min(vmin[u * 2], vmin[u * 2 + 1]);
+        vmax[u] = Math.max(vmax[u * 2], vmax[u * 2 + 1]);
+        sum[u] = sum[u * 2] + sum[u * 2 + 1];
+    }
+
+    static void _put(int u, int val, int len) {
+        add[u] += val;
+        vmin[u] += val;
+        vmax[u] += val;
+        sum[u] += (long) val * len;
+    }
+
+    static void push(int u, int cl, int cr) {
+        if (add[u] != 0) {
+            int len = (cr - cl) / 2;
+            _put(u * 2, add[u], len);
+            _put(u * 2 + 1, add[u], len);
+            add[u] = 0;
+        }
+    }
+
+    static long getSum(int l, int r, int v, int cl, int cr) {
+        if (l <= cl && cr <= r) return sum[v];
+        if (r <= cl || cr <= l) return 0;
+        int cc = (cl + cr) / 2;
+        push(v, cl, cr);
+        return getSum(l, r, v * 2, cl, cc) + getSum(l, r, v * 2 + 1, cc, cr);
+    }
+
+    static int getMin(int l, int r, int v, int cl, int cr) {
+        if (l <= cl && cr <= r) return vmin[v];
+        if (r <= cl || cr <= l) return inf;
+        int cc = (cl + cr) / 2;
+        push(v, cl, cr);
+        return Math.min(getMin(l, r, v * 2, cl, cc), getMin(l, r, v * 2 + 1, cc, cr));
+    }
+
+    static void put(int l, int r, int delta, int v, int cl, int cr) {
+        if (l <= cl && cr <= r) {
+            _put(v, delta, cr - cl);
+            return;
+        }
+        if (r <= cl || cr <= l) return;
+        int cc = (cl + cr) / 2;
+        push(v, cl, cr);
+        put(l, r, delta, v * 2, cl, cc);
+        put(l, r, delta, v * 2 + 1, cc, cr);
+        update(v);
+    }
+
+    static void divide(int l, int r, int x, int v, int cl, int cr) {
+        if (x == 1) return;
+        if (l <= cl && cr <= r) {
+            int d1 = (int) (func(vmin[v], x) - vmin[v]);
+            int d2 = (int) (func(vmax[v], x) - vmax[v]);
+            if (d1 == d2) {
+                _put(v, d1, cr - cl);
+                return;
+            }
+        }
+        if (r <= cl || cr <= l) return;
+        int cc = (cl + cr) / 2;
+        push(v, cl, cr);
+        divide(l, r, x, v * 2, cl, cc);
+        divide(l, r, x, v * 2 + 1, cc, cr);
+        update(v);
+    }
+
+    static void build(int n) {
+        Arrays.fill(add, 0);
+        for (int i = n + base; i < 2 * base; ++i) {
+            sum[i] = 0;
+            vmin[i] = inf;
+            vmax[i] = -inf;
+        }
+        for (int i = base - 1; i > 0; --i) update(i);
+    }
+
+    static void run() throws IOException {
+        FastReader in = new FastReader(System.in);
+        int n = in.nextInt();
+        int q = in.nextInt();
+
+        for (int i = 0; i < n; i++) {
+            int a = in.nextInt();
+            sum[i + base] = a;
+            vmin[i + base] = a;
+            vmax[i + base] = a;
+        }
+        build(n);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < q; i++) {
+            int op = in.nextInt();
+            int l = in.nextInt() + 1;
+            int r = in.nextInt() + 1;
+            int x = 0;
+            if (op == 1 || op == 2) x = in.nextInt();
+            l--;
+            if (op == 1) put(l, r, x, 1, 0, base);
+            else if (op == 2) divide(l, r, x, 1, 0, base);
+            else if (op == 3) sb.append(getMin(l, r, 1, 0, base)).append('\n');
+            else if (op == 4) sb.append(getSum(l, r, 1, 0, base)).append('\n');
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { run(); } catch (Exception e) { e.printStackTrace(); }
+        }, "main", 1 << 26);
+        t.start();
+        t.join();
+    }
+
+    static class FastReader {
+        InputStream in;
+        byte[] buf = new byte[1 << 16];
+        int idx, len;
+
+        FastReader(InputStream in) { this.in = in; }
+
+        int read() throws IOException {
+            if (idx >= len) {
+                len = in.read(buf);
+                idx = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[idx++];
+        }
+
+        int nextInt() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            int val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+    }
+}
