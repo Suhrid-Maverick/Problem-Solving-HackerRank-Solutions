@@ -1,0 +1,528 @@
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+
+public class Main {
+    InputStream is;
+    PrintWriter out;
+    String INPUT = "";
+
+    void solve() {
+        int n = ni(), Q = ni();
+        int[] from = new int[n - 1];
+        int[] to = new int[n - 1];
+
+        for (int i = 0; i < n - 1; i++) {
+            from[i] = ni();
+            to[i] = ni();
+        }
+
+        int[][] g = packU(n, from, to);
+        int[][] pars = parents3(g, 0);
+        int[] par = pars[0], ord = pars[1], dep = pars[2];
+
+        HeavyLightDecomposition hld = new HeavyLightDecomposition(g, par, ord, dep);
+        SegmentTreeOverwriteRMQ[] sts = new SegmentTreeOverwriteRMQ[hld.m];
+
+        for (int i = 0; i < hld.m; i++) {
+            sts[i] = new SegmentTreeOverwriteRMQ(hld.cluspath[i].length);
+        }
+
+        outer:
+        for (int z = 0; z < Q; z++) {
+            int t = ni();
+            if (t == 1) {
+                int u = ni(), x = ni();
+                sts[hld.clus[u]].update(hld.clusiind[u], hld.clusiind[u] + 1, x);
+            } else {
+                int u = ni(), v = ni();
+                int max = 0;
+                int lca = hld.lca(u, v);
+                for (int x = u; ; ) {
+                    int cx = hld.clus[x];
+                    int l = cx == hld.clus[lca] ? hld.clusiind[lca] : 0;
+                    int r = hld.clusiind[x];
+
+                    max = Math.max(sts[cx].max(l, r + 1), max);
+
+                    if (cx == hld.clus[lca]) break;
+                    x = par[hld.cluspath[cx][0]];
+                }
+
+                for (int x = v; ; ) {
+                    int cx = hld.clus[x];
+                    int l = cx == hld.clus[lca] ? hld.clusiind[lca] : 0;
+                    int r = hld.clusiind[x];
+
+                    max = Math.max(sts[cx].max(l, r + 1), max);
+
+                    if (cx == hld.clus[lca]) break;
+                    x = par[hld.cluspath[cx][0]];
+                }
+
+                out.println(max);
+            }
+        }
+    }
+
+    public static class HeavyLightDecomposition {
+        public int[][] g;
+        public int[] clus;
+        public int[][] cluspath;
+        public int[] clusiind;
+        public int[] par, dep;
+        public int m;
+
+        public HeavyLightDecomposition(int[][] g, int[] par, int[] ord, int[] dep) {
+            init(g, par, ord, dep);
+        }
+
+        public void init(int[][] g, int[] par, int[] ord, int[] dep) {
+            clus = decomposeToHeavyLight(g, par, ord);
+            cluspath = clusPaths(clus, ord);
+            clusiind = clusIInd(cluspath, g.length);
+            this.m = cluspath.length;
+            this.par = par;
+            this.dep = dep;
+            this.g = g;
+        }
+
+        public static int[] decomposeToHeavyLight(int[][] g, int[] par, int[] ord) {
+            int n = g.length;
+            int[] size = new int[n];
+            Arrays.fill(size, 1);
+            for (int i = n - 1; i > 0; i--) size[par[ord[i]]] += size[ord[i]];
+
+            int[] clus = new int[n];
+            Arrays.fill(clus, -1);
+            int p = 0;
+            for (int i = 0; i < n; i++) {
+                int u = ord[i];
+                if (clus[u] == -1) clus[u] = p++;
+                int argmax = -1;
+                for (int v : g[u]) {
+                    if (par[u] != v && (argmax == -1 || size[v] > size[argmax])) argmax = v;
+                }
+                if (argmax != -1) clus[argmax] = clus[u];
+            }
+            return clus;
+        }
+
+        public static int[][] clusPaths(int[] clus, int[] ord) {
+            int n = clus.length;
+            int[] rp = new int[n];
+            int sup = 0;
+            for (int i = 0; i < n; i++) {
+                rp[clus[i]]++;
+                sup = Math.max(sup, clus[i]);
+            }
+            sup++;
+
+            int[][] row = new int[sup][];
+            for (int i = 0; i < sup; i++) row[i] = new int[rp[i]];
+
+            for (int i = n - 1; i >= 0; i--) {
+                row[clus[ord[i]]][--rp[clus[ord[i]]]] = ord[i];
+            }
+            return row;
+        }
+
+        public static int[] clusIInd(int[][] clusPath, int n) {
+            int[] iind = new int[n];
+            for (int[] path : clusPath) {
+                for (int i = 0; i < path.length; i++) {
+                    iind[path[i]] = i;
+                }
+            }
+            return iind;
+        }
+
+        public int lca(int x, int y) {
+            int rx = cluspath[clus[x]][0];
+            int ry = cluspath[clus[y]][0];
+            while (clus[x] != clus[y]) {
+                if (dep[rx] > dep[ry]) {
+                    x = par[rx];
+                    rx = cluspath[clus[x]][0];
+                } else {
+                    y = par[ry];
+                    ry = cluspath[clus[y]][0];
+                }
+            }
+            return clusiind[x] > clusiind[y] ? y : x;
+        }
+
+        public int ancestor(int x, int v) {
+            while (x != -1) {
+                if (v <= clusiind[x]) return cluspath[clus[x]][clusiind[x] - v];
+                v -= clusiind[x] + 1;
+                x = par[cluspath[clus[x]][0]];
+            }
+            return x;
+        }
+
+        public int[][] makeRights() {
+            int root = -1;
+            int n = g.length;
+            for (int i = 0; i < n; i++) if (par[i] == -1) root = i;
+
+            int[] ord = new int[n];
+            int[] right = new int[n];
+
+            int[] curs = new int[n];
+            int[] inds = new int[n];
+            int sp = 0, p = 0;
+            curs[sp++] = root;
+            while (sp > 0) {
+                int cur = curs[sp - 1];
+                int ind = inds[sp - 1];
+                inds[sp - 1]++;
+                if (ind == 0) {
+                    ord[p++] = cur;
+                    for (int e : g[cur]) {
+                        if (par[cur] == e) continue;
+                        if (clus[cur] == clus[e]) {
+                            curs[sp] = e;
+                            inds[sp] = 0;
+                            sp++;
+                            break;
+                        }
+                    }
+                } else if (ind - 1 < g[cur].length) {
+                    int e = g[cur][ind - 1];
+                    if (e == par[cur]) continue;
+                    if (clus[cur] == clus[e]) continue;
+                    curs[sp] = e;
+                    inds[sp] = 0;
+                    sp++;
+                } else {
+                    right[cur] = p;
+                    sp--;
+                }
+            }
+            int[] iord = new int[n];
+            for (int i = 0; i < n; i++) iord[ord[i]] = i;
+            return new int[][]{ord, iord, right};
+        }
+    }
+
+    public static class SegmentTreeOverwriteRMQ {
+        public int M, H, N;
+        public int[] st;
+        public int[] cover;
+        private int I = 0;
+
+        public SegmentTreeOverwriteRMQ(int n) {
+            N = n;
+            M = Integer.highestOneBit(Math.max(N - 1, 1)) << 2;
+            H = M >>> 1;
+            cover = new int[H];
+            Arrays.fill(cover, I);
+            st = new int[M];
+            Arrays.fill(st, I);
+            for (int i = 0; i < N; i++) {
+                st[H + i] = 0;
+            }
+            for (int i = H - 1; i >= 1; i--) {
+                propagate(i);
+            }
+        }
+
+        private void propagate(int i) {
+            if (cover[i] == I) {
+                st[i] = Math.max(st[2 * i], st[2 * i + 1]);
+            } else {
+                st[i] = cover[i];
+            }
+        }
+
+        public void update(int l, int r, int v) {
+            update(l, r, v, 0, H, 1);
+        }
+
+        private void update(int l, int r, int v, int cl, int cr, int cur) {
+            if (l <= cl && cr <= r) {
+                if (cr == cl + 1) {
+                    st[cur] = v;
+                } else {
+                    cover[cur] = v;
+                    propagate(cur);
+                }
+            } else {
+                int mid = cl + cr >>> 1;
+                boolean bp = false;
+                if (cover[cur] != I) {
+                    if (2 * cur >= H) {
+                        st[2 * cur] = st[2 * cur + 1] = cover[cur];
+                    } else {
+                        cover[2 * cur] = cover[2 * cur + 1] = cover[cur];
+                        bp = true;
+                    }
+                    cover[cur] = I;
+                }
+                if (cl < r && l < mid) {
+                    update(l, r, v, cl, mid, 2 * cur);
+                } else if (bp) {
+                    propagate(2 * cur);
+                }
+                if (mid < r && l < cr) {
+                    update(l, r, v, mid, cr, 2 * cur + 1);
+                } else if (bp) {
+                    propagate(2 * cur + 1);
+                }
+                propagate(cur);
+            }
+        }
+
+        public int max(int l, int r) {
+            return max(l, r, 0, H, 1);
+        }
+
+        private int max(int l, int r, int cl, int cr, int cur) {
+            if (l <= cl && cr <= r) {
+                return st[cur];
+            } else {
+                if (cover[cur] != I) return cover[cur];
+                int mid = cl + cr >>> 1;
+                int L = I, R = I;
+                if (cl < r && l < mid) {
+                    L = max(l, r, cl, mid, 2 * cur);
+                }
+                if (mid < r && l < cr) {
+                    R = max(l, r, mid, cr, 2 * cur + 1);
+                }
+                return Math.max(L, R);
+            }
+        }
+
+        public int[] toArray() {
+            return toArray(1, 0, H, new int[H]);
+        }
+
+        private int[] toArray(int cur, int l, int r, int[] ret) {
+            if (r - l == 1) {
+                ret[cur - H] = st[cur];
+            } else if (cover[cur] != I) {
+                Arrays.fill(ret, l, r, cover[cur]);
+            } else {
+                toArray(2 * cur, l, l + r >>> 1, ret);
+                toArray(2 * cur + 1, l + r >>> 1, r, ret);
+            }
+            return ret;
+        }
+    }
+
+    public static int[] sortByPreorder(int[][] g, int root) {
+        int n = g.length;
+        int[] stack = new int[n];
+        int[] ord = new int[n];
+        boolean[] ved = new boolean[n];
+        stack[0] = root;
+        int p = 1;
+        int r = 0;
+        ved[root] = true;
+        while (p > 0) {
+            int cur = stack[p - 1];
+            ord[r++] = cur;
+            p--;
+            for (int e : g[cur]) {
+                if (!ved[e]) {
+                    ved[e] = true;
+                    stack[p++] = e;
+                }
+            }
+        }
+        return ord;
+    }
+
+    public static int[][] makeRights(int[][] g, int[] par, int root) {
+        int n = g.length;
+        int[] ord = sortByPreorder(g, root);
+        int[] iord = new int[n];
+        for (int i = 0; i < n; i++) iord[ord[i]] = i;
+
+        int[] right = new int[n];
+        for (int i = n - 1; i >= 1; i--) {
+            if (right[i] == 0) right[i] = i;
+            int p = iord[par[ord[i]]];
+            right[p] = Math.max(right[p], right[i]);
+        }
+        return new int[][]{ord, iord, right};
+    }
+
+    public static int[][] parents3(int[][] g, int root) {
+        int n = g.length;
+        int[] par = new int[n];
+        Arrays.fill(par, -1);
+
+        int[] depth = new int[n];
+        depth[0] = 0;
+
+        int[] q = new int[n];
+        q[0] = root;
+        for (int p = 0, r = 1; p < r; p++) {
+            int cur = q[p];
+            for (int nex : g[cur]) {
+                if (par[cur] != nex) {
+                    q[r++] = nex;
+                    par[nex] = cur;
+                    depth[nex] = depth[cur] + 1;
+                }
+            }
+        }
+        return new int[][]{par, q, depth};
+    }
+
+    static int[][] packU(int n, int[] from, int[] to) {
+        int[][] g = new int[n][];
+        int[] p = new int[n];
+        for (int f : from)
+            p[f]++;
+        for (int t : to)
+            p[t]++;
+        for (int i = 0; i < n; i++)
+            g[i] = new int[p[i]];
+        for (int i = 0; i < from.length; i++) {
+            g[from[i]][--p[from[i]]] = to[i];
+            g[to[i]][--p[to[i]]] = from[i];
+        }
+        return g;
+    }
+
+    void run() throws Exception {
+        is = INPUT.isEmpty() ? System.in : new ByteArrayInputStream(INPUT.getBytes());
+        out = new PrintWriter(System.out);
+
+        long s = System.currentTimeMillis();
+        solve();
+        out.flush();
+        if (!INPUT.isEmpty()) tr(System.currentTimeMillis() - s + "ms");
+    }
+
+    public static void main(String[] args) throws Exception {
+        new Main().run();
+    }
+
+    private byte[] inbuf = new byte[1024];
+    public int lenbuf = 0, ptrbuf = 0;
+
+    private int readByte() {
+        if (lenbuf == -1) throw new InputMismatchException();
+        if (ptrbuf >= lenbuf) {
+            ptrbuf = 0;
+            try {
+                lenbuf = is.read(inbuf);
+            } catch (IOException e) {
+                throw new InputMismatchException();
+            }
+            if (lenbuf <= 0) return -1;
+        }
+        return inbuf[ptrbuf++];
+    }
+
+    private boolean isSpaceChar(int c) {
+        return !(c >= 33 && c <= 126);
+    }
+
+    private int skip() {
+        int b;
+        while ((b = readByte()) != -1 && isSpaceChar(b)) ;
+        return b;
+    }
+
+    private double nd() {
+        return Double.parseDouble(ns());
+    }
+
+    private char nc() {
+        return (char) skip();
+    }
+
+    private String ns() {
+        int b = skip();
+        StringBuilder sb = new StringBuilder();
+        while (!(isSpaceChar(b))) {
+            sb.appendCodePoint(b);
+            b = readByte();
+        }
+        return sb.toString();
+    }
+
+    private String nsl() {
+        int b = skip();
+        StringBuilder sb = new StringBuilder();
+        while (!(isSpaceChar(b) && b != ' ')) {
+            sb.appendCodePoint(b);
+            b = readByte();
+        }
+        return sb.toString();
+    }
+
+    private char[] ns(int n) {
+        char[] buf = new char[n];
+        int b = skip(), p = 0;
+        while (p < n && !(isSpaceChar(b))) {
+            buf[p++] = (char) b;
+            b = readByte();
+        }
+        return n == p ? buf : Arrays.copyOf(buf, p);
+    }
+
+    private char[][] nm(int n, int m) {
+        char[][] map = new char[n][];
+        for (int i = 0; i < n; i++) map[i] = ns(m);
+        return map;
+    }
+
+    private int[] na(int n) {
+        int[] a = new int[n];
+        for (int i = 0; i < n; i++) a[i] = ni();
+        return a;
+    }
+
+    private int ni() {
+        int num = 0, b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private long nl() {
+        long num = 0;
+        int b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private static void tr(Object... o) {
+        System.out.println(Arrays.deepToString(o));
+    }
+}
