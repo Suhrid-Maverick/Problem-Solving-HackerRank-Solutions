@@ -1,0 +1,57 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MAXN = 100000 + 100;
+    static int T, n;
+    static List<int[]>[] edge; // each entry: [v, hash as int? no, need long]
+    static List<long[]>[] edges;
+    static Map<Long, Integer> mp;
+
+    static long hash(long w) {
+        return w * 747474747L + 447474747L;
+    }
+
+    static void dfs(int u, int fa, long ha) {
+        mp.merge(ha, 1, Integer::sum);
+        for (long[] e : edges[u]) {
+            int v = (int) e[0];
+            long w = e[1];
+            if (v == fa) continue;
+            dfs(v, u, ha ^ w);
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+        T = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        while (T-- > 0) {
+            n = Integer.parseInt(br.readLine().trim());
+            edges = new List[n];
+            for (int i = 0; i < n; i++) {
+                edges[i] = new ArrayList<>();
+            }
+            for (int i = 0; i < n - 1; i++) {
+                st = new StringTokenizer(br.readLine());
+                int u = Integer.parseInt(st.nextToken()) - 1;
+                int v = Integer.parseInt(st.nextToken()) - 1;
+                long w = Long.parseLong(st.nextToken());
+                long h = hash(w);
+                edges[u].add(new long[]{v, h});
+                edges[v].add(new long[]{u, h});
+            }
+            mp = new HashMap<>();
+            long ans = (long) n * (n - 1) / 2;
+            dfs(0, -1, 0L);
+            for (int cnt : mp.values()) {
+                ans -= (long) cnt * (cnt - 1) / 2;
+            }
+            sb.append(ans).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
