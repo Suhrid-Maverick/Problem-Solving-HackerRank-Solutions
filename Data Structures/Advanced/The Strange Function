@@ -1,0 +1,142 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int n;
+    static long[] v;
+    static List<Node> vl = new ArrayList<>();
+    static List<Node> vr = new ArrayList<>();
+    static Map<Long, Long> mp = new HashMap<>();
+    static long ans = 0;
+
+    static class Node implements Comparable<Node> {
+        long mx, sum, gc;
+
+        Node(long mx, long sum, long gc) {
+            this.mx = mx;
+            this.sum = sum;
+            this.gc = gc;
+        }
+
+        @Override
+        public int compareTo(Node o) {
+            return Long.compare(this.mx, o.mx);
+        }
+    }
+
+    static long gcd(long a, long b) {
+        if (a > b) {
+            long t = a;
+            a = b;
+            b = t;
+        }
+        while (a != 0) {
+            long t = a;
+            a = b;
+            b = t;
+            a %= b;
+        }
+        return b;
+    }
+
+    static void solve(int l, int r) {
+        int mid = (l + r) >> 1;
+
+        {
+            vl.clear();
+            long sum = 0;
+            long mx = v[mid];
+            long gc = 0;
+
+            for (int j = mid; j <= r; j++) {
+                sum += v[j];
+                gc = gcd(gc, Math.abs(v[j]));
+                mx = Math.max(mx, v[j]);
+                ans = Math.max(ans, gc * (sum - mx));
+                vl.add(new Node(mx, sum, gc));
+            }
+        }
+
+        {
+            vr.clear();
+            long sum = 0;
+            long mx = v[mid];
+            long gc = 0;
+
+            for (int j = mid; j >= l; j--) {
+                sum += v[j];
+                gc = gcd(gc, Math.abs(v[j]));
+                mx = Math.max(mx, v[j]);
+                ans = Math.max(ans, gc * (sum - mx));
+                vr.add(new Node(mx, sum, gc));
+            }
+        }
+
+        Collections.sort(vl);
+        Collections.sort(vr);
+
+        int idx = 0;
+        mp.clear();
+
+        for (int i = 0; i < vl.size(); i++) {
+            while (idx < vr.size() && vr.get(idx).mx <= vl.get(i).mx) {
+                long gc = vr.get(idx).gc;
+                if (!mp.containsKey(gc)) {
+                    mp.put(gc, Long.MIN_VALUE);
+                }
+                mp.put(gc, Math.max(mp.get(gc), vr.get(idx).sum - v[mid]));
+                idx++;
+            }
+
+            for (Map.Entry<Long, Long> it : mp.entrySet()) {
+                long G = gcd(it.getKey(), vl.get(i).gc);
+                long SUM = it.getValue() + vl.get(i).sum;
+                long MX = vl.get(i).mx;
+                G *= (SUM - MX);
+                ans = Math.max(ans, G);
+            }
+        }
+
+        mp.clear();
+        List<Node> temp = vl;
+        vl = vr;
+        vr = temp;
+        idx = 0;
+
+        for (int i = 0; i < vl.size(); i++) {
+            while (idx < vr.size() && vr.get(idx).mx <= vl.get(i).mx) {
+                long gc = vr.get(idx).gc;
+                if (!mp.containsKey(gc)) {
+                    mp.put(gc, Long.MIN_VALUE);
+                }
+                mp.put(gc, Math.max(mp.get(gc), vr.get(idx).sum - v[mid]));
+                idx++;
+            }
+
+            for (Map.Entry<Long, Long> it : mp.entrySet()) {
+                long G = gcd(it.getKey(), vl.get(i).gc);
+                long SUM = it.getValue() + vl.get(i).sum;
+                long MX = vl.get(i).mx;
+                G *= (SUM - MX);
+                ans = Math.max(ans, G);
+            }
+        }
+
+        if (l <= mid - 1) solve(l, mid - 1);
+        if (mid + 1 <= r) solve(mid + 1, r);
+    }
+
+    public static void main(String[] args) throws IOException {
+        Scanner sc = new Scanner(System.in);
+        n = sc.nextInt();
+        v = new long[n];
+
+        for (int i = 0; i < n; i++) {
+            v[i] = sc.nextLong();
+        }
+
+        solve(0, n - 1);
+        System.out.println(ans);
+        sc.close();
+    }
+}
