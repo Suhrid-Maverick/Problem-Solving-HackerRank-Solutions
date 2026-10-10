@@ -1,0 +1,211 @@
+import java.io.*;
+import java.math.BigInteger;
+import java.util.*;
+
+public class Solution {
+
+    static List<Integer> smart(int n, BigInteger k) {
+        if (n < 5) {
+            return naive(n, k);
+        }
+        int half = n / 2;
+        int h = half;
+        int H = half + 1;
+
+        // Even n
+        if ((n & 1) == 0) {
+            if (k.compareTo(BigInteger.ONE) > 0) {
+                return null;
+            }
+            Integer[] perm = new Integer[n];
+            if (k.equals(BigInteger.ZERO)) {
+                int val = h - 1;
+                for (int idx = 0; idx < n; idx += 2) {
+                    perm[idx] = val--;
+                }
+                val = n - 1;
+                for (int idx = 1; idx < n; idx += 2) {
+                    perm[idx] = val--;
+                }
+            } else {
+                int val = h;
+                for (int idx = 0; idx < n; idx += 2) {
+                    perm[idx] = val++;
+                }
+                val = 0;
+                for (int idx = 1; idx < n; idx += 2) {
+                    perm[idx] = val++;
+                }
+            }
+            return new ArrayList<>(Arrays.asList(perm));
+        }
+
+        // Odd n
+        BigInteger low = BigInteger.valueOf(h + 3).shiftLeft(h - 2);
+        BigInteger lowmid = BigInteger.ONE.shiftLeft(h - 1);
+        BigInteger lowPlusLowmid = low.add(lowmid);
+        BigInteger limit = lowPlusLowmid.multiply(BigInteger.valueOf(2));
+
+        if (k.compareTo(limit) >= 0) {
+            return null;
+        }
+        if (k.compareTo(lowPlusLowmid) >= 0) {
+            BigInteger newK = limit.subtract(BigInteger.ONE).subtract(k);
+            List<Integer> merp = smart(n, newK);
+            if (merp == null) {
+                return null;
+            }
+            List<Integer> res = new ArrayList<>();
+            for (int m : merp) {
+                res.add(n - 1 - m);
+            }
+            return res;
+        }
+        if (k.compareTo(low) >= 0) {
+            List<Integer> nums = new ArrayList<>();
+            for (int i = 0; i < n; i++) nums.add(i);
+            return binary(nums, k.subtract(low), h);
+        }
+
+        // Offset part
+        List<BigInteger> offset = new ArrayList<>();
+        offset.add(BigInteger.valueOf(2));
+        int lastI = 0;
+        for (int j = 0; j < half - 1; j++) {
+            lastI = j;
+            BigInteger last = offset.get(offset.size() - 1);
+            BigInteger next = last.multiply(BigInteger.valueOf(2)).add(BigInteger.ONE.shiftLeft(j));
+            offset.add(next);
+            if (next.compareTo(BigInteger.TEN.pow(30)) > 0) {
+                break;
+            }
+        }
+        BigInteger lastOffset = offset.get(offset.size() - 1);
+        offset.add(lastOffset.add(BigInteger.ONE.shiftLeft(lastI + 1)));
+        offset.add(BigInteger.ZERO);
+
+        List<Integer> nums = new ArrayList<>();
+        for (int i = 0; i < n; i++) nums.add(i);
+        List<Integer> perm = new ArrayList<>();
+
+        while (true) {
+            if (k.compareTo(BigInteger.valueOf(2)) < 0) {
+                int add = h + k.intValue();
+                List<Integer> res = new ArrayList<>(perm);
+                for (int idx = 0; idx < n; idx++) {
+                    // FIX: cast to long to avoid int overflow in idx * add
+                    res.add(nums.get((int) (((long) idx * add) % n)));
+                }
+                return res;
+            }
+            int i = bisectRight(offset, k);
+            k = k.subtract(offset.get(i - 1));
+            if (k.compareTo(offset.get(i - 1)) >= 0) {
+                List<Integer> binRes = binary(nums, k.subtract(offset.get(i - 1)), i);
+                List<Integer> res = new ArrayList<>(perm);
+                res.addAll(binRes);
+                return res;
+            }
+            int val1 = nums.remove(i);
+            int val2 = nums.remove(i + h - 1);
+            perm.add(val1);
+            perm.add(val2);
+            n -= 2;
+            half -= 1;
+            h -= 1;
+            H -= 1;
+        }
+    }
+
+    static int bisectRight(List<BigInteger> list, BigInteger k) {
+        int lo = 0, hi = list.size();
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (k.compareTo(list.get(mid)) < 0) {
+                hi = mid;
+            } else {
+                lo = mid + 1;
+            }
+        }
+        return lo;
+    }
+
+    static List<Integer> binary(List<Integer> nums, BigInteger k, int i) {
+        int n = nums.size();
+        int half = n / 2;
+        int H = half + 1;
+        Integer[] perm = new Integer[n];
+        int left = 0, right = n - 1;
+        int testbit = half - 1;
+        for (int m = i; m < i + half; m++) {
+            if (testbit >= 0 && k.testBit(testbit)) {
+                perm[right] = nums.get(m);
+                perm[right - 1] = nums.get((m + H) % n);
+                right -= 2;
+            } else {
+                perm[left] = nums.get(m);
+                perm[left + 1] = nums.get((m + H) % n);
+                left += 2;
+            }
+            testbit--;
+        }
+        perm[left] = nums.get(i + half);
+        return new ArrayList<>(Arrays.asList(perm));
+    }
+
+    static List<Integer> naive(int n, BigInteger k) {
+        List<List<Integer>> perms = new ArrayList<>();
+        int mindist = n / 2;
+        for (int i = 0; i < n; i++) {
+            List<Integer> perm = new ArrayList<>();
+            perm.add(i);
+            Set<Integer> nums = new HashSet<>();
+            for (int j = 0; j < n; j++) if (j != i) nums.add(j);
+            gen(perm, nums, n, mindist, perms);
+        }
+        int kInt = k.intValue();
+        if (kInt < perms.size()) return perms.get(kInt);
+        else return null;
+    }
+
+    static void gen(List<Integer> perm, Set<Integer> nums, int n, int mindist, List<List<Integer>> perms) {
+        if (perm.size() == n) {
+            perms.add(new ArrayList<>(perm));
+            return;
+        }
+        int last = perm.get(perm.size() - 1);
+        List<Integer> sortedNums = new ArrayList<>(nums);
+        Collections.sort(sortedNums);
+        for (int i : sortedNums) {
+            if (Math.abs(last - i) >= mindist) {
+                perm.add(i);
+                nums.remove(i);
+                gen(perm, nums, n, mindist, perms);
+                nums.add(i);
+                perm.remove(perm.size() - 1);
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int t = Integer.parseInt(br.readLine().trim());
+        StringBuilder sb = new StringBuilder();
+        for (int _ = 0; _ < t; _++) {
+            String[] parts = br.readLine().trim().split("\\s+");
+            int n = Integer.parseInt(parts[0]);
+            BigInteger k = new BigInteger(parts[1]);
+            List<Integer> perm = smart(n, k.subtract(BigInteger.ONE));
+            if (perm == null) {
+                sb.append("-1\n");
+            } else {
+                for (int i = 0; i < perm.size(); i++) {
+                    if (i > 0) sb.append(' ');
+                    sb.append(perm.get(i) + 1);
+                }
+                sb.append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+}
