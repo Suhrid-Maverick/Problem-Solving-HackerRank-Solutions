@@ -1,0 +1,106 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    // Fast input reader (token-based, line-buffered)
+    static class FastReader {
+        private BufferedReader br;
+        private StringTokenizer st;
+
+        FastReader() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    // Sorted maps to aggregate duplicate keys and their counts
+    static TreeMap<Integer, Integer> a = new TreeMap<>();
+    static TreeMap<Integer, Integer> b = new TreeMap<>();
+    static TreeMap<Integer, Integer> c = new TreeMap<>();
+    static TreeMap<Integer, Integer> d = new TreeMap<>();
+
+    public static void main(String[] args) throws IOException {
+        FastReader fr = new FastReader();
+        BufferedWriter stdout = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int N = fr.nextInt();
+        int M = fr.nextInt();
+
+        // Read N A-B ranges
+        for (int i = 0; i < N; i++) {
+            int lo = fr.nextInt();
+            int hi = fr.nextInt();
+            if (lo > hi) {
+                int t = lo;
+                lo = hi;
+                hi = t;
+            }
+            a.merge(lo, 1, Integer::sum);
+            b.merge(hi, 1, Integer::sum);
+        }
+
+        // Read M C-D ranges
+        for (int i = 0; i < M; i++) {
+            int lo = fr.nextInt();
+            int hi = fr.nextInt();
+            if (lo > hi) {
+                int t = lo;
+                lo = hi;
+                hi = t;
+            }
+            c.merge(lo, 1, Integer::sum);
+            d.merge(hi, 1, Integer::sum);
+        }
+
+        long overlaps = (long) M * (long) N;
+
+        // Count any A > any D  (i.e. non-overlap: A > D)
+        {
+            long runts = 0; // running count of small Ds
+            Iterator<Map.Entry<Integer, Integer>> itD = d.entrySet().iterator();
+            Map.Entry<Integer, Integer> dEntry = itD.hasNext() ? itD.next() : null;
+
+            for (Map.Entry<Integer, Integer> aEntry : a.entrySet()) {
+                int testa = aEntry.getKey();
+                while (dEntry != null && dEntry.getKey() < testa) {
+                    runts += dEntry.getValue();
+                    dEntry = itD.hasNext() ? itD.next() : null;
+                }
+                overlaps -= runts * aEntry.getValue();
+            }
+        }
+
+        // Count any C > any B  (i.e. non-overlap: C > B)
+        {
+            long runts = 0; // running count of small Bs
+            Iterator<Map.Entry<Integer, Integer>> itB = b.entrySet().iterator();
+            Map.Entry<Integer, Integer> bEntry = itB.hasNext() ? itB.next() : null;
+
+            for (Map.Entry<Integer, Integer> cEntry : c.entrySet()) {
+                int testc = cEntry.getKey();
+                while (bEntry != null && bEntry.getKey() < testc) {
+                    runts += bEntry.getValue();
+                    bEntry = itB.hasNext() ? itB.next() : null;
+                }
+                overlaps -= runts * cEntry.getValue();
+            }
+        }
+
+        stdout.write(String.valueOf(overlaps));
+        stdout.newLine();
+        stdout.close();
+    }
+}
