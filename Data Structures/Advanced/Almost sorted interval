@@ -1,0 +1,84 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static long permute(int[] original) {
+        int n = original.length + 1;
+        int[] l = new int[n];
+        l[0] = original[0];
+        for (int i = 0; i < original.length; i++) {
+            l[i + 1] = original[i];
+        }
+        int nn = n + 12;
+        int[] left = new int[n];
+        int[] right = new int[n];
+        Arrays.fill(right, n);
+        int[] stack = new int[n];
+        int[] arr = new int[nn + 1]; // 1-indexed BIT
+        List<List<Integer>> r = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            r.add(new ArrayList<>());
+        }
+        int top = 0;
+        for (int i = 1; i < n; i++) {
+            int val = l[i];
+            while (top > 0 && val > l[stack[top - 1]]) {
+                top--;
+            }
+            if (top > 0) {
+                left[i] = stack[top - 1];
+            }
+            stack[top] = i;
+            top++;
+        }
+        top = 0;
+        for (int i = n - 1; i > 0; i--) {
+            int val = l[i];
+            while (top > 0 && val < l[stack[top - 1]]) {
+                top--;
+            }
+            if (top > 0) {
+                right[i] = stack[top - 1];
+            }
+            stack[top] = i;
+            top++;
+        }
+        long ans = 0;
+        for (int i = n - 1; i > 0; i--) {
+            for (int j : r.get(i)) {
+                int idx = j;
+                while (idx <= nn) {
+                    arr[idx] += -1;
+                    idx += (idx & (-idx));
+                }
+            }
+            int j = i;
+            while (j <= nn) {
+                arr[j] += 1;
+                j += (j & (-j));
+            }
+            r.get(left[i]).add(i);
+            int v = 0;
+            int x = right[i] - 1;
+            while (x > 0) {
+                v += arr[x];
+                x -= (x & (-x));
+            }
+            ans += v;
+        }
+        return ans;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        // read first line (n) and ignore
+        br.readLine();
+        String[] parts = br.readLine().trim().split("\\s+");
+        int[] original = new int[parts.length];
+        for (int i = 0; i < parts.length; i++) {
+            original[i] = Integer.parseInt(parts[i]);
+        }
+        System.out.println(permute(original));
+    }
+}
