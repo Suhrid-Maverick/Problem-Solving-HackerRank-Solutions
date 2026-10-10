@@ -1,0 +1,181 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int N = 100005;
+    static final int INF = 1 << 30;
+    static int[] a = new int[N];
+    static int[] cnt = new int[N];
+    static int tot, n, K, M;
+    static int[] Left = new int[N];
+    static int[] Right = new int[N];
+    static int[] num;
+
+    static class Query {
+        int l, r, id;
+        Query(int l, int r, int id) {
+            this.l = l;
+            this.r = r;
+            this.id = id;
+        }
+    }
+
+    static int get(int x) {
+        return x / M;
+    }
+
+    static void update(int x, int d) {
+        while (x <= tot) {
+            cnt[x] += d;
+            x += x & (-x);
+        }
+    }
+
+    static int queryBIT(int x) {
+        int ans = 0;
+        while (x > 0) {
+            ans += cnt[x];
+            x -= x & (-x);
+        }
+        return ans;
+    }
+
+    static int L = INF, R = -INF;
+    static long ans = 0;
+
+    static long query(int l, int r) {
+        if (get(l) != get(L)) {
+            Arrays.fill(cnt, 1, tot + 1, 0);
+            L = INF;
+            R = -INF;
+            ans = 0;
+        }
+        int bound = (get(l) + 1) * M;
+        int A, B;
+        for (int i = Math.max(bound, R + 1); i <= r; i++) {
+            A = Left[a[i] - 1];
+            B = Right[a[i] - 1];
+            ans += queryBIT(A - 1) - queryBIT(B - 1);
+            update(a[i], 1);
+        }
+        long saved = ans;
+        int endTemp = Math.min(bound, r + 1);
+        for (int i = l; i < endTemp; i++) {
+            A = Left[a[i] - 1];
+            B = Right[a[i] - 1];
+            ans += queryBIT(A - 1) - queryBIT(B - 1);
+            update(a[i], 1);
+        }
+        for (int i = l; i < endTemp; i++) {
+            update(a[i], -1);
+        }
+        L = l;
+        R = r;
+        long result = ans;
+        ans = saved;
+        return result;
+    }
+
+    static long[] res = new long[N];
+
+    static byte[] inbuf = new byte[1 << 16];
+    static int inptr = 0, inlen = 0;
+    static InputStream in = System.in;
+
+    static int readByte() throws IOException {
+        if (inptr >= inlen) {
+            inlen = in.read(inbuf);
+            inptr = 0;
+            if (inlen <= 0) return -1;
+        }
+        return inbuf[inptr++];
+    }
+
+    static int readInt() throws IOException {
+        int c;
+        do {
+            c = readByte();
+        } while (c != -1 && (c < '0' || c > '9') && c != '-');
+        if (c == -1) return -1;
+        boolean negative = (c == '-');
+        if (negative) c = readByte();
+        int x = 0;
+        while (c >= '0' && c <= '9') {
+            x = x * 10 + (c - '0');
+            c = readByte();
+        }
+        return negative ? -x : x;
+    }
+
+    public static void main(String[] args) throws IOException {
+        n = readInt();
+        K = readInt();
+        M = (int) Math.sqrt(n) + 5;
+
+        int[] raw = new int[n];
+        TreeSet<Integer> set = new TreeSet<>();
+        for (int i = 0; i < n; i++) {
+            raw[i] = readInt();
+            set.add(raw[i]);
+        }
+
+        num = new int[set.size()];
+        int idx = 0;
+        for (int v : set) num[idx++] = v;
+        tot = num.length;
+
+        for (int i = 0; i < n; i++) {
+            a[i] = lowerBound(num, raw[i]) + 1;
+        }
+
+        for (int i = 0; i < tot; i++) {
+            Left[i] = upperBound(num, num[i] + K) + 1;
+            Right[i] = lowerBound(num, num[i] - K) + 1;
+        }
+
+        int Q = readInt();
+        Query[] queries = new Query[Q];
+        for (int i = 0; i < Q; i++) {
+            int x = readInt();
+            int y = readInt();
+            queries[i] = new Query(x, y, i);
+        }
+
+        final int MM = M;
+        Arrays.sort(queries, (p1, p2) -> {
+            int b1 = p1.l / MM, b2 = p2.l / MM;
+            if (b1 != b2) return Integer.compare(b1, b2);
+            return Integer.compare(p1.r, p2.r);
+        });
+
+        for (int qi = 0; qi < Q; qi++) {
+            res[queries[qi].id] = query(queries[qi].l, queries[qi].r);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < Q; i++) {
+            sb.append(res[i]).append('\n');
+        }
+        System.out.print(sb);
+    }
+
+    static int lowerBound(int[] arr, int target) {
+        int lo = 0, hi = arr.length;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (arr[mid] < target) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    static int upperBound(int[] arr, int target) {
+        int lo = 0, hi = arr.length;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (arr[mid] <= target) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+}
