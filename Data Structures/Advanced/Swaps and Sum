@@ -1,0 +1,222 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Node {
+        int cnt, pr, info;
+        long sum;
+        boolean rev;
+        Node l, r;
+    }
+
+    static long seed = 123456789L;
+
+    static int random() {
+        seed ^= seed << 13;
+        seed ^= seed >>> 7;
+        seed ^= seed << 17;
+        return (int) (seed & 0x3FFFFFFF);
+    }
+
+    static Node allocate(int info) {
+        Node cur = new Node();
+        cur.pr = random();
+        cur.info = info;
+        cur.sum = info;
+        cur.cnt = 1;
+        return cur;
+    }
+
+    static int getCnt(Node t) {
+        return t == null ? 0 : t.cnt;
+    }
+
+    static long nodeSum(Node t) {
+        return t == null ? 0 : t.sum;
+    }
+
+    static void rev(Node t) {
+        if (t != null) t.rev ^= true;
+    }
+
+    static void push(Node t) {
+        if (t == null) return;
+        if (t.rev) {
+            Node tmp = t.l;
+            t.l = t.r;
+            t.r = tmp;
+            rev(t.l);
+            rev(t.r);
+            t.rev = false;
+        }
+    }
+
+    static void update(Node t) {
+        if (t != null) {
+            t.cnt = getCnt(t.l) + getCnt(t.r) + 1;
+            t.sum = nodeSum(t.l) + nodeSum(t.r) + t.info;
+        }
+    }
+
+    static Node splitL, splitR;
+
+    static void split(Node t, int key) {
+        push(t);
+        if (t == null) {
+            splitL = null;
+            splitR = null;
+            return;
+        }
+        int ckey = getCnt(t.l);
+        if (ckey < key) {
+            split(t.r, key - ckey - 1);
+            t.r = splitL;
+            splitL = t;
+        } else {
+            split(t.l, key);
+            t.l = splitR;
+            splitR = t;
+        }
+        update(splitL);
+        update(splitR);
+    }
+
+    static Node merge(Node l, Node r) {
+        push(l);
+        push(r);
+        if (l == null) return r;
+        if (r == null) return l;
+        Node t;
+        if (l.pr > r.pr) {
+            l.r = merge(l.r, r);
+            t = l;
+        } else {
+            r.l = merge(l, r.l);
+            t = r;
+        }
+        update(t);
+        return t;
+    }
+
+    static class ExplicitTreap {
+        Node root;
+
+        long getSum(int l, int r) {
+            split(root, r + 1);
+            Node p2 = splitL, p3 = splitR;
+            split(p2, l);
+            Node p1 = splitL;
+            p2 = splitR;
+            long ans = nodeSum(p2);
+            root = merge(p1, merge(p2, p3));
+            return ans;
+        }
+
+        void append(int number) {
+            Node t = allocate(number);
+            root = merge(root, t);
+        }
+    }
+
+    static void tswap(ExplicitTreap t1, int l1, int r1, ExplicitTreap t2, int l2, int r2) {
+        split(t1.root, r1 + 1);
+        Node p2 = splitL, p3 = splitR;
+        split(p2, l1);
+        Node p1 = splitL;
+        p2 = splitR;
+
+        split(t2.root, r2 + 1);
+        Node q2 = splitL, q3 = splitR;
+        split(q2, l2);
+        Node q1 = splitL;
+        q2 = splitR;
+
+        t1.root = merge(p1, merge(q2, p3));
+        t2.root = merge(q1, merge(p2, q3));
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    static void solve() throws IOException {
+        FastScanner fs = new FastScanner();
+        int n = fs.nextInt();
+        int q = fs.nextInt();
+
+        ExplicitTreap[] t = new ExplicitTreap[2];
+        t[0] = new ExplicitTreap();
+        t[1] = new ExplicitTreap();
+
+        for (int i = 0; i < n; i++) {
+            int value = fs.nextInt();
+            t[i % 2].append(value);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int qi = 0; qi < q; qi++) {
+            int type = fs.nextInt();
+            int l = fs.nextInt() - 1;
+            int r = fs.nextInt() - 1;
+
+            int[] ql = new int[2], qr = new int[2];
+            for (int par = 0; par <= 1; par++) {
+                if (l == r && l % 2 != par) {
+                    ql[par] = 0;
+                    qr[par] = -1;
+                } else {
+                    ql[par] = (l % 2 == par) ? l / 2 : (l + 1) / 2;
+                    qr[par] = (r % 2 == par) ? r / 2 : (r - 1) / 2;
+                }
+            }
+
+            if (type == 1) {
+                tswap(t[0], ql[0], qr[0], t[1], ql[1], qr[1]);
+            } else {
+                long ans = 0;
+                for (int par = 0; par <= 1; par++) {
+                    if (ql[par] <= qr[par]) {
+                        ans += t[par].getSum(ql[par], qr[par]);
+                    }
+                }
+                sb.append(ans).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) {
+        Thread thread = new Thread(null, () -> {
+            try {
+                solve();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }, "main", 1 << 26);
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
