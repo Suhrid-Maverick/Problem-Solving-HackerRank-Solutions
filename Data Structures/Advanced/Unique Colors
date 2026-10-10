@@ -1,0 +1,155 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static ArrayList<Integer>[] ve;
+    static ArrayList<Integer>[] V;
+    static long[] ans;
+    static long Base = 0;
+    static long[] del;
+    static int[] sum, L, R, st;
+    static int Time = 0, n;
+
+    static void dfs1(int k, int f) {
+        L[k] = ++Time;
+        sum[k] = 1;
+        for (int i = 0; i < ve[k].size(); i++) {
+            int t = ve[k].get(i);
+            if (t != f) {
+                dfs1(t, k);
+                sum[k] += sum[t];
+            }
+        }
+        R[k] = Time;
+    }
+
+    static void modify(int k, int q, int h, int l, int r, int d) {
+        if (l <= q && h <= r) {
+            del[k] += d;
+        } else {
+            int mid = (q + h) >> 1;
+            if (r <= mid) {
+                modify(k << 1, q, mid, l, r, d);
+            } else if (mid < l) {
+                modify((k << 1) | 1, mid + 1, h, l, r, d);
+            } else {
+                modify(k << 1, q, mid, l, r, d);
+                modify((k << 1) | 1, mid + 1, h, l, r, d);
+            }
+        }
+    }
+
+    static void dfs2(int k, int q, int h, long now) {
+        now += del[k];
+        if (q == h) {
+            ans[q] = now;
+        } else {
+            int mid = (q + h) >> 1;
+            dfs2(k << 1, q, mid, now);
+            dfs2((k << 1) | 1, mid + 1, h, now);
+        }
+    }
+
+    static void doit(ArrayList<Integer> vList) {
+        if (vList.isEmpty()) return;
+        Base += n;
+
+        Collections.sort(vList, new Comparator<Integer>() {
+            public int compare(Integer a, Integer b) {
+                return L[b] - L[a];
+            }
+        });
+
+        int len = 0;
+        for (int i = 0; i < vList.size(); i++) {
+            ArrayList<Integer> T = new ArrayList<>();
+            int vi = vList.get(i);
+            while (len > 0 && L[vi] <= L[st[len]] && L[st[len]] <= R[vi]) {
+                T.add(st[len]);
+                len--;
+            }
+            st[++len] = vi;
+
+            int r = T.size() - 1;
+            ArrayList<Integer> vevi = ve[vi];
+            for (int p = vevi.size() - 1; p >= 0; p--) {
+                int q = vevi.get(p);
+                if (sum[q] < sum[vi]) {
+                    int kk = sum[q];
+                    int RR = r;
+                    while (RR >= 0 && L[q] <= L[T.get(RR)] && L[T.get(RR)] <= R[q]) {
+                        RR -= 1;
+                    }
+                    for (int j = RR + 1; j <= r; j++) {
+                        kk -= sum[T.get(j)];
+                    }
+                    modify(1, 1, n, L[q], R[q], kk);
+                    for (int j = RR + 1; j <= r; j++) {
+                        int tj = T.get(j);
+                        modify(1, 1, n, L[tj], R[tj], -kk);
+                    }
+                    r = RR;
+                }
+            }
+        }
+
+        int kk = n;
+        for (int j = 1; j <= len; j++) {
+            kk -= sum[st[j]];
+        }
+        modify(1, 1, n, 1, n, kk);
+        for (int j = 1; j <= len; j++) {
+            modify(1, 1, n, L[st[j]], R[st[j]], -kk);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder inputSb = new StringBuilder();
+        String line;
+        while ((line = br.readLine()) != null) {
+            inputSb.append(line).append(' ');
+        }
+        StringTokenizer stk = new StringTokenizer(inputSb.toString());
+
+        n = Integer.parseInt(stk.nextToken());
+
+        ve = new ArrayList[110000];
+        V = new ArrayList[110000];
+        for (int i = 0; i < 110000; i++) {
+            ve[i] = new ArrayList<>();
+            V[i] = new ArrayList<>();
+        }
+
+        for (int i = 1; i <= n; i++) {
+            int x = Integer.parseInt(stk.nextToken());
+            V[x].add(i);
+        }
+        for (int i = 1; i < n; i++) {
+            int x = Integer.parseInt(stk.nextToken());
+            int y = Integer.parseInt(stk.nextToken());
+            ve[x].add(y);
+            ve[y].add(x);
+        }
+
+        ans = new long[110000];
+        del = new long[4 * n + 10];
+        sum = new int[110000];
+        L   = new int[110000];
+        R   = new int[110000];
+        st  = new int[110000];
+
+        Time = 0;
+        dfs1(1, 0);
+        for (int i = 1; i <= 100000; i++) {
+            doit(V[i]);
+        }
+        dfs2(1, 1, n, 0);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= n; i++) {
+            sb.append(Base - ans[L[i]]).append('\n');
+        }
+        System.out.print(sb);
+    }
+}
