@@ -1,0 +1,271 @@
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+
+public class D {
+    InputStream is;
+    PrintWriter out;
+    String INPUT = "";
+    int mod = 1000000007;
+
+    void solve() {
+        int n = ni(), Q = ni();
+        char[] s = ns(n);
+        SegmentTree seg = new SegmentTree(n, s, mod);
+        for (int z = 0; z < Q; z++) {
+            int t = ni();
+            if (t == 1) {
+                int l = ni(), r = ni();
+                int x = ni();
+                int shift = ((x % 26) + 26) % 26;
+                if (shift != 0) {
+                    seg.update(1, 0, n - 1, l, r, shift);
+                }
+            } else {
+                int l = ni(), r = ni();
+                int[] nums = seg.query(1, 0, n - 1, l, r);
+                int e = 0;
+                int k = 0;
+                for (int i = 0; i < 26; i++) {
+                    if (nums[i] > 0) {
+                        e += nums[i] - 1;
+                        k++;
+                    }
+                }
+                long te = pow(2, e, mod);
+                long ret = (te * (k + 1) - 1) % mod;
+                if (ret < 0) ret += mod;
+                out.println(ret);
+            }
+        }
+    }
+
+    public static long pow(long a, long n, long mod) {
+        long ret = 1;
+        int x = 63 - Long.numberOfLeadingZeros(n);
+        for (; x >= 0; x--) {
+            ret = ret * ret % mod;
+            if (n << 63 - x < 0)
+                ret = ret * a % mod;
+        }
+        return ret;
+    }
+
+    static class SegmentTree {
+        int n;
+        int mod;
+        int[] tree;
+        int[] lazy;
+        int[] temp = new int[26];
+
+        SegmentTree(int n, char[] s, int mod) {
+            this.n = n;
+            this.mod = mod;
+            tree = new int[4 * n * 26];
+            lazy = new int[4 * n];
+            build(1, 0, n - 1, s);
+        }
+
+        void build(int node, int l, int r, char[] s) {
+            if (l == r) {
+                int idx = node * 26 + (s[l] - 'a');
+                tree[idx] = 1;
+                return;
+            }
+            int mid = (l + r) / 2;
+            build(node * 2, l, mid, s);
+            build(node * 2 + 1, mid + 1, r, s);
+            int base = node * 26;
+            int leftBase = node * 2 * 26;
+            int rightBase = (node * 2 + 1) * 26;
+            for (int i = 0; i < 26; i++) {
+                tree[base + i] = tree[leftBase + i] + tree[rightBase + i];
+            }
+        }
+
+        void apply(int node, int shift) {
+            shift = ((shift % 26) + 26) % 26;
+            if (shift == 0) return;
+            int base = node * 26;
+            for (int i = 0; i < 26; i++) {
+                temp[(i + shift) % 26] = tree[base + i];
+            }
+            for (int i = 0; i < 26; i++) {
+                tree[base + i] = temp[i];
+            }
+            lazy[node] = (lazy[node] + shift) % 26;
+        }
+
+        void push(int node) {
+            if (lazy[node] != 0) {
+                apply(node * 2, lazy[node]);
+                apply(node * 2 + 1, lazy[node]);
+                lazy[node] = 0;
+            }
+        }
+
+        void update(int node, int l, int r, int ql, int qr, int shift) {
+            if (ql <= l && r <= qr) {
+                apply(node, shift);
+                return;
+            }
+            push(node);
+            int mid = (l + r) / 2;
+            if (ql <= mid) update(node * 2, l, mid, ql, qr, shift);
+            if (qr > mid) update(node * 2 + 1, mid + 1, r, ql, qr, shift);
+            int base = node * 26;
+            int leftBase = node * 2 * 26;
+            int rightBase = (node * 2 + 1) * 26;
+            for (int i = 0; i < 26; i++) {
+                tree[base + i] = tree[leftBase + i] + tree[rightBase + i];
+            }
+        }
+
+        int[] query(int node, int l, int r, int ql, int qr) {
+            int[] res = new int[26];
+            queryRec(node, l, r, ql, qr, res);
+            return res;
+        }
+
+        void queryRec(int node, int l, int r, int ql, int qr, int[] res) {
+            if (ql <= l && r <= qr) {
+                int base = node * 26;
+                for (int i = 0; i < 26; i++) {
+                    res[i] += tree[base + i];
+                }
+                return;
+            }
+            push(node);
+            int mid = (l + r) / 2;
+            if (ql <= mid) queryRec(node * 2, l, mid, ql, qr, res);
+            if (qr > mid) queryRec(node * 2 + 1, mid + 1, r, ql, qr, res);
+        }
+    }
+
+    void run() throws Exception {
+        is = INPUT.isEmpty() ? System.in : new ByteArrayInputStream(INPUT.getBytes());
+        out = new PrintWriter(System.out);
+
+        long s = System.currentTimeMillis();
+        solve();
+        out.flush();
+        if (!INPUT.isEmpty()) tr(System.currentTimeMillis() - s + "ms");
+    }
+
+    public static void main(String[] args) throws Exception {
+        new D().run();
+    }
+
+    private byte[] inbuf = new byte[1024];
+    public int lenbuf = 0, ptrbuf = 0;
+
+    private int readByte() {
+        if (lenbuf == -1) throw new InputMismatchException();
+        if (ptrbuf >= lenbuf) {
+            ptrbuf = 0;
+            try {
+                lenbuf = is.read(inbuf);
+            } catch (IOException e) {
+                throw new InputMismatchException();
+            }
+            if (lenbuf <= 0) return -1;
+        }
+        return inbuf[ptrbuf++];
+    }
+
+    private boolean isSpaceChar(int c) {
+        return !(c >= 33 && c <= 126);
+    }
+
+    private int skip() {
+        int b;
+        while ((b = readByte()) != -1 && isSpaceChar(b)) ;
+        return b;
+    }
+
+    private double nd() {
+        return Double.parseDouble(ns());
+    }
+
+    private char nc() {
+        return (char) skip();
+    }
+
+    private String ns() {
+        int b = skip();
+        StringBuilder sb = new StringBuilder();
+        while (!(isSpaceChar(b))) {
+            sb.appendCodePoint(b);
+            b = readByte();
+        }
+        return sb.toString();
+    }
+
+    private char[] ns(int n) {
+        char[] buf = new char[n];
+        int b = skip(), p = 0;
+        while (p < n && !(isSpaceChar(b))) {
+            buf[p++] = (char) b;
+            b = readByte();
+        }
+        return n == p ? buf : Arrays.copyOf(buf, p);
+    }
+
+    private char[][] nm(int n, int m) {
+        char[][] map = new char[n][];
+        for (int i = 0; i < n; i++) map[i] = ns(m);
+        return map;
+    }
+
+    private int[] na(int n) {
+        int[] a = new int[n];
+        for (int i = 0; i < n; i++) a[i] = ni();
+        return a;
+    }
+
+    private int ni() {
+        int num = 0, b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private long nl() {
+        long num = 0;
+        int b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private static void tr(Object... o) {
+        System.out.println(Arrays.deepToString(o));
+    }
+}
