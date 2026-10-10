@@ -1,0 +1,132 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static int N;
+    static int[] A, L, R;
+    static ArrayList<ArrayList<Integer>> g;
+    static long[] bit;
+    static int maxn;
+    static ArrayList<Integer> V;
+    static HashMap<Integer, Integer> M;
+
+    static void update(int ind, int val) {
+        while (ind <= maxn) {
+            bit[ind] += val;
+            ind += (ind & -ind);
+        }
+    }
+
+    static long query(int ind) {
+        long ans = 0;
+        while (ind > 0) {
+            ans += bit[ind];
+            ind -= (ind & -ind);
+        }
+        return ans;
+    }
+
+    static int findInd(int x) {
+        int l = 0, r = V.size();
+        while (l < r) {
+            int m = (l + r) / 2;
+            if (V.get(m) <= x)
+                l = m + 1;
+            else
+                r = m;
+        }
+        return l;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner sc = new FastScanner();
+
+        N = sc.nextInt();
+        A = new int[N + 1];
+        L = new int[N + 1];
+        R = new int[N + 1];
+        g = new ArrayList<>(N + 2);
+        for (int i = 0; i <= N + 1; i++) g.add(new ArrayList<>());
+
+        TreeSet<Integer> S = new TreeSet<>();
+        for (int i = 1; i <= N; i++) {
+            A[i] = sc.nextInt();
+            S.add(A[i]);
+        }
+
+        // Compute L[i]
+        ArrayList<int[]> window = new ArrayList<>();
+        for (int i = 1; i <= N; i++) {
+            while (!window.isEmpty() && window.get(window.size() - 1)[0] < A[i])
+                window.remove(window.size() - 1);
+            L[i] = window.isEmpty() ? 1 : window.get(window.size() - 1)[1] + 1;
+            window.add(new int[]{A[i], i});
+        }
+
+        // Compute R[i]
+        window.clear();
+        for (int i = N; i >= 1; i--) {
+            while (!window.isEmpty() && window.get(window.size() - 1)[0] <= A[i])
+                window.remove(window.size() - 1);
+            R[i] = window.isEmpty() ? N : window.get(window.size() - 1)[1] - 1;
+            window.add(new int[]{A[i], i});
+        }
+
+        // Build event lists
+        for (int i = 1; i <= N; i++) {
+            if (i - L[i] <= R[i] - i) {
+                for (int j = L[i]; j < i; j++) {
+                    g.get(i - 1).add(-A[i] / A[j]);
+                    g.get(R[i]).add(A[i] / A[j]);
+                }
+                g.get(i).add(-1);
+                g.get(R[i]).add(1);
+            } else {
+                for (int j = i + 1; j <= R[i]; j++) {
+                    g.get(L[i] - 1).add(-A[i] / A[j]);
+                    g.get(i).add(A[i] / A[j]);
+                }
+                g.get(L[i] - 1).add(-1);
+                g.get(i - 1).add(1);
+            }
+        }
+
+        maxn = S.size() + 2;
+        bit = new long[maxn + 5];
+        M = new HashMap<>();
+        int cnt = 1;
+        for (int val : S) {
+            M.put(val, cnt++);
+        }
+
+        V = new ArrayList<>(S);
+
+        long ans = 0;
+        for (int i = 1; i <= N; i++) {
+            update(M.get(A[i]), 1);
+            for (int val : g.get(i)) {
+                int r = findInd(Math.abs(val));
+                if (val < 0) ans -= query(r);
+                else ans += query(r);
+            }
+        }
+
+        System.out.println(ans);
+    }
+
+    static class FastScanner {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st;
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens())
+                st = new StringTokenizer(br.readLine());
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
