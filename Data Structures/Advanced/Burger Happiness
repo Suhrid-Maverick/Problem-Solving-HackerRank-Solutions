@@ -1,0 +1,174 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static class SegmentTree {
+        long[] tree;
+        long[] pending;
+        int base;
+
+        public SegmentTree(int size) {
+            int depth = (int) Math.ceil(Math.log(size) / Math.log(2));
+            if (size == 1) depth = 0;
+            int lowestLvl = 1 << depth;
+            tree = new long[2 * lowestLvl - 1];
+            pending = new long[lowestLvl - 1];
+            base = lowestLvl - 1;
+        }
+
+        public long queryPoint(int index) {
+            int idx = index + base;
+            long res = tree[idx];
+            while (idx > 0) {
+                idx = (idx - 1) / 2;
+                res += pending[idx];
+            }
+            return res;
+        }
+
+        public long queryLeft(int index) {
+            int idx = index + base;
+            while (idx > 0 && idx % 2 == 0) {
+                idx = (idx - 1) / 2;
+            }
+            long res = tree[idx];
+            while (idx > 0) {
+                if (idx % 2 == 0) {
+                    res = Math.max(res, tree[idx - 1]);
+                }
+                idx = (idx - 1) / 2;
+                res += pending[idx];
+            }
+            return res;
+        }
+
+        public long queryRight(int index) {
+            int idx = index + base;
+            while (idx % 2 == 1) {
+                idx = (idx - 1) / 2;
+            }
+            long res = tree[idx];
+            while (idx > 0) {
+                if (idx % 2 == 1) {
+                    res = Math.max(res, tree[idx + 1]);
+                }
+                idx = (idx - 1) / 2;
+                res += pending[idx];
+            }
+            return res;
+        }
+
+        public void updatePoint(int index, long diff) {
+            int idx = index + base;
+            long val = tree[idx] + diff;
+            tree[idx] = val;
+            while (idx > 0) {
+                idx = (idx - 1) / 2;
+                val += pending[idx];
+                if (val <= tree[idx]) break;
+                tree[idx] = val;
+            }
+        }
+
+        public void updateLeft(int index, long diff) {
+            int idx = index + base;
+            if (idx > 0 && idx % 2 == 0) {
+                while (idx > 0 && idx % 2 == 0) {
+                    idx = (idx - 1) / 2;
+                }
+                pending[idx] += diff;
+                tree[idx] += diff;
+            } else {
+                tree[idx] += diff;
+            }
+            while (idx > 0) {
+                if (idx % 2 == 0) {
+                    pending[idx - 1] += diff;
+                    tree[idx - 1] += diff;
+                }
+                idx = (idx - 1) / 2;
+                long val = Math.max(tree[idx * 2 + 1], tree[idx * 2 + 2]);
+                val += pending[idx];
+                tree[idx] = val;
+            }
+        }
+
+        public void updateRight(int index, long diff) {
+            int idx = index + base;
+            if (idx % 2 == 1) {
+                while (idx % 2 == 1) {
+                    idx = (idx - 1) / 2;
+                }
+                pending[idx] += diff;
+                tree[idx] += diff;
+            } else {
+                tree[idx] += diff;
+            }
+            while (idx > 0) {
+                if (idx % 2 == 1) {
+                    pending[idx + 1] += diff;
+                    tree[idx + 1] += diff;
+                }
+                idx = (idx - 1) / 2;
+                long val = Math.max(tree[idx * 2 + 1], tree[idx * 2 + 2]);
+                val += pending[idx];
+                tree[idx] = val;
+            }
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        int n = Integer.parseInt(br.readLine().trim());
+        long[][] restaurants = new long[n][3];
+        int[] xs = new int[n];
+        for (int i = 0; i < n; i++) {
+            StringTokenizer st = new StringTokenizer(br.readLine());
+            restaurants[i][0] = Long.parseLong(st.nextToken());
+            restaurants[i][1] = Long.parseLong(st.nextToken());
+            restaurants[i][2] = Long.parseLong(st.nextToken());
+            xs[i] = (int) restaurants[i][0];
+        }
+
+        int[] sortedXs = xs.clone();
+        Arrays.sort(sortedXs);
+        Map<Integer, Integer> coords = new HashMap<>();
+        for (int i = 0; i < n; i++) {
+            coords.put(sortedXs[i], i);
+        }
+
+        SegmentTree ascending = new SegmentTree(n);
+        SegmentTree descending = new SegmentTree(n);
+        long res = 0;
+
+        for (int i = 0; i < n; i++) {
+            long x = restaurants[i][0];
+            long a = restaurants[i][1];
+            long b = restaurants[i][2];
+            int pos = coords.get((int) x);
+            long val = a;
+
+            if (pos > 0) {
+                long l = ascending.queryLeft(pos - 1);
+                long cur = ascending.queryPoint(pos);
+                val = Math.max(val, a + l - cur);
+            }
+            if (pos < n - 1) {
+                long r = descending.queryRight(pos + 1);
+                long cur = descending.queryPoint(pos);
+                val = Math.max(val, a + r - cur);
+            }
+
+            res = Math.max(res, val);
+            ascending.updatePoint(pos, val);
+            descending.updatePoint(pos, val);
+
+            if (b != 0) {
+                ascending.updateLeft(pos, -b);
+                descending.updateRight(pos, -b);
+            }
+        }
+
+        System.out.println(res);
+    }
+}
