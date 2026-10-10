@@ -1,0 +1,248 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    static class Node {
+        Node fa, ch0, ch1;
+        int sum, arc0, arc1;
+        boolean rev;
+    }
+
+    static class Edge implements Comparable<Edge> {
+        int a, b, k, len;
+        public int compareTo(Edge o) {
+            if (a != o.a) return a - o.a;
+            return b - o.b;
+        }
+    }
+
+    static Edge[] edge;
+
+    static int getSum(Node n) { return n == null ? 0 : n.sum; }
+
+    static int getArc(Node n, int c) {
+        if (n == null) return 0;
+        if (c == 0) return n.ch0 == null ? 0 : edge[n.arc0].len;
+        return n.ch1 == null ? 0 : edge[n.arc1].len;
+    }
+
+    static void markRev(Node n) {
+        if (n == null) return;
+        n.rev = !n.rev;
+        Node t = n.ch0; n.ch0 = n.ch1; n.ch1 = t;
+        int ti = n.arc0; n.arc0 = n.arc1; n.arc1 = ti;
+    }
+
+    static void pushDown(Node n) {
+        if (n == null || !n.rev) return;
+        n.rev = false;
+        markRev(n.ch0);
+        markRev(n.ch1);
+    }
+
+    static void update(Node n) {
+        n.sum = getSum(n.ch0) + getArc(n, 0) + getSum(n.ch1) + getArc(n, 1);
+    }
+
+    static void rotate(Node t, int c) {
+        Node y = t.fa;
+        if (c == 0) {
+            y.ch1 = t.ch0;
+            if (t.ch0 != null) t.ch0.fa = y;
+        } else {
+            y.ch0 = t.ch1;
+            if (t.ch1 != null) t.ch1.fa = y;
+        }
+        t.fa = y.fa;
+        if (y.fa != null) {
+            if (y.fa.ch0 == y) y.fa.ch0 = t;
+            else y.fa.ch1 = t;
+        }
+        if (c == 0) t.ch0 = y;
+        else t.ch1 = y;
+        y.fa = t;
+        update(y);
+    }
+
+    static void splay(Node t, Node f) {
+        pushDown(t);
+        while (t.fa != f) {
+            if (t.fa.fa == f) {
+                pushDown(t.fa);
+                pushDown(t);
+                if (t.fa.ch0 == t) rotate(t, 1);
+                else rotate(t, 0);
+            } else {
+                Node y = t.fa, z = y.fa;
+                pushDown(z); pushDown(y); pushDown(t);
+                if (z.ch0 == y) {
+                    if (y.ch0 == t) { rotate(y, 1); rotate(t, 1); }
+                    else { rotate(t, 0); rotate(t, 1); }
+                } else {
+                    if (y.ch1 == t) { rotate(y, 0); rotate(t, 0); }
+                    else { rotate(t, 1); rotate(t, 0); }
+                }
+            }
+        }
+        update(t);
+    }
+
+    static class Administrator {
+        int[] degree = new int[100010];
+        Node[] mem = new Node[100010];
+
+        Node node(int v) {
+            if (mem[v] != null) return mem[v];
+            return mem[v] = new Node();
+        }
+
+        boolean link(int v, int u, int p) {
+            Node nv = node(v), nu = node(u);
+            splay(nv, null);
+            splay(nu, null);
+            if (nv.fa == null && nu.fa == null) {
+                if (nv.ch1 != null) { markRev(nv); pushDown(nv); }
+                if (nu.ch0 != null) { markRev(nu); pushDown(nu); }
+                nv.ch1 = nu;
+                nv.arc1 = p;
+                nu.fa = nv;
+                nu.arc0 = p;
+                update(nv);
+                ++degree[v]; ++degree[u];
+                return true;
+            }
+            return false;
+        }
+
+        void cut(int v, int u) {
+            Node nv = node(v), nu = node(u);
+            splay(nv, null);
+            splay(nu, nv);
+            if (nv.ch0 == nu) nv.ch0 = null;
+            else nv.ch1 = null;
+            update(nv);
+            nu.fa = null;
+            --degree[v]; --degree[u];
+        }
+
+        int query(int v, int u) {
+            Node nv = node(v), nu = node(u);
+            splay(nu, null);
+            splay(nv, null);
+            if (nv.fa == null && nu.fa == null) return -1;
+            splay(nu, nv);
+            if (nv.ch0 == nu)
+                return getArc(nv, 0) + getSum(nu.ch1) + getArc(nu, 1);
+            else
+                return getArc(nu, 0) + getSum(nu.ch0) + getArc(nv, 1);
+        }
+
+        void modify(int v, int u) {
+            Node nv = node(v), nu = node(u);
+            splay(nv, null);
+            splay(nu, null);
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        int S = fs.nextInt();
+        int L = fs.nextInt();
+        int A = fs.nextInt();
+        int T = fs.nextInt();
+
+        edge = new Edge[500010];
+        for (int i = 0; i < 500010; i++) edge[i] = new Edge();
+
+        Administrator[] admin = new Administrator[101];
+
+        for (int i = 0; i < L; i++) {
+            int a = fs.nextInt(), b = fs.nextInt(), k = fs.nextInt();
+            if (a > b) { int t = a; a = b; b = t; }
+            edge[i].a = a;
+            edge[i].b = b;
+            edge[i].k = k;
+        }
+
+        Arrays.sort(edge, 0, L);
+
+        for (int i = 0; i < L; i++) {
+            int k = edge[i].k;
+            if (admin[k] == null) admin[k] = new Administrator();
+            admin[k].link(edge[i].a, edge[i].b, i);
+        }
+
+        StringBuilder sb = new StringBuilder();
+
+        for (int t = 0; t < T; t++) {
+            int opt = fs.nextInt();
+            if (opt == 1) {
+                int a = fs.nextInt(), b = fs.nextInt(), k = fs.nextInt();
+                if (a > b) { int tmp = a; a = b; b = tmp; }
+                int p = lowerBound(edge, L, a, b);
+                if (p == L || edge[p].a != a || edge[p].b != b) {
+                    sb.append("Wrong link\n");
+                } else if (edge[p].k == k) {
+                    sb.append("Already controlled link\n");
+                } else {
+                    if (admin[k] == null) admin[k] = new Administrator();
+                    if (admin[k].degree[a] == 2 || admin[k].degree[b] == 2) {
+                        sb.append("Server overload\n");
+                    } else if (!admin[k].link(a, b, p)) {
+                        sb.append("Network redundancy\n");
+                    } else {
+                        int oldK = edge[p].k;
+                        if (admin[oldK] == null) admin[oldK] = new Administrator();
+                        admin[oldK].cut(a, b);
+                        edge[p].k = k;
+                        sb.append("Assignment done\n");
+                    }
+                }
+            } else if (opt == 2) {
+                int a = fs.nextInt(), b = fs.nextInt(), x = fs.nextInt();
+                if (a > b) { int tmp = a; a = b; b = tmp; }
+                int p = lowerBound(edge, L, a, b);
+                edge[p].len = x;
+                int k = edge[p].k;
+                if (admin[k] == null) admin[k] = new Administrator();
+                admin[k].modify(a, b);
+            } else {
+                int a = fs.nextInt(), b = fs.nextInt(), k = fs.nextInt();
+                if (admin[k] == null) admin[k] = new Administrator();
+                int r = admin[k].query(a, b);
+                if (r == -1) {
+                    sb.append("No connection\n");
+                } else {
+                    sb.append(r).append(" security devices placed\n");
+                }
+            }
+        }
+        System.out.print(sb);
+    }
+
+    static int lowerBound(Edge[] arr, int len, int a, int b) {
+        int lo = 0, hi = len;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            Edge e = arr[mid];
+            if (e.a < a || (e.a == a && e.b < b)) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner() { br = new BufferedReader(new InputStreamReader(System.in)); }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException { return Integer.parseInt(next()); }
+    }
+}
