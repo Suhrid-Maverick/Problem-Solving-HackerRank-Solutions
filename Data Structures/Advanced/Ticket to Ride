@@ -1,0 +1,214 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int maxn = 500001;
+    static final int maxm = 100001;
+    static final int maxh = 19;
+    static final int base = 1 << maxh;
+
+    static int ROOT;
+    static int n, m;
+    static List<int[]>[] g;
+    static int[] in, out;
+    static int timer = 0;
+
+    static long[] t, upd;
+
+    static long get() {
+        return t[1] + upd[1];
+    }
+
+    static int l, r;
+    static long delta;
+
+    static void put(int v, int cl, int cr) {
+        if (r <= cl || cr <= l) return;
+        if (l <= cl && cr <= r) {
+            upd[v] += delta;
+            return;
+        }
+        int cc = (cl + cr) >> 1;
+        put(v << 1, cl, cc);
+        put((v << 1) + 1, cc, cr);
+        t[v] = Math.max(t[v << 1] + upd[v << 1], t[(v << 1) + 1] + upd[(v << 1) + 1]);
+    }
+
+    static void add(int v, long delta) {
+        l = in[v];
+        r = out[v];
+        Main.delta = delta;
+        put(1, 0, base);
+    }
+
+    static List<long[]>[] up, down, other;
+
+    static boolean is_prev(int u, int v) {
+        return in[u] <= in[v] && out[v] <= out[u];
+    }
+
+    static long best = 0;
+
+    static void go(int u, int prev) {
+        for (long[] p : other[u]) add((int) p[0], p[1]);
+        for (long[] p : down[u]) {
+            add((int) p[0], -p[1]);
+            upd[1] += p[1];
+        }
+        for (long[] p : up[u]) add((int) p[0], -p[1]);
+        best = Math.max(best, get());
+        for (int[] p : g[u]) {
+            int v = p[0];
+            int w = p[1];
+            if (v == prev) continue;
+            add(v, 2L * w);
+            upd[1] -= w;
+            go(v, u);
+            add(v, -2L * w);
+            upd[1] += w;
+        }
+        for (long[] p : other[u]) add((int) p[0], -p[1]);
+        for (long[] p : down[u]) {
+            add((int) p[0], p[1]);
+            upd[1] -= p[1];
+        }
+        for (long[] p : up[u]) add((int) p[0], p[1]);
+    }
+
+    static int[] ticketsU, ticketsV, ticket_cost;
+    static int[] visits, needh, step;
+    static List<Integer>[] endings;
+
+    static int[] stk;
+    static int sc = 0;
+
+    static void dfs(int u, int prev, long depth) {
+        stk[sc++] = u;
+        for (int id : endings[u]) {
+            visits[id]++;
+            if (visits[id] == 1) {
+                needh[id] = sc;
+            } else if (visits[id] == 2) {
+                step[id] = stk[needh[id]];
+            }
+        }
+        in[u] = timer++;
+        t[in[u] + base] = -depth;
+
+        for (int[] p : g[u]) {
+            int v = p[0];
+            int w = p[1];
+            if (v != prev) {
+                dfs(v, u, depth + w);
+            }
+        }
+
+        for (int id : endings[u]) visits[id]--;
+        out[u] = timer;
+        --sc;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws Exception {
+        new Thread(null, Main::solve, "main", 1 << 26).start();
+    }
+
+    static void solve() {
+        try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+            StringTokenizer tok;
+            String line = br.readLine();
+            while (line != null && line.trim().isEmpty()) line = br.readLine();
+            n = Integer.parseInt(line.trim());
+            Random rnd = new Random(2317);
+            ROOT = rnd.nextInt(n);
+
+            g = new List[maxn];
+            up = new List[maxn];
+            down = new List[maxn];
+            other = new List[maxn];
+            endings = new List[maxn];
+            for (int i = 0; i < maxn; i++) {
+                g[i] = new ArrayList<>();
+                up[i] = new ArrayList<>();
+                down[i] = new ArrayList<>();
+                other[i] = new ArrayList<>();
+                endings[i] = new ArrayList<>();
+            }
+
+            in = new int[maxn];
+            out = new int[maxn];
+            t = new long[base * 2];
+            upd = new long[base * 2];
+
+            for (int i = 0; i < n - 1; i++) {
+                line = br.readLine();
+                while (line != null && line.trim().isEmpty()) line = br.readLine();
+                tok = new StringTokenizer(line);
+                int u = Integer.parseInt(tok.nextToken()) - 1;
+                int v = Integer.parseInt(tok.nextToken()) - 1;
+                int w = Integer.parseInt(tok.nextToken());
+                g[u].add(new int[]{v, w});
+                g[v].add(new int[]{u, w});
+            }
+
+            line = br.readLine();
+            while (line != null && line.trim().isEmpty()) line = br.readLine();
+            m = Integer.parseInt(line.trim());
+
+            ticketsU = new int[maxm];
+            ticketsV = new int[maxm];
+            ticket_cost = new int[maxm];
+            visits = new int[maxm];
+            needh = new int[maxm];
+            step = new int[maxm];
+            stk = new int[maxn];
+
+            for (int i = 0; i < m; i++) {
+                line = br.readLine();
+                while (line != null && line.trim().isEmpty()) line = br.readLine();
+                tok = new StringTokenizer(line);
+                int u = Integer.parseInt(tok.nextToken()) - 1;
+                int v = Integer.parseInt(tok.nextToken()) - 1;
+                int c = Integer.parseInt(tok.nextToken());
+                ticketsU[i] = u;
+                ticketsV[i] = v;
+                ticket_cost[i] = c;
+                endings[u].add(i);
+                endings[v].add(i);
+            }
+            Arrays.fill(step, -1);
+
+            dfs(ROOT, ROOT, 0);
+
+            for (int i = base - 1; i > 0; --i) {
+                t[i] = Math.max(t[i * 2], t[i * 2 + 1]);
+            }
+
+            for (int i = 0; i < m; i++) {
+                int u = ticketsU[i];
+                int v = ticketsV[i];
+                int c = ticket_cost[i];
+                if (is_prev(v, u)) {
+                    int tmp = u;
+                    u = v;
+                    v = tmp;
+                }
+                if (is_prev(u, v)) {
+                    u = step[i];
+                    add(v, c);
+                    up[u].add(new long[]{v, c});
+                    down[v].add(new long[]{u, c});
+                } else {
+                    other[u].add(new long[]{v, c});
+                    other[v].add(new long[]{u, c});
+                }
+            }
+
+            go(ROOT, ROOT);
+            System.out.println(best);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
