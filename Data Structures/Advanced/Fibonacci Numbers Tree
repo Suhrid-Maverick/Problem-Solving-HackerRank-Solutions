@@ -1,0 +1,308 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int MAXN = 200005;
+    static final int MOD = 1000000007;
+    static final int FIB0 = 88564505;
+    static final int FIB1 = 56182730;
+    static final int CONST = 99999;
+
+    static int n, m, ptr, lg, chainNo;
+    static ArrayList<Integer>[] adj;
+    static int[] subsize, chainHead, chainInd, posInBase, Base, L, in, out, F, heavy, vis;
+    static int[][] LCA;
+    static int[][] I = new int[2][2];
+    static int[][] T = new int[2][2];
+    static int[] stS, stLazy0, stLazy1, stF1, stF2;
+
+    static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+    static StringTokenizer tokenizer;
+
+    static String nextToken() throws IOException {
+        while (tokenizer == null || !tokenizer.hasMoreTokens()) {
+            String line = br.readLine();
+            if (line == null) return null;
+            tokenizer = new StringTokenizer(line);
+        }
+        return tokenizer.nextToken();
+    }
+
+    static int nextInt() throws IOException { return Integer.parseInt(nextToken()); }
+    static long nextLong() throws IOException { return Long.parseLong(nextToken()); }
+
+    static void dfs() {
+        L[1] = 1;
+        ArrayDeque<Integer> Q = new ArrayDeque<>();
+        ArrayDeque<Integer> st = new ArrayDeque<>();
+        Q.add(1);
+        while (!Q.isEmpty()) {
+            int u = Q.poll();
+            st.push(u);
+            subsize[u] = 1;
+            for (int it : adj[u]) {
+                LCA[it][0] = u;
+                L[it] = L[u] + 1;
+                Q.add(it);
+            }
+        }
+        while (!st.isEmpty()) {
+            int u = st.pop();
+            for (int it : adj[u]) subsize[u] += subsize[it];
+        }
+    }
+
+    static void HLD() {
+        ArrayDeque<Integer> st = new ArrayDeque<>();
+        ArrayDeque<Integer> Q = new ArrayDeque<>();
+        Q.add(1);
+        while (!Q.isEmpty()) {
+            int top = Q.poll();
+            st.push(top);
+            for (int it : adj[top]) Q.add(it);
+        }
+        for (int i = 1; i <= n; i++) heavy[i] = i;
+        while (!st.isEmpty()) {
+            int x = st.pop();
+            int p = LCA[x][0];
+            if (p < 1) continue;
+            if (heavy[p] == p || subsize[heavy[p]] < subsize[x]) heavy[p] = x;
+        }
+        st.push(1);
+        chainNo++;
+        chainInd[1] = chainNo;
+        chainHead[chainNo] = 1;
+        while (!st.isEmpty()) {
+            int top = st.peek();
+            if (vis[top] == 0) {
+                Base[++ptr] = top;
+                vis[top] = 1;
+                if (heavy[top] != top) {
+                    st.push(heavy[top]);
+                    chainInd[heavy[top]] = chainInd[top];
+                }
+            } else {
+                st.pop();
+                for (int it : adj[top]) {
+                    if (it != heavy[top]) {
+                        chainNo++;
+                        chainInd[it] = chainNo;
+                        chainHead[chainNo] = it;
+                        st.push(it);
+                    }
+                }
+            }
+        }
+        for (int i = 1; i <= n; i++) {
+            in[Base[i]] = i;
+            posInBase[Base[i]] = i;
+        }
+        for (int i = 1; i <= n; i++) out[i] = in[i] + subsize[i] - 1;
+    }
+
+    static void merge(int idx) {
+        stS[idx] = stS[2*idx] + stS[2*idx+1];
+        if (stS[idx] >= MOD) stS[idx] -= MOD;
+        stF1[idx] = stF1[2*idx] + stF1[2*idx+1];
+        if (stF1[idx] >= MOD) stF1[idx] -= MOD;
+        stF2[idx] = stF2[2*idx] + stF2[2*idx+1];
+        if (stF2[idx] >= MOD) stF2[idx] -= MOD;
+    }
+
+    static void buildst(int idx, int ss, int se) {
+        if (ss == se) {
+            stS[idx] = 0;
+            stLazy0[idx] = 0;
+            stLazy1[idx] = 0;
+            stF1[idx] = F[L[Base[ss]]];
+            stF2[idx] = F[L[Base[ss]] + 1];
+            return;
+        }
+        int mid = (ss + se) >> 1;
+        buildst(2*idx, ss, mid);
+        buildst(2*idx+1, mid+1, se);
+        merge(idx);
+    }
+
+    static void adjust(int idx, int ss, int se) {
+        long v = 1L * stLazy0[idx] * stF1[idx] % MOD + 1L * stLazy1[idx] * stF2[idx] % MOD;
+        if (v >= MOD) v -= MOD;
+        stS[idx] = (int)((stS[idx] + v) % MOD);
+        if (ss != se) {
+            stLazy0[2*idx] += stLazy0[idx]; if (stLazy0[2*idx] >= MOD) stLazy0[2*idx] -= MOD;
+            stLazy1[2*idx] += stLazy1[idx]; if (stLazy1[2*idx] >= MOD) stLazy1[2*idx] -= MOD;
+            stLazy0[2*idx+1] += stLazy0[idx]; if (stLazy0[2*idx+1] >= MOD) stLazy0[2*idx+1] -= MOD;
+            stLazy1[2*idx+1] += stLazy1[idx]; if (stLazy1[2*idx+1] >= MOD) stLazy1[2*idx+1] -= MOD;
+        }
+        stLazy0[idx] = 0;
+        stLazy1[idx] = 0;
+    }
+
+    static void update(int idx, int ss, int se, int l, int r, int f0, int f1) {
+        if (stLazy1[idx] != 0 || stLazy0[idx] != 0) adjust(idx, ss, se);
+        if (l > se || r < ss) return;
+        if (l <= ss && se <= r) {
+            stLazy0[idx] = f0;
+            stLazy1[idx] = f1;
+            adjust(idx, ss, se);
+            return;
+        }
+        int mid = (ss + se) >> 1;
+        update(2*idx, ss, mid, l, r, f0, f1);
+        update(2*idx+1, mid+1, se, l, r, f0, f1);
+        merge(idx);
+    }
+
+    static int query(int idx, int ss, int se, int l, int r) {
+        if (stLazy1[idx] != 0 || stLazy0[idx] != 0) adjust(idx, ss, se);
+        if (l > se || r < ss || l > r) return 0;
+        if (l <= ss && se <= r) return stS[idx];
+        int mid = (ss + se) >> 1;
+        int a = query(2*idx, ss, mid, l, r);
+        int b = query(2*idx+1, mid+1, se, l, r);
+        a += b;
+        if (a >= MOD) a -= MOD;
+        return a;
+    }
+
+    static int queryUp(int u, int v) {
+        int vchain = chainInd[v];
+        int ans = 0;
+        while (true) {
+            int uchain = chainInd[u];
+            if (uchain == vchain) {
+                ans += query(1, 1, n, posInBase[v], posInBase[u]);
+                if (ans >= MOD) ans -= MOD;
+                break;
+            }
+            ans += query(1, 1, n, posInBase[chainHead[uchain]], posInBase[u]);
+            if (ans >= MOD) ans -= MOD;
+            u = chainHead[uchain];
+            u = LCA[u][0];
+        }
+        return ans;
+    }
+
+    static void mult(int[][] A, int[][] B) {
+        int[][] temp = new int[2][2];
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++)
+                temp[i][j] = (int)((1L * A[i][0] * B[0][j] + 1L * A[i][1] * B[1][j]) % MOD);
+        for (int i = 0; i < 2; i++)
+            for (int j = 0; j < 2; j++)
+                A[i][j] = temp[i][j];
+    }
+
+    static void reset() {
+        I[0][0] = 1; I[0][1] = 0;
+        I[1][0] = 0; I[1][1] = 1;
+        T[0][0] = 0; T[0][1] = 1;
+        T[1][0] = 1; T[1][1] = 1;
+    }
+
+    static void fibo(long x) {
+        reset();
+        while (x > 0) {
+            if ((x & 1) == 1) mult(I, T);
+            x >>= 1;
+            mult(T, T);
+        }
+    }
+
+    static int getLca(int x, int y) {
+        if (L[x] < L[y]) { int t = x; x = y; y = t; }
+        for (int i = lg; i >= 0; i--) {
+            if (LCA[x][i] != -1 && L[LCA[x][i]] >= L[y]) x = LCA[x][i];
+        }
+        if (x == y) return x;
+        for (int i = lg; i >= 0; i--) {
+            if (LCA[x][i] != -1 && LCA[x][i] != LCA[y][i]) {
+                x = LCA[x][i];
+                y = LCA[y][i];
+            }
+        }
+        return LCA[x][0];
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        n = nextInt();
+        m = nextInt();
+
+        adj = new ArrayList[n + 1];
+        for (int i = 0; i <= n; i++) adj[i] = new ArrayList<>();
+        for (int i = 2; i <= n; i++) {
+            int p = nextInt();
+            adj[p].add(i);
+        }
+
+        subsize = new int[n + 1];
+        chainHead = new int[n + 1];
+        chainInd = new int[n + 1];
+        posInBase = new int[n + 1];
+        Base = new int[n + 1];
+        L = new int[n + 1];
+        in = new int[n + 1];
+        out = new int[n + 1];
+        heavy = new int[n + 1];
+        vis = new int[n + 1];
+
+        lg = 0;
+        while ((1 << lg) < n) lg++;
+
+        LCA = new int[n + 1][lg + 1];
+        for (int i = 0; i <= n; i++) Arrays.fill(LCA[i], -1);
+
+        dfs();
+
+        for (int i = 1; i <= lg; i++)
+            for (int j = 1; j <= n; j++)
+                if (LCA[j][i - 1] != -1)
+                    LCA[j][i] = LCA[LCA[j][i - 1]][i - 1];
+
+        HLD();
+
+        F = new int[MAXN];
+        F[1] = 1;
+        for (int i = 2; i < MAXN; i++) {
+            F[i] = F[i - 1] + F[i - 2];
+            if (F[i] >= MOD) F[i] -= MOD;
+        }
+
+        stS = new int[4 * n + 4];
+        stLazy0 = new int[4 * n + 4];
+        stLazy1 = new int[4 * n + 4];
+        stF1 = new int[4 * n + 4];
+        stF2 = new int[4 * n + 4];
+
+        buildst(1, 1, n);
+
+        StringBuilder sb = new StringBuilder();
+        while (m-- > 0) {
+            String type = nextToken();
+            if (type.equals("U")) {
+                int u = nextInt();
+                long k = nextLong();
+                k -= L[u];
+                k += CONST;
+                fibo(k);
+                int f0 = (int)((1L * I[0][0] * FIB0 + 1L * I[0][1] * FIB1) % MOD);
+                int f1 = (int)((1L * I[1][0] * FIB0 + 1L * I[1][1] * FIB1) % MOD);
+                update(1, 1, n, in[u], out[u], f0, f1);
+            } else {
+                int u = nextInt();
+                int v = nextInt();
+                int lca = getLca(u, v);
+                int ans = 0;
+                ans += queryUp(u, lca);
+                if (ans >= MOD) ans -= MOD;
+                ans += queryUp(v, lca);
+                if (ans >= MOD) ans -= MOD;
+                ans -= query(1, 1, n, posInBase[lca], posInBase[lca]);
+                if (ans < 0) ans += MOD;
+                sb.append(ans).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+}
