@@ -1,0 +1,203 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static class Pair {
+        int fi;
+        int se;
+        int i;
+
+        public Pair(int fi, int se, int i) {
+            this.fi = fi;
+            this.se = se;
+            this.i = i;
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bw = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int p = Integer.parseInt(st.nextToken());
+        int q = Integer.parseInt(st.nextToken());
+
+        int ah = 0;
+        int d = 1;
+        while ((p % 2) == 0) {
+            p /= 2;
+            ah++;
+            d *= 2;
+        }
+
+        int bh = 0;
+        while ((p % 5) == 0) {
+            p /= 5;
+            bh++;
+            d *= 5;
+        }
+
+        int c = Math.max(ah, bh);
+
+        char[] s = br.readLine().toCharArray();
+        int n = s.length;
+        long[] num = new long[n + 1];
+        for (int i = 0; i < n; i++) {
+            num[i + 1] = s[i] - '0';
+        }
+
+        int k = (int) Math.sqrt(n);
+        long power = 1;
+        Integer[] srt = new Integer[n + 2];
+        int[] g = new int[n + 2];
+        for (int i = n; i > 0; i--) {
+            srt[i + 1] = i + 1;
+            g[i] = (int) ((g[i + 1] + (power * num[i]) % p) % p);
+            power = (power * 10) % p;
+        }
+
+        long[] pow = new long[35];
+        pow[0] = 1;
+
+        for (int i = 1; i <= 32; i++) {
+            pow[i] = (pow[i - 1] * 10) % d;
+        }
+
+        srt[1] = 1;
+        Arrays.sort(srt, 1, n + 2, (a, b) -> g[a] - g[b]);
+
+        for (int i = 1, prev = -1, count = 0; i <= n + 1; i++) {
+            if (g[srt[i]] != prev) {
+                count++;
+                prev = g[srt[i]];
+            }
+
+            g[srt[i]] = count;
+        }
+
+        int[][] rightArr = new int[n + 2][35];
+        int[][] leftArr = new int[n + 1][35];
+        boolean[] ok = new boolean[n + 2];
+        for (int i = 1; i <= n; i++) {
+            long md = 0;
+            int j;
+
+            for (j = 0; (i - j) > 0 && j < c; j++) {
+                md = (md + (pow[j] * num[i - j]) % d) % d;
+                rightArr[i + 1][j + 1] = rightArr[i + 1][j];
+
+                if (md == 0 && g[i - j] == g[i + 1]) {
+                    rightArr[i + 1][j + 1]++;
+                    leftArr[i - j][j + 1]++;
+                }
+            }
+
+            if (j == c && md == 0) {
+                ok[i + 1] = true;
+            }
+        }
+
+        for (int i = 1; i <= n + 1; i++) {
+            for (int j = 0; i + j <= n && j < c; j++) {
+                leftArr[i][j + 1] += leftArr[i][j];
+            }
+        }
+
+        Pair[] query = new Pair[q + 1];
+        for (int i = 1; i <= q; i++) {
+            st = new StringTokenizer(br.readLine());
+            int begin = Integer.parseInt(st.nextToken());
+            int end = Integer.parseInt(st.nextToken());
+            query[i] = new Pair(begin, end, i);
+        }
+
+        Arrays.sort(query, 1, 1 + q, (a, b) -> {
+            if (a.fi / k != b.fi / k) {
+                return a.fi - b.fi;
+            }
+            return a.se - b.se;
+        });
+
+        long sum = 0;
+        int left = n;
+        int right = n + 5;
+        int r = 0;
+        int l = 0;
+        int[] sizeLeft = new int[n + 1];
+        int[] sizeRight = new int[n + 1];
+        long[] ans = new long[q + 1];
+
+        for (int i = 1; i <= q; i++) {
+            int b = query[i].fi;
+            int e = query[i].se + 1;
+
+            if (e < right) {
+                r = b - c - 1;
+                l = b + c;
+                Arrays.fill(sizeRight, 0);
+                Arrays.fill(sizeLeft, 0);
+                left = b;
+                right = b - 1;
+                sum = 0;
+            }
+
+            for (int j = right + 1; j <= e; j++, r++) {
+                if (r >= left) {
+                    sizeRight[g[r]]++;
+                }
+
+                if (j - left > c && ok[j]) {
+                    sum += sizeRight[g[j]];
+                    sizeLeft[g[j]]++;
+                }
+
+                sum += rightArr[j][Math.min(j - left, c)];
+            }
+
+            for (int j = left - 1; j >= b; j--, l--) {
+                if (ok[l] && l <= e) {
+                    sizeLeft[g[l]]++;
+                }
+
+                sum += sizeLeft[g[j]] + leftArr[j][Math.min(c, e - j)];
+
+                if (e - c > j) {
+                    sizeRight[g[j]]++;
+                }
+            }
+
+            for (int j = left; j < b; j++) {
+                if (l < e) {
+                    l++;
+                    sum -= sizeLeft[g[j]] + leftArr[j][Math.min(c, e - j)];
+
+                    if (ok[l]) {
+                        sizeLeft[g[l]]--;
+                    }
+                } else {
+                    sum -= leftArr[j][e - j];
+                }
+
+                if (l >= e) {
+                    l = j + c + 1;
+                }
+
+                if (e - c > j) {
+                    sizeRight[g[j]]--;
+                }
+            }
+
+            left = b;
+            right = e;
+            ans[query[i].i] = sum;
+        }
+
+        for (int i = 1; i <= q; i++) {
+            bw.write(ans[i] + "\n");
+        }
+
+        bw.close();
+        br.close();
+    }
+}
