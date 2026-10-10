@@ -1,0 +1,221 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final long mod = 1000000007L;
+    static final long inv2 = 500000004L;
+
+    static long calc(long n, long a, long d) {
+        long ans = (a + a + (n - 1) * d) % mod;
+        ans = (ans * n) % mod;
+        ans = (ans * inv2) % mod;
+        return ans;
+    }
+
+    static int[] segL, segR, segLeft, segRight;
+    static long[] segSum, segA, segD;
+    static int nodeCnt;
+
+    static int init(int l, int r) {
+        int id = nodeCnt++;
+        segL[id] = l; segR[id] = r;
+        segSum[id] = 0; segA[id] = 0; segD[id] = 0;
+        if (l < r) {
+            int mid = (l + r) / 2;
+            segLeft[id] = init(l, mid);
+            segRight[id] = init(mid + 1, r);
+        } else {
+            segLeft[id] = -1; segRight[id] = -1;
+        }
+        return id;
+    }
+
+    static void update(int id, int x, int y, long _a, long _d) {
+        if (y < segL[id] || segR[id] < x) return;
+        if (x <= segL[id] && segR[id] <= y) {
+            segSum[id] = (segSum[id] + calc(segR[id] - segL[id] + 1, _a, _d)) % mod;
+            segA[id] = (segA[id] + _a) % mod;
+            segD[id] = (segD[id] + _d) % mod;
+            return;
+        }
+        propagate(id);
+        int mid = (segL[id] + segR[id]) / 2;
+        if (y <= mid) update(segLeft[id], x, y, _a, _d);
+        else if (mid < x) update(segRight[id], x, y, _a, _d);
+        else {
+            update(segLeft[id], x, mid, _a, _d);
+            long nw_a = (_a + (mid - x + 1) * _d) % mod;
+            update(segRight[id], mid + 1, y, nw_a, _d);
+        }
+        segSum[id] = (segSum[segLeft[id]] + segSum[segRight[id]]) % mod;
+    }
+
+    static long query(int id, int x, int y) {
+        if (y < segL[id] || segR[id] < x) return 0L;
+        if (x <= segL[id] && segR[id] <= y) return segSum[id];
+        propagate(id);
+        return (query(segLeft[id], x, y) + query(segRight[id], x, y)) % mod;
+    }
+
+    static void propagate(int id) {
+        if (segA[id] == 0 && segD[id] == 0) return;
+        int mid = (segL[id] + segR[id]) / 2;
+        update(segLeft[id], segL[id], mid, segA[id], segD[id]);
+        long nw_a = (segA[id] + (mid - segL[id] + 1) * segD[id]) % mod;
+        update(segRight[id], mid + 1, segR[id], nw_a, segD[id]);
+        segSum[id] = (segSum[segLeft[id]] + segSum[segRight[id]]) % mod;
+        segA[id] = 0; segD[id] = 0;
+    }
+
+    static ArrayList<Integer>[] adj;
+    static int n;
+    static ArrayList<Integer>[] Path;
+    static int[] headSeg, G, H, P, pos, sz;
+
+    static void dfs_init(int u, int p, int h) {
+        H[u] = h; P[u] = p; sz[u] = 1;
+        for (int v : adj[u]) {
+            if (v == p) continue;
+            dfs_init(v, u, h + 1);
+            sz[u] += sz[v];
+        }
+    }
+
+    static void dfs_HLD(int u) {
+        Path[u].add(u);
+        for (int i = 0; i < Path[u].size(); i++) {
+            int v = Path[u].get(i);
+            G[v] = u;
+            pos[v] = i;
+            for (int vv : adj[v]) {
+                if (vv == P[v]) continue;
+                if (2 * sz[vv] >= sz[v]) Path[u].add(vv);
+                else dfs_HLD(vv);
+            }
+        }
+        headSeg[u] = init(0, Path[u].size() - 1);
+    }
+
+    static int lca(int u, int v) {
+        while (G[u] != G[v]) {
+            if (H[G[u]] < H[G[v]]) { int t = u; u = v; v = t; }
+            u = P[G[u]];
+        }
+        return pos[u] < pos[v] ? u : v;
+    }
+
+    static void updatePath(int u, int v, long a, long d) {
+        int l = lca(u, v);
+        while (G[u] != G[l]) {
+            a = (a + (pos[u] + 1) * d) % mod;
+            update(headSeg[G[u]], 0, pos[u], (a - d + mod) % mod, mod - d);
+            u = P[G[u]];
+        }
+        if (pos[l] + 1 <= pos[u]) {
+            a = (a + (pos[u] - pos[l]) * d) % mod;
+            update(headSeg[G[u]], pos[l] + 1, pos[u], (a - d + mod) % mod, mod - d);
+        }
+        long nw_a = (a + (H[v] - H[l]) * d) % mod, nw_d = mod - d;
+        while (G[v] != G[l]) {
+            nw_a = (nw_a + (pos[v] + 1) * nw_d) % mod;
+            update(headSeg[G[v]], 0, pos[v], (nw_a + d) % mod, d);
+            v = P[G[v]];
+        }
+        update(headSeg[G[v]], pos[l], pos[v], a, d);
+    }
+
+    static long queryPath(int u, int v) {
+        long ans = 0;
+        while (G[u] != G[v]) {
+            if (H[G[u]] < H[G[v]]) { int t = u; u = v; v = t; }
+            ans = (ans + query(headSeg[G[u]], 0, pos[u])) % mod;
+            u = P[G[u]];
+        }
+        if (pos[u] > pos[v]) { int t = u; u = v; v = t; }
+        ans = (ans + query(headSeg[G[u]], pos[u], pos[v])) % mod;
+        return (ans + mod) % mod;
+    }
+
+    static void solve() throws IOException {
+        FastReader in = new FastReader(System.in);
+        n = in.nextInt();
+        int q = in.nextInt();
+
+        adj = new ArrayList[n];
+        for (int i = 0; i < n; i++) adj[i] = new ArrayList<>();
+
+        for (int i = 0; i < n - 1; i++) {
+            int u = in.nextInt(), v = in.nextInt();
+            adj[u].add(v); adj[v].add(u);
+        }
+
+        Path = new ArrayList[n];
+        for (int i = 0; i < n; i++) Path[i] = new ArrayList<>();
+
+        G = new int[n]; H = new int[n]; P = new int[n]; pos = new int[n]; sz = new int[n];
+        headSeg = new int[n];
+
+        int maxNodes = 4 * n + 10;
+        segL = new int[maxNodes]; segR = new int[maxNodes];
+        segLeft = new int[maxNodes]; segRight = new int[maxNodes];
+        segSum = new long[maxNodes]; segA = new long[maxNodes]; segD = new long[maxNodes];
+        nodeCnt = 0;
+
+        dfs_init(0, 0, 0);
+        dfs_HLD(0);
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < q; i++) {
+            int type = in.nextInt();
+            if (type == 1) {
+                int u = in.nextInt(), v = in.nextInt();
+                long x = in.nextLong();
+                updatePath(u, v, x, x);
+            } else {
+                int u = in.nextInt(), v = in.nextInt();
+                sb.append(queryPath(u, v)).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { solve(); } catch (Exception e) { e.printStackTrace(); }
+        }, "main", 1 << 26);
+        t.start();
+        t.join();
+    }
+
+    static class FastReader {
+        InputStream in;
+        byte[] buf = new byte[1 << 16];
+        int idx, len;
+        FastReader(InputStream in) { this.in = in; }
+        int read() throws IOException {
+            if (idx >= len) {
+                len = in.read(buf); idx = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[idx++];
+        }
+        int nextInt() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            int val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+        long nextLong() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            long val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+    }
+}
