@@ -1,0 +1,259 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int MOD = 1000000007;
+    static final int N = 50005;
+
+    static int[] a = new int[N], b = new int[N], sz = new int[N];
+    static int[] top = new int[N], ch = new int[N], f = new int[N];
+    static int[] st = new int[N], w = new int[N], d = new int[N];
+    static int[][] p = new int[N][18];
+    static int cnt, n;
+    static ArrayList<Integer>[] g;
+
+    // segment tree
+    static int[] tA, tB1, tB2, tCa, tCb;
+
+    static void dfs(int u, int fa) {
+        sz[u] = 1;
+        for (int j : g[u]) {
+            if (j == fa) continue;
+            dfs(j, u);
+            sz[u] += sz[j];
+            if (ch[u] == 0 || sz[ch[u]] < sz[j]) ch[u] = j;
+        }
+    }
+
+    static void go(int u, int fa, int tp) {
+        st[u] = ++cnt; w[cnt] = u; top[u] = tp; f[u] = fa; d[u] = d[fa] + 1;
+        if (ch[u] == 0) return;
+        go(ch[u], u, tp);
+        for (int j : g[u]) {
+            if (j == fa || j == ch[u]) continue;
+            go(j, u, j);
+        }
+    }
+
+    static int lca(int a, int b) {
+        if (d[a] < d[b]) { int t = a; a = b; b = t; }
+        int h = d[a] - d[b];
+        for (int i = 17; i >= 0; i--)
+            if (((h >> i) & 1) == 1) a = p[a][i];
+        if (a == b) return a;
+        for (int i = 17; i >= 0; i--)
+            if (p[a][i] != p[b][i]) { a = p[a][i]; b = p[b][i]; }
+        return p[a][0];
+    }
+
+    static int pow(long base, long exp) {
+        long ans = 1, aa = base % MOD;
+        while (exp > 0) {
+            if ((exp & 1) == 1) ans = ans * aa % MOD;
+            exp >>= 1;
+            aa = aa * aa % MOD;
+        }
+        return (int) ans;
+    }
+
+    static void up(int pi) {
+        int l = pi << 1, r = pi << 1 | 1;
+        tA[pi]  = (int) (1L * tA[l] * tA[r] % MOD);
+        tB1[pi] = (int) ((1L * tA[l] * tB1[r] + tB1[l]) % MOD);
+        tB2[pi] = (int) ((1L * tA[r] * tB2[l] + tB2[r]) % MOD);
+    }
+
+    static void build(int pi, int l, int r) {
+        tCa[pi] = -1; tCb[pi] = -1;
+        if (l == r) {
+            int u = w[l];
+            tA[pi]  = a[u];
+            tB1[pi] = b[u];
+            tB2[pi] = b[u];
+            return;
+        }
+        int m = (l + r) >> 1;
+        build(pi << 1, l, m);
+        build(pi << 1 | 1, m + 1, r);
+        up(pi);
+    }
+
+    static void cal(int pi, int l, int r, int aa, int bb) {
+        tA[pi] = pow(aa, r - l + 1);
+        if (aa == 1) {
+            tB1[pi] = tB2[pi] = (int) (1L * bb * (r - l + 1) % MOD);
+        } else {
+            long v = tA[pi] - 1;
+            if (v < 0) v += MOD;
+            long ww = aa - 1;
+            if (ww < 0) ww += MOD;
+            ww = pow(ww, MOD - 2);
+            v = v * ww % MOD * bb % MOD;
+            tB1[pi] = tB2[pi] = (int) v;
+        }
+        tCa[pi] = aa;
+        tCb[pi] = bb;
+    }
+
+    static void down(int pi, int l, int r) {
+        if (tCa[pi] != -1) {
+            int m = (l + r) >> 1;
+            cal(pi << 1, l, m, tCa[pi], tCb[pi]);
+            cal(pi << 1 | 1, m + 1, r, tCa[pi], tCb[pi]);
+            tCa[pi] = -1;
+        }
+    }
+
+    static void upd(int pi, int l, int r, int x, int y, int aa, int bb) {
+        if (l >= x && r <= y) {
+            cal(pi, l, r, aa, bb);
+            return;
+        }
+        int m = (l + r) >> 1;
+        down(pi, l, r);
+        if (x <= m) upd(pi << 1, l, m, x, y, aa, bb);
+        if (y > m) upd(pi << 1 | 1, m + 1, r, x, y, aa, bb);
+        up(pi);
+    }
+
+    // returns {a, b}
+    static int[] query(int pi, int l, int r, int x, int y, int k) {
+        if (l >= x && r <= y) {
+            return new int[]{tA[pi], k != 0 ? tB1[pi] : tB2[pi]};
+        }
+        int m = (l + r) >> 1;
+        int a1 = 1, b1 = 0, a2 = 1, b2 = 0;
+        down(pi, l, r);
+        if (x <= m) { int[] res = query(pi << 1, l, m, x, y, k); a1 = res[0]; b1 = res[1]; }
+        if (y > m) { int[] res = query(pi << 1 | 1, m + 1, r, x, y, k); a2 = res[0]; b2 = res[1]; }
+        int ra = (int) (1L * a2 * a1 % MOD);
+        int rb;
+        if (k != 0) rb = (int) ((1L * a1 * b2 + b1) % MOD);
+        else        rb = (int) ((1L * a2 * b1 + b2) % MOD);
+        up(pi);
+        return new int[]{ra, rb};
+    }
+
+    static void change(int u, int v, int aa, int bb) {
+        while (top[u] != top[v]) {
+            int x = top[u];
+            upd(1, 1, n, st[x], st[u], aa, bb);
+            u = f[x];
+        }
+        upd(1, 1, n, st[v], st[u], aa, bb);
+    }
+
+    static int[] queryPath(int u, int v, int dir) {
+        int a = 1, b = 0;
+        while (top[u] != top[v]) {
+            int x = top[u];
+            int[] res = query(1, 1, n, st[x], st[u], dir);
+            int a1 = res[0], b1 = res[1];
+            if (dir == 0) b = (int) ((1L * a * b1 + b) % MOD);
+            else          b = (int) ((1L * a1 * b + b1) % MOD);
+            a = (int) (1L * a * a1 % MOD);
+            u = f[x];
+        }
+        int[] res = query(1, 1, n, st[v], st[u], dir);
+        int a1 = res[0], b1 = res[1];
+        if (dir == 0) b = (int) ((1L * a * b1 + b) % MOD);
+        else          b = (int) ((1L * a1 * b + b1) % MOD);
+        a = (int) (1L * a * a1 % MOD);
+        return new int[]{a, b};
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringBuilder sb = new StringBuilder();
+
+        n = Integer.parseInt(br.readLine().trim());
+
+        for (int i = 1; i <= n; i++) {
+            StringTokenizer stk = new StringTokenizer(br.readLine());
+            a[i] = Integer.parseInt(stk.nextToken());
+            b[i] = Integer.parseInt(stk.nextToken());
+        }
+
+        g = new ArrayList[n + 1];
+        for (int i = 1; i <= n; i++) g[i] = new ArrayList<>();
+        for (int i = 1; i < n; i++) {
+            StringTokenizer stk = new StringTokenizer(br.readLine());
+            int j = Integer.parseInt(stk.nextToken());
+            int k = Integer.parseInt(stk.nextToken());
+            g[j].add(k);
+            g[k].add(j);
+        }
+
+        tA  = new int[n << 2];
+        tB1 = new int[n << 2];
+        tB2 = new int[n << 2];
+        tCa = new int[n << 2];
+        tCb = new int[n << 2];
+
+        dfs(1, 0);
+        cnt = 0;
+        go(1, 0, 1);
+
+        p[1][0] = 1;
+        for (int i = 1; i <= n; i++) p[i][0] = f[i];
+        for (int i = 1; i < 18; i++)
+            for (int j = 1; j <= n; j++)
+                p[j][i] = p[p[j][i - 1]][i - 1];
+
+        build(1, 1, n);
+
+        int m = Integer.parseInt(br.readLine().trim());
+        while (m-- > 0) {
+            StringTokenizer stk = new StringTokenizer(br.readLine());
+            int k = Integer.parseInt(stk.nextToken());
+            int x = Integer.parseInt(stk.nextToken());
+            int y = Integer.parseInt(stk.nextToken());
+
+            if (k == 1) {
+                int aa = Integer.parseInt(stk.nextToken());
+                int bb = Integer.parseInt(stk.nextToken());
+                int fa = lca(x, y);
+                if (x == fa) {
+                    change(y, x, aa, bb);
+                } else if (y == fa) {
+                    change(x, y, aa, bb);
+                } else {
+                    int h = d[x] - d[fa] - 1;
+                    int u = x;
+                    for (int i = 17; i >= 0; i--)
+                        if (((h >> i) & 1) == 1) u = p[u][i];
+                    change(x, u, aa, bb);
+                    change(y, fa, aa, bb);
+                }
+            } else {
+                int v = Integer.parseInt(stk.nextToken());
+                int fa = lca(x, y);
+                int aa, bb;
+
+                if (x == fa) {
+                    int[] r = queryPath(y, x, 0);
+                    aa = r[0]; bb = r[1];
+                } else if (y == fa) {
+                    int[] r = queryPath(x, y, 1);
+                    aa = r[0]; bb = r[1];
+                } else {
+                    int h = d[x] - d[fa] - 1;
+                    int u = x;
+                    for (int i = 17; i >= 0; i--)
+                        if (((h >> i) & 1) == 1) u = p[u][i];
+
+                    int[] r1 = queryPath(x, u, 1);
+                    int[] r2 = queryPath(y, fa, 0);
+
+                    aa = r1[0]; bb = r1[1];
+                    int a1 = r2[0], b1 = r2[1];
+                    bb = (int) ((1L * a1 * bb + b1) % MOD);
+                    aa = (int) (1L * aa * a1 % MOD);
+                }
+                sb.append((int) ((1L * aa * v + bb) % MOD)).append('\n');
+            }
+        }
+
+        System.out.print(sb);
+    }
+}
