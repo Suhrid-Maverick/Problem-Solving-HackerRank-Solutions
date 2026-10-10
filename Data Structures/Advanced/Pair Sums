@@ -1,0 +1,256 @@
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.InputMismatchException;
+
+public class C {
+    InputStream is;
+    PrintWriter out;
+    String INPUT = "";
+
+    void solve() {
+        int n = ni();
+        int[] a = na(n);
+        dfs(0, n, a);
+        out.println(ans);
+    }
+
+    long ans = 0;
+
+    void dfs(int l, int r, int[] a) {
+        if (r - l <= 1) return;
+
+        int h = l + r >> 1;
+
+        long[][] lines = new long[h - l][];
+        int p = 0;
+        long l1 = 0, l2 = 0;
+        for (int i = h - 1; i >= l; i--) {
+            l1 += a[i];
+            l2 += (long) a[i] * a[i];
+            lines[p++] = new long[]{2 * l1, l1 * l1 - l2};
+        }
+
+        mergesort(lines, 0, p);
+
+        EnvelopeLinear el = new EnvelopeLinear(p);
+        for (int i = 0; i < p; i++) {
+            el.add(-lines[i][0], -lines[i][1]);
+        }
+        long r1 = 0, r2 = 0;
+        for (int i = h; i < r; i++) {
+            r1 += a[i];
+            r2 += (long) a[i] * a[i];
+            ans = Math.max(ans, (-el.min(r1) + r1 * r1 - r2) / 2);
+        }
+
+        dfs(l, h, a);
+        dfs(h, r, a);
+    }
+
+    private static long[][] stemp = new long[250005][];
+
+    public static void mergesort(long[][] a, int s, int e) {
+        if (e - s <= 1) return;
+        int h = s + e >> 1;
+        mergesort(a, s, h);
+        mergesort(a, h, e);
+        int p = 0;
+        int i = s, j = h;
+        for (; i < h && j < e; ) stemp[p++] = a[i][0] < a[j][0] ? a[i++] : a[j++];
+        while (i < h) stemp[p++] = a[i++];
+        while (j < e) stemp[p++] = a[j++];
+        System.arraycopy(stemp, 0, a, s, e - s);
+    }
+
+    public static class EnvelopeLinear {
+        public static final long INF = Long.MIN_VALUE;
+
+        public long[] xs;
+        public long[] intercepts, slopes;
+        public int p;
+
+        public EnvelopeLinear(int n) {
+            xs = new long[n];
+            intercepts = new long[n];
+            slopes = new long[n];
+            p = 0;
+        }
+
+        public void clear() {
+            p = 0;
+        }
+
+        public void add(long slope, long intercept) {
+            assert p == 0 || slopes[p - 1] >= slope;
+            while (p > 0) {
+                int i = p - 1;
+                if (p > 1 && intercept + xs[i] * slope <= intercepts[i] + xs[i] * slopes[i]) {
+                    p--;
+                    continue;
+                }
+                if (slope == slopes[i]) {
+                    if (intercept >= intercepts[i]) {
+                        return;
+                    } else {
+                        p--;
+                        continue;
+                    }
+                }
+                long num = intercept - intercepts[i];
+                long den = slopes[i] - slope;
+                long nx = num < 0 ? num / den : (num + den - 1) / den;
+                xs[p] = nx;
+                intercepts[p] = intercept;
+                slopes[p] = slope;
+                p++;
+                return;
+            }
+
+            xs[p] = INF;
+            intercepts[p] = intercept;
+            slopes[p] = slope;
+            p++;
+        }
+
+        public int argmin(int x) {
+            if (p <= 0) return -1;
+            int ind = Arrays.binarySearch(xs, 0, p, x);
+            if (ind < 0) ind = -ind - 2;
+            return ind;
+        }
+
+        public long min(long x) {
+            if (p <= 0) return Long.MIN_VALUE;
+            int ind = Arrays.binarySearch(xs, 0, p, x);
+            if (ind < 0) ind = -ind - 2;
+            return slopes[ind] * x + intercepts[ind];
+        }
+    }
+
+    void run() throws Exception {
+        is = INPUT.isEmpty() ? System.in : new ByteArrayInputStream(INPUT.getBytes());
+        out = new PrintWriter(System.out);
+
+        long s = System.currentTimeMillis();
+        solve();
+        out.flush();
+        if (!INPUT.isEmpty()) tr(System.currentTimeMillis() - s + "ms");
+    }
+
+    public static void main(String[] args) throws Exception {
+        new C().run();
+    }
+
+    private byte[] inbuf = new byte[1024];
+    public int lenbuf = 0, ptrbuf = 0;
+
+    private int readByte() {
+        if (lenbuf == -1) throw new InputMismatchException();
+        if (ptrbuf >= lenbuf) {
+            ptrbuf = 0;
+            try {
+                lenbuf = is.read(inbuf);
+            } catch (IOException e) {
+                throw new InputMismatchException();
+            }
+            if (lenbuf <= 0) return -1;
+        }
+        return inbuf[ptrbuf++];
+    }
+
+    private boolean isSpaceChar(int c) {
+        return !(c >= 33 && c <= 126);
+    }
+
+    private int skip() {
+        int b;
+        while ((b = readByte()) != -1 && isSpaceChar(b)) ;
+        return b;
+    }
+
+    private double nd() {
+        return Double.parseDouble(ns());
+    }
+
+    private char nc() {
+        return (char) skip();
+    }
+
+    private String ns() {
+        int b = skip();
+        StringBuilder sb = new StringBuilder();
+        while (!(isSpaceChar(b))) {
+            sb.appendCodePoint(b);
+            b = readByte();
+        }
+        return sb.toString();
+    }
+
+    private char[] ns(int n) {
+        char[] buf = new char[n];
+        int b = skip(), p = 0;
+        while (p < n && !(isSpaceChar(b))) {
+            buf[p++] = (char) b;
+            b = readByte();
+        }
+        return n == p ? buf : Arrays.copyOf(buf, p);
+    }
+
+    private char[][] nm(int n, int m) {
+        char[][] map = new char[n][];
+        for (int i = 0; i < n; i++) map[i] = ns(m);
+        return map;
+    }
+
+    private int[] na(int n) {
+        int[] a = new int[n];
+        for (int i = 0; i < n; i++) a[i] = ni();
+        return a;
+    }
+
+    private int ni() {
+        int num = 0, b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private long nl() {
+        long num = 0;
+        int b;
+        boolean minus = false;
+        while ((b = readByte()) != -1 && !((b >= '0' && b <= '9') || b == '-')) ;
+        if (b == '-') {
+            minus = true;
+            b = readByte();
+        }
+
+        while (true) {
+            if (b >= '0' && b <= '9') {
+                num = num * 10 + (b - '0');
+            } else {
+                return minus ? -num : num;
+            }
+            b = readByte();
+        }
+    }
+
+    private static void tr(Object... o) {
+        System.out.println(Arrays.deepToString(o));
+    }
+}
