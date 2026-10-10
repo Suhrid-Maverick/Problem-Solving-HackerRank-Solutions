@@ -1,0 +1,258 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int K = 20;
+    static final int INF = (1 << 30) - 1;
+    static final int NEG_INF = -(1 << 30) + 1;
+
+    static int n;
+    static int[] in, out;
+    static int[] binFlat, minFlat, maxFlat;
+    static int[] nextL, nextR;
+    static int[][] rmq;
+    static int rmqSize;
+    static int curTime = 0;
+
+    static int[] gHead, gTo;
+
+    static InputStream is;
+    static byte[] iobuf = new byte[1 << 16];
+    static int ioptr = 0, iolen = 0;
+
+    static int readByte() throws IOException {
+        if (ioptr >= iolen) {
+            iolen = is.read(iobuf);
+            ioptr = 0;
+            if (iolen <= 0) return -1;
+        }
+        return iobuf[ioptr++];
+    }
+
+    static int readInt() throws IOException {
+        int c;
+        do { c = readByte(); } while (c >= 0 && c <= ' ');
+        if (c < 0) return -1;
+        int sign = 1;
+        if (c == '-') { sign = -1; c = readByte(); }
+        int num = 0;
+        while (c > ' ') {
+            num = num * 10 + (c - '0');
+            c = readByte();
+        }
+        return num * sign;
+    }
+
+    static int getBin(int v, int i) { return binFlat[v * K + i]; }
+    static int getMin(int v, int i) { return minFlat[v * K + i]; }
+    static int getMax(int v, int i) { return maxFlat[v * K + i]; }
+
+    static boolean anc(int u, int v) {
+        return in[u] <= in[v] && out[v] <= out[u];
+    }
+
+    static int smallMin(int u, int v) {
+        if (anc(u, v)) return INF;
+        int ans = INF;
+        for (int i = K - 1; i >= 0; i--) {
+            int bi = getBin(u, i);
+            if (bi != -1 && !anc(bi, v)) {
+                ans = Math.min(ans, getMin(u, i));
+                u = bi;
+            }
+        }
+        ans = Math.min(ans, getMin(u, 0));
+        return ans;
+    }
+
+    static int smallMax(int u, int v) {
+        if (anc(u, v)) return NEG_INF;
+        int ans = NEG_INF;
+        for (int i = K - 1; i >= 0; i--) {
+            int bi = getBin(u, i);
+            if (bi != -1 && !anc(bi, v)) {
+                ans = Math.max(ans, getMax(u, i));
+                u = bi;
+            }
+        }
+        ans = Math.max(ans, getMax(u, 0));
+        return ans;
+    }
+
+    static int getMinUV(int u, int v) {
+        return Math.min(smallMin(u, v), smallMin(v, u));
+    }
+
+    static int getMaxUV(int u, int v) {
+        return Math.max(smallMax(u, v), smallMax(v, u));
+    }
+
+    static int upperBound(int[] arr, int v) {
+        int lo = 0, hi = arr.length;
+        while (lo < hi) {
+            int mid = (lo + hi) >>> 1;
+            if (arr[mid] <= v) lo = mid + 1;
+            else hi = mid;
+        }
+        return lo;
+    }
+
+    static long query(int l, int r, int v) {
+        if (l < 0) l = 0;
+        if (r >= n) r = n - 1;
+        if (l > r) return 0;
+        l += rmqSize;
+        r += rmqSize;
+        long count = 0;
+        while (l <= r) {
+            if ((l & 1) == 1) count += upperBound(rmq[l++], v);
+            if ((r & 1) == 0) count += upperBound(rmq[r--], v);
+            l >>= 1;
+            r >>= 1;
+        }
+        return count;
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { solve(); } catch (Exception e) { e.printStackTrace(); }
+        }, "main", 1 << 28);
+        t.start();
+        t.join();
+    }
+
+    static void solve() throws IOException {
+        is = System.in;
+
+        n = readInt();
+        if (n <= 0) return;
+
+        int[] deg = new int[n];
+        int edgeCount = Math.max(0, n - 1);
+        int[] eu = new int[edgeCount];
+        int[] ev = new int[edgeCount];
+        for (int i = 0; i < edgeCount; i++) {
+            int a = readInt() - 1;
+            int b = readInt() - 1;
+            eu[i] = a; ev[i] = b;
+            deg[a]++; deg[b]++;
+        }
+
+        gHead = new int[n + 1];
+        for (int i = 0; i < n; i++) gHead[i + 1] = gHead[i] + deg[i];
+        gTo = new int[gHead[n]];
+        int[] ptr = gHead.clone();
+        for (int i = 0; i < edgeCount; i++) {
+            gTo[ptr[eu[i]]++] = ev[i];
+            gTo[ptr[ev[i]]++] = eu[i];
+        }
+
+        in = new int[n];
+        out = new int[n];
+        binFlat = new int[n * K];
+        minFlat = new int[n * K];
+        maxFlat = new int[n * K];
+
+        int[] stack = new int[2 * n];
+        int[] parent = new int[n];
+        int top = 0;
+        stack[top++] = 0;
+        parent[0] = -1;
+
+        while (top > 0) {
+            int enc = stack[--top];
+            int v = enc >> 1;
+            boolean isPost = (enc & 1) == 1;
+
+            if (isPost) {
+                out[v] = curTime++;
+            } else {
+                in[v] = curTime++;
+                int p = parent[v];
+                int base = v * K;
+                binFlat[base] = p;
+                minFlat[base] = Math.min(v, p == -1 ? INF : p);
+                maxFlat[base] = Math.max(v, p);
+                for (int i = 1; i < K; i++) {
+                    int prev = binFlat[base + i - 1];
+                    if (prev == -1) {
+                        binFlat[base + i] = -1;
+                        minFlat[base + i] = minFlat[base + i - 1];
+                        maxFlat[base + i] = maxFlat[base + i - 1];
+                    } else {
+                        int prevBase = prev * K;
+                        binFlat[base + i] = binFlat[prevBase + i - 1];
+                        minFlat[base + i] = Math.min(minFlat[base + i - 1], minFlat[prevBase + i - 1]);
+                        maxFlat[base + i] = Math.max(maxFlat[base + i - 1], maxFlat[prevBase + i - 1]);
+                    }
+                }
+                stack[top++] = (v << 1) | 1;
+                for (int e = gHead[v]; e < gHead[v + 1]; e++) {
+                    int to = gTo[e];
+                    if (to != p) {
+                        parent[to] = v;
+                        stack[top++] = to << 1;
+                    }
+                }
+            }
+        }
+
+        nextR = new int[n];
+        nextL = new int[n];
+        for (int i = 0; i < n; i++) {
+            nextR[i] = INF;
+            nextL[i] = NEG_INF;
+        }
+
+        int[] stk = new int[n];
+        int stkTop = 0;
+        stk[stkTop++] = 0;
+        for (int i = 1; i < n; i++) {
+            while (stkTop > 0 && getMinUV(stk[stkTop - 1], i) != stk[stkTop - 1]) {
+                nextR[stk[--stkTop]] = i;
+            }
+            stk[stkTop++] = i;
+        }
+
+        stkTop = 0;
+        stk[stkTop++] = n - 1;
+        for (int i = n - 2; i >= 0; i--) {
+            while (stkTop > 0 && getMaxUV(stk[stkTop - 1], i) != stk[stkTop - 1]) {
+                nextL[stk[--stkTop]] = i;
+            }
+            stk[stkTop++] = i;
+        }
+
+        rmqSize = 1;
+        while (rmqSize < n) rmqSize <<= 1;
+        rmq = new int[2 * rmqSize][];
+        for (int i = 0; i < n; i++) {
+            rmq[rmqSize + i] = new int[]{nextL[i]};
+        }
+        for (int i = n; i < rmqSize; i++) {
+            rmq[rmqSize + i] = new int[0];
+        }
+        for (int i = rmqSize - 1; i >= 1; i--) {
+            int[] l = rmq[2 * i];
+            int[] r = rmq[2 * i + 1];
+            if (l.length == 0) { rmq[i] = r; continue; }
+            if (r.length == 0) { rmq[i] = l; continue; }
+            int[] m = new int[l.length + r.length];
+            int a = 0, b = 0, c = 0;
+            while (a < l.length && b < r.length) {
+                if (l[a] <= r[b]) m[c++] = l[a++];
+                else m[c++] = r[b++];
+            }
+            while (a < l.length) m[c++] = l[a++];
+            while (b < r.length) m[c++] = r[b++];
+            rmq[i] = m;
+        }
+
+        long ans = 0;
+        for (int i = 0; i < n; i++) {
+            ans += query(i, nextR[i] - 1, i - 1);
+        }
+
+        System.out.println(ans);
+    }
+}
