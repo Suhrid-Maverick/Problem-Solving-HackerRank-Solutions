@@ -1,0 +1,177 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final long MOD = 1000000007L;
+
+    static long[] extendedEuclidean(long a, long b) {
+        long oldR = a, r = b;
+        long oldS = 1, s = 0;
+        long oldT = 0, t = 1;
+        while (r != 0) {
+            long q = oldR / r;
+            long tmp = oldR - q * r;
+            oldR = r;
+            r = tmp;
+            tmp = oldS - q * s;
+            oldS = s;
+            s = tmp;
+            tmp = oldT - q * t;
+            oldT = t;
+            t = tmp;
+        }
+        return new long[]{oldR, oldS, oldT};
+    }
+
+    static int leastSigBit(int num) {
+        return num & -num;
+    }
+
+    static class PrefixSumTree {
+        long[] sums;
+
+        PrefixSumTree(long[] array) {
+            int len = array.length;
+            sums = new long[len];
+            for (int i = 1; i < len; i++) {
+                int cl = i - leastSigBit(i);
+                for (int j = cl + 1; j <= i; j++) {
+                    sums[i] = (sums[i] + array[j]) % MOD;
+                    if (sums[i] < 0) sums[i] += MOD;
+                }
+            }
+        }
+
+        long sum(int i) {
+            long sum = 0;
+            while (i > 0) {
+                sum = (sum + sums[i]) % MOD;
+                if (sum < 0) sum += MOD;
+                i -= leastSigBit(i);
+            }
+            return sum;
+        }
+
+        void add(int i, long toAdd) {
+            while (i <= sums.length - 1) {
+                sums[i] = (sums[i] + toAdd) % MOD;
+                if (sums[i] < 0) sums[i] += MOD;
+                i += leastSigBit(i);
+            }
+        }
+    }
+
+    static List<String> polynomialDivision(int a, int b, long[] c, int[][] queries) {
+        List<String> res = new ArrayList<>();
+        long aInv = extendedEuclidean(MOD, a)[2];
+        long x = (-(long) b * aInv) % MOD;
+        if (x < 0) x += MOD;
+
+        PrefixSumTree sumTree = null;
+        long[] powsOfX = null;
+
+        if (x != 0) {
+            int l = c.length;
+            long[] polyArray = new long[l + 1];
+            polyArray[1] = c[0] % MOD;
+            if (polyArray[1] < 0) polyArray[1] += MOD;
+
+            powsOfX = new long[l];
+            powsOfX[0] = 1;
+
+            for (int i = 1; i < l; i++) {
+                long newPow = (powsOfX[i - 1] * x) % MOD;
+                powsOfX[i] = newPow;
+                long ci = c[i] % MOD;
+                if (ci < 0) ci += MOD;
+                polyArray[i + 1] = (ci * newPow) % MOD;
+            }
+
+            sumTree = new PrefixSumTree(polyArray);
+        }
+
+        for (int[] q : queries) {
+            if (q[0] == 1) {
+                int idx = q[1];
+                long newVal = q[2];
+                long toAdd = newVal - c[idx];
+                c[idx] = newVal;
+
+                if (x != 0) {
+                    long addVal = ((toAdd % MOD) + MOD) % MOD;
+                    addVal = (addVal * powsOfX[idx]) % MOD;
+                    sumTree.add(idx + 1, addVal);
+                }
+            } else {
+                long pOfX;
+                if (x == 0) {
+                    pOfX = c[q[1]] % MOD;
+                    if (pOfX < 0) pOfX += MOD;
+                } else {
+                    pOfX = (sumTree.sum(q[2] + 1) - sumTree.sum(q[1])) % MOD;
+                    if (pOfX < 0) pOfX += MOD;
+                }
+
+                if (pOfX == 0) {
+                    res.add("Yes");
+                } else {
+                    res.add("No");
+                }
+            }
+        }
+
+        return res;
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+
+        int n = fs.nextInt();
+        int a = fs.nextInt();
+        int b = fs.nextInt();
+        int q = fs.nextInt();
+
+        long[] c = new long[n];
+        for (int i = 0; i < n; i++) {
+            c[i] = fs.nextInt();
+        }
+
+        int[][] queries = new int[q][3];
+        for (int i = 0; i < q; i++) {
+            queries[i][0] = fs.nextInt();
+            queries[i][1] = fs.nextInt();
+            queries[i][2] = fs.nextInt();
+        }
+
+        List<String> result = polynomialDivision(a, b, c, queries);
+
+        StringBuilder sb = new StringBuilder();
+        for (String s : result) {
+            sb.append(s).append('\n');
+        }
+
+        System.out.print(sb.toString());
+    }
+}
