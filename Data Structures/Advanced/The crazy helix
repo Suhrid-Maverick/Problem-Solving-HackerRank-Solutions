@@ -1,0 +1,188 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int size(Node node) {
+        return node == null ? 0 : node.size;
+    }
+
+    static class Node {
+        int id;
+        Node left, right, parent;
+        int size = 1;
+        boolean rev = false;
+
+        Node(int id) {
+            this.id = id;
+        }
+
+        void release() {
+            if (rev) {
+                rev = false;
+                Node tmp = left;
+                left = right;
+                right = tmp;
+                if (left != null) left.rev ^= true;
+                if (right != null) right.rev ^= true;
+            }
+        }
+
+        void update() {
+            size = 1 + size(left) + size(right);
+        }
+    }
+
+    static void zig(Node p) {
+        Node q = p.parent;
+        Node r = q.parent;
+        q.left = p.right;
+        if (q.left != null) q.left.parent = q;
+        p.right = q;
+        q.parent = p;
+        p.parent = r;
+        if (p.parent != null) {
+            if (r.left == q) r.left = p;
+            if (r.right == q) r.right = p;
+        }
+        q.update();
+    }
+
+    static void zag(Node p) {
+        Node q = p.parent;
+        Node r = q.parent;
+        q.right = p.left;
+        if (q.right != null) q.right.parent = q;
+        p.left = q;
+        q.parent = p;
+        p.parent = r;
+        if (p.parent != null) {
+            if (r.left == q) r.left = p;
+            if (r.right == q) r.right = p;
+        }
+        q.update();
+    }
+
+    static Node splay(Node root, Node p, Node b) {
+        p.release();
+        while (p.parent != b) {
+            Node q = p.parent;
+            if (q.parent == b) {
+                q.release();
+                p.release();
+                if (q.left == p) zig(p);
+                else zag(p);
+            } else {
+                Node r = q.parent;
+                r.release();
+                q.release();
+                p.release();
+                if (r.left == q) {
+                    if (q.left == p) {
+                        zig(q);
+                        zig(p);
+                    } else {
+                        zag(p);
+                        zig(p);
+                    }
+                } else if (q.left == p) {
+                    zig(p);
+                    zag(p);
+                } else {
+                    zag(q);
+                    zag(p);
+                }
+            }
+        }
+        p.update();
+        if (b == null) {
+            root = p;
+        } else {
+            b.update();
+        }
+        return root;
+    }
+
+    static Node find(int k, Node p) {
+        if (p == null || p.size < k) return null;
+        while (k > 0) {
+            p.release();
+            if (p.left != null && p.left.size >= k) {
+                p = p.left;
+            } else {
+                if (p.left != null) k -= p.left.size;
+                k -= 1;
+                if (k > 0) p = p.right;
+            }
+        }
+        return p;
+    }
+
+    static Node[] T;
+
+    static Node build(int a, int b) {
+        if (a > b) return null;
+        if (a == b) {
+            Node prx = T[a];
+            prx.left = null;
+            prx.right = null;
+            prx.parent = null;
+            return prx;
+        }
+        int mid = (a + b) / 2;
+        Node prx = T[mid];
+        prx.parent = null;
+        prx.left = build(a, mid - 1);
+        if (prx.left != null) prx.left.parent = prx;
+        prx.right = build(mid + 1, b);
+        if (prx.right != null) prx.right.parent = prx;
+        prx.update();
+        return prx;
+    }
+
+    static Node reverse(Node root, int a, int b) {
+        if (a == b) return root;
+        int lfx = a + 1;
+        int rgx = b + 1;
+        Node prev = find(lfx - 1, root);
+        Node nxt = find(rgx + 1, root);
+        root = splay(root, prev, null);
+        root = splay(root, nxt, prev);
+        nxt.left.rev ^= true;
+        return root;
+    }
+
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        int n = Integer.parseInt(st.nextToken());
+        int q = Integer.parseInt(st.nextToken());
+
+        T = new Node[n + 2];
+        for (int i = 0; i < n + 2; i++) {
+            T[i] = new Node(i);
+        }
+
+        Node root = build(0, n + 1);
+
+        StringBuilder s = new StringBuilder();
+        for (int k = 0; k < q; k++) {
+            st = new StringTokenizer(br.readLine());
+            int t = Integer.parseInt(st.nextToken());
+            if (t == 1) {
+                int i = Integer.parseInt(st.nextToken());
+                int j = Integer.parseInt(st.nextToken());
+                root = reverse(root, i, j);
+            } else if (t == 2) {
+                int i = Integer.parseInt(st.nextToken());
+                Node ptx = T[i];
+                root = splay(root, ptx, null);
+                s.append("element ").append(i).append(" is at position ").append(size(ptx.left)).append("\n");
+            } else {
+                int i = Integer.parseInt(st.nextToken());
+                Node ptx = find(i + 1, root);
+                s.append("element at position ").append(i).append(" is ").append(ptx.id).append("\n");
+            }
+        }
+        System.out.print(s);
+    }
+}
