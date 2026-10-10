@@ -1,0 +1,128 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int[] s;
+    static TreeMap<Integer, Integer>[] seg;
+
+    static void segbuild(int x, int lx, int rx) {
+        if (rx - lx == 1) {
+            seg[x] = new TreeMap<>();
+            seg[x].put(s[lx], 1);
+            return;
+        }
+        int mid = (lx + rx) / 2;
+        segbuild(x * 2 + 1, lx, mid);
+        segbuild(x * 2 + 2, mid, rx);
+        seg[x] = new TreeMap<>();
+        for (Map.Entry<Integer, Integer> e : seg[x * 2 + 1].entrySet())
+            seg[x].merge(e.getKey(), e.getValue(), Integer::sum);
+        for (Map.Entry<Integer, Integer> e : seg[x * 2 + 2].entrySet())
+            seg[x].merge(e.getKey(), e.getValue(), Integer::sum);
+    }
+
+    static void segset(int i, int k, int x, int lx, int rx) {
+        int old = s[i];
+        Integer cnt = seg[x].get(old);
+        if (cnt != null) {
+            if (cnt == 1) seg[x].remove(old);
+            else seg[x].put(old, cnt - 1);
+        }
+        seg[x].merge(k, 1, Integer::sum);
+        if (rx - lx == 1) return;
+        int mid = (lx + rx) / 2;
+        if (i < mid) segset(i, k, x * 2 + 1, lx, mid);
+        else segset(i, k, x * 2 + 2, mid, rx);
+    }
+
+    static void segrange(int l, int r, int x, int lx, int rx, List<Integer> v) {
+        if (lx >= r || rx <= l) return;
+        if (lx >= l && rx <= r) { v.add(x); return; }
+        int mid = (lx + rx) / 2;
+        segrange(l, r, x * 2 + 1, lx, mid, v);
+        segrange(l, r, x * 2 + 2, mid, rx, v);
+    }
+
+    @SuppressWarnings("unchecked")
+    static void run() throws IOException {
+        FastReader in = new FastReader(System.in);
+        StringBuilder sb = new StringBuilder();
+
+        int t = in.nextInt();
+        while (t-- > 0) {
+            int n = in.nextInt();
+            s = new int[n];
+            for (int i = 0; i < n; i++) s[i] = in.nextInt();
+
+            seg = new TreeMap[4 * n];
+            segbuild(0, 0, n);
+
+            int q = in.nextInt();
+            while (q-- > 0) {
+                int type = in.nextInt();
+                if (type == 1) {
+                    int x = in.nextInt();
+                    int k = in.nextInt();
+                    segset(x - 1, k, 0, 0, n);
+                    s[x - 1] = k;
+                } else {
+                    int x = in.nextInt();
+                    int y = in.nextInt();
+                    int k = in.nextInt();
+
+                    List<Integer> nodes = new ArrayList<>();
+                    segrange(x - 1, y, 0, 0, n, nodes);
+
+                    int lo = 0, hi = 1000;
+                    while (hi - lo > 1) {
+                        int mid = (lo + hi) / 2;
+                        int cnt = 0;
+                        for (int node : nodes) {
+                            for (int c : seg[node].headMap(mid + 1).values())
+                                cnt += c;
+                        }
+                        if (cnt < k) lo = mid;
+                        else hi = mid;
+                    }
+                    sb.append(hi).append('\n');
+                }
+            }
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { run(); } catch (Exception e) { e.printStackTrace(); }
+        }, "main", 1 << 26);
+        t.start();
+        t.join();
+    }
+
+    static class FastReader {
+        InputStream in;
+        byte[] buf = new byte[1 << 16];
+        int idx, len;
+
+        FastReader(InputStream in) { this.in = in; }
+
+        int read() throws IOException {
+            if (idx >= len) {
+                len = in.read(buf);
+                idx = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[idx++];
+        }
+
+        int nextInt() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            int val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+    }
+}
