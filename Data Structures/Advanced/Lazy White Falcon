@@ -1,0 +1,122 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static int N, Q;
+    static List<Integer>[] adj;
+    static int[] parents, s_parent, levels, update, refresh;
+    static long[] weight, s_weight;
+    static final int SEGMENT_SIZE = 120;
+
+    static void refresh_segment(int node, int sp, int tick) {
+        if (node == sp || refresh[node] >= update[sp]) return;
+        int parent = parents[node];
+        if (parent == sp) {
+            s_weight[node] = weight[parent];
+        } else {
+            refresh_segment(parent, sp, tick);
+            s_weight[node] = s_weight[parent] + weight[parent];
+        }
+        refresh[node] = tick;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void main(String[] args) throws IOException {
+        BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
+        StringTokenizer st = new StringTokenizer(br.readLine());
+        N = Integer.parseInt(st.nextToken());
+        Q = Integer.parseInt(st.nextToken());
+
+        adj = new List[N];
+        for (int i = 0; i < N; i++) adj[i] = new ArrayList<>();
+
+        for (int i = 0; i < N - 1; i++) {
+            st = new StringTokenizer(br.readLine());
+            int x = Integer.parseInt(st.nextToken());
+            int y = Integer.parseInt(st.nextToken());
+            adj[x].add(y);
+            adj[y].add(x);
+        }
+
+        parents = new int[N];
+        s_parent = new int[N];
+        levels = new int[N];
+        update = new int[N];
+        refresh = new int[N];
+        weight = new long[N];
+        s_weight = new long[N];
+
+        Arrays.fill(update, -1);
+        Arrays.fill(refresh, -1);
+
+        // BFS
+        int[] queue = new int[N];
+        int head = 0, tail = 0;
+        queue[tail++] = 0;
+        parents[0] = 0;
+        s_parent[0] = 0;
+        levels[0] = 0;
+
+        while (head < tail) {
+            int u = queue[head++];
+            int childSegment = (levels[u] % SEGMENT_SIZE == 0) ? u : s_parent[u];
+            for (int v : adj[u]) {
+                if (v != parents[u]) {
+                    parents[v] = u;
+                    levels[v] = levels[u] + 1;
+                    s_parent[v] = childSegment;
+                    queue[tail++] = v;
+                }
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < Q; i++) {
+            st = new StringTokenizer(br.readLine());
+            int op = Integer.parseInt(st.nextToken());
+            int u = Integer.parseInt(st.nextToken());
+            int x = Integer.parseInt(st.nextToken());
+
+            if (op == 1) {
+                weight[u] = x;
+                if (levels[u] % SEGMENT_SIZE != 0) {
+                    update[s_parent[u]] = i;
+                } else {
+                    update[u] = i;
+                }
+            } else {
+                if (levels[u] > levels[x]) {
+                    int tmp = u; u = x; x = tmp;
+                }
+                long result = weight[x] + weight[u];
+                int u_s = s_parent[u];
+                while (levels[s_parent[x]] > levels[u_s]) {
+                    refresh_segment(x, s_parent[x], i);
+                    result += s_weight[x];
+                    x = s_parent[x];
+                }
+                while (s_parent[x] != s_parent[u]) {
+                    refresh_segment(x, s_parent[x], i);
+                    refresh_segment(u, s_parent[u], i);
+                    result += s_weight[x];
+                    result += s_weight[u];
+                    x = s_parent[x];
+                    u = s_parent[u];
+                }
+                for (int d = levels[x] - levels[u]; d > 0; d--) {
+                    x = parents[x];
+                    result += weight[x];
+                }
+                while (u != x) {
+                    x = parents[x];
+                    u = parents[u];
+                    result += weight[x];
+                    result += weight[u];
+                }
+                result -= weight[x];
+                sb.append(result).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+}
