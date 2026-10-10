@@ -1,0 +1,89 @@
+import java.util.*;
+
+public class Solution {
+
+    static final int MOD = 1000000007;
+
+    // Emulates multiset.erase(multiset.find(key)) - removes one occurrence
+    static void eraseOne(TreeMap<Integer, Integer> map, int key) {
+        Integer cnt = map.get(key);
+        if (cnt == null) return;
+        if (cnt == 1) {
+            map.remove(key);
+        } else {
+            map.put(key, cnt - 1);
+        }
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        int n = sc.nextInt();
+        int[] arr = new int[n];
+        TreeMap<Integer, Integer> set1 = new TreeMap<>();
+
+        for (int i = 0; i < n; i++) {
+            arr[i] = sc.nextInt();
+            set1.put(arr[i], set1.getOrDefault(arr[i], 0) + 1);
+        }
+
+        // Copy set1 to set2
+        TreeMap<Integer, Integer> set2 = new TreeMap<>(set1);
+
+        int count = 0;
+        while (!set2.isEmpty()) {
+            count++;
+            int cur = set2.firstKey();
+            eraseOne(set2, cur);
+
+            while (set2.containsKey(cur + 1)) {
+                cur++;
+                eraseOne(set2, cur);
+            }
+        }
+
+        long q = sc.nextLong();
+        long ans = 0;
+
+        for (long i = 0; i < q; i++) {
+            int id = sc.nextInt() - 1;
+            int val = sc.nextInt();
+
+            int old = arr[id];
+
+            int curr = set1.getOrDefault(old, 0);
+            int prev = set1.getOrDefault(old - 1, 0);
+            int next = set1.getOrDefault(old + 1, 0);
+
+            if (prev == 0 && next == 0) {
+                count--;
+            } else if (curr > Math.max(prev, next)) {
+                count--;
+            } else if (curr <= Math.min(prev, next)) {
+                count++;
+            }
+
+            eraseOne(set1, old);
+            arr[id] = val;
+
+            curr = set1.getOrDefault(val, 0);
+            prev = set1.getOrDefault(val - 1, 0);
+            next = set1.getOrDefault(val + 1, 0);
+
+            if (prev == 0 && next == 0) {
+                count++;
+            } else if ((curr + 1) > Math.max(prev, next)) {
+                count++;
+            } else if ((curr + 1) <= Math.min(prev, next)) {
+                count--;
+            }
+
+            set1.put(val, set1.getOrDefault(val, 0) + 1);
+
+            ans = (ans + ((i + 1) * count) % MOD) % MOD;
+        }
+
+        System.out.println(ans);
+        sc.close();
+    }
+}
