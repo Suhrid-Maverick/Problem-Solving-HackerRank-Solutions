@@ -1,0 +1,67 @@
+import java.util.*;
+import java.io.*;
+
+public class Main {
+    static final int N = 150;
+    static final int MOD = 1000000009;
+    static long[] catalan = new long[N];
+
+    // Modular inverse using the same iterative extended Euclid as the C++ code
+    static int inv(int x) {
+        int r = 1;
+        while (x > 1) {
+            r = (int)((long)(MOD / x) * -r % MOD);
+            x = MOD % x;
+        }
+        return r;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+
+        // Precompute Catalan numbers up to N-1
+        catalan[0] = 1;
+        for (int i = 1; i < N; i++) {
+            catalan[i] = catalan[i - 1] * (4 * i - 2) % MOD * inv(i + 1) % MOD;
+        }
+
+        int cc = sc.nextInt();
+        while (cc-- > 0) {
+            int n = sc.nextInt();
+            int alpha = sc.nextInt();
+            int beta = sc.nextInt();
+
+            int[] a = new int[n];
+            for (int i = 0; i < n; i++) {
+                a[i] = sc.nextInt();
+            }
+            Arrays.sort(a);
+
+            int[][] f = new int[n][n];
+            int[][] g = new int[n][n];
+
+            for (int i = n - 1; i >= 0; i--) {
+                for (int j = i; j < n; j++) {
+                    long ff = 0, gg = 0;
+                    for (int k = i; k <= j; k++) {
+                        long term1 = catalan[j - k] * catalan[k - i] % MOD * a[k] % MOD;
+                        long term2 = catalan[j - k] * (k > 0 ? g[i][k - 1] : 0) % MOD;
+                        long term3 = catalan[k - i] * (k + 1 < n ? g[k + 1][j] : 0) % MOD;
+                        ff = (ff + term1 + term2 + term3) % MOD;
+
+                        long term4 = catalan[j - k] * (k > 0 ? f[i][k - 1] : 0) % MOD;
+                        long term5 = catalan[k - i] * (k + 1 < n ? f[k + 1][j] : 0) % MOD;
+                        gg = (gg + term4 + term5) % MOD;
+                    }
+                    f[i][j] = (int) ff;
+                    g[i][j] = (int) gg;
+                }
+            }
+
+            long ans = ((long) f[0][n - 1] * alpha - (long) g[0][n - 1] * beta) % MOD;
+            ans = (ans + MOD) % MOD;
+            System.out.println(ans);
+        }
+        sc.close();
+    }
+}
