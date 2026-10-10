@@ -1,0 +1,186 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int N = 100000;
+    static final int NN = 131072;
+    static final int MOD = 1000003;
+    static long[] fact = new long[MOD];
+    static long[] d = new long[2 * NN];
+    static long[] p = new long[2 * NN];
+    static long[] dp = new long[2 * NN];
+    static long[] dlt = new long[2 * NN];
+
+    static long power(long a, int n) {
+        long r = 1;
+        while (n != 0) {
+            if ((n & 1) == 1) r = r * a % MOD;
+            a = a * a % MOD;
+            n >>= 1;
+        }
+        return r;
+    }
+
+    static void apply(int n, int i, long v) {
+        dlt[i] += v;
+        int shift = Integer.numberOfLeadingZeros(i) - Integer.numberOfLeadingZeros(n);
+        p[i] += v << shift;
+        dp[i] = dp[i] * power(d[i], (int) v) % MOD;
+    }
+
+    static void mconcat(int i) {
+        p[i] = p[2 * i] + p[2 * i + 1];
+        dp[i] = dp[2 * i] * dp[2 * i + 1] % MOD;
+    }
+
+    static void untag(int n, int i) {
+        if (i < 0 || n <= i) return;
+        i += n;
+        int h = 31 - Integer.numberOfLeadingZeros(n);
+        for (; h > 0; h--) {
+            int j = i >> h;
+            if (dlt[j] != 0) {
+                apply(n, 2 * j, dlt[j]);
+                apply(n, 2 * j + 1, dlt[j]);
+                dlt[j] = 0;
+            }
+        }
+    }
+
+    static void add(int n, int l, int r, long v) {
+        boolean lf = false, rf = false;
+        untag(n, l - 1);
+        untag(n, r);
+        l += n;
+        r += n;
+        while (l < r) {
+            if ((l & 1) == 1) {
+                lf = true;
+                apply(n, l++, v);
+            }
+            l >>= 1;
+            if (lf) mconcat(l - 1);
+            if ((r & 1) == 1) {
+                rf = true;
+                apply(n, --r, v);
+            }
+            r >>= 1;
+            if (rf) mconcat(r);
+        }
+        l--;
+        while (true) {
+            l >>= 1;
+            r >>= 1;
+            if (r == 0) break;
+            if (lf || l == r) mconcat(l);
+            if (rf && l != r) mconcat(r);
+        }
+    }
+
+    static long[] query(int n, int l, int r) {
+        long ps = 0, dps = 1;
+        untag(n, l - 1);
+        untag(n, r);
+        l += n;
+        r += n;
+        while (l < r) {
+            if ((l & 1) == 1) {
+                ps += p[l];
+                dps = dps * dp[l] % MOD;
+                l++;
+            }
+            if ((r & 1) == 1) {
+                r--;
+                ps += p[r];
+                dps = dps * dp[r] % MOD;
+            }
+            l >>= 1;
+            r >>= 1;
+        }
+        return new long[]{ps, dps};
+    }
+
+    static void run() throws IOException {
+        FastReader in = new FastReader(System.in);
+        StringBuilder sb = new StringBuilder();
+
+        fact[0] = 1;
+        for (int i = 1; i < MOD; i++) {
+            fact[i] = fact[i - 1] * i % MOD;
+        }
+
+        int n = in.nextInt();
+        int nn = 1;
+        while (nn < n) nn *= 2;
+
+        for (int i = 0; i < n; i++) {
+            in.nextInt();
+            d[nn + i] = in.nextInt();
+            p[nn + i] = in.nextInt();
+            dp[nn + i] = power(d[nn + i], (int) p[nn + i]);
+        }
+
+        for (int i = nn - 1; i >= 1; i--) {
+            d[i] = d[2 * i] * d[2 * i + 1] % MOD;
+            mconcat(i);
+        }
+
+        int q = in.nextInt();
+        for (int qi = 0; qi < q; qi++) {
+            int op = in.nextInt();
+            int l = in.nextInt() - 1;
+            int r = in.nextInt();
+            if (op != 0) {
+                long v = in.nextInt();
+                add(nn, l, r, v);
+            } else {
+                long[] ans = query(nn, l, r);
+                long ps = ans[0];
+                long dps = (ans[1] + MOD) % MOD;
+                sb.append(ps).append(' ');
+                if (ps >= MOD) {
+                    sb.append(0);
+                } else {
+                    sb.append(fact[(int) ps] * dps % MOD);
+                }
+                sb.append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { run(); } catch (Exception e) { e.printStackTrace(); }
+        }, "main", 1 << 26);
+        t.start();
+        t.join();
+    }
+
+    static class FastReader {
+        InputStream in;
+        byte[] buf = new byte[1 << 16];
+        int idx, len;
+
+        FastReader(InputStream in) { this.in = in; }
+
+        int read() throws IOException {
+            if (idx >= len) {
+                len = in.read(buf);
+                idx = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[idx++];
+        }
+
+        int nextInt() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            int val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+    }
+}
