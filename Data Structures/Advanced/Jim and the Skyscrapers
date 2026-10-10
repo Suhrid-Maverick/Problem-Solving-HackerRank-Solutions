@@ -1,0 +1,54 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    public static long solve(int[] arr) {
+        Deque<Long> stack = new ArrayDeque<>();
+        Map<Long, Long> counter = new HashMap<>();
+        long res = 0;
+
+        int n = arr.length;
+        long[] a = new long[n + 1];
+        for (int i = 0; i < n; i++) {
+            a[i] = arr[i];
+        }
+        a[n] = Long.MAX_VALUE; // sentinel to pop remaining elements
+
+        for (long e : a) {
+            // pop all smaller buildings
+            while (!stack.isEmpty() && e > stack.peek()) {
+                long adios = stack.pop();
+                long c = counter.getOrDefault(adios, 0L);
+                res += c * (c - 1); // permutations(c, 2)
+                counter.remove(adios);
+            }
+
+            // push if new and smaller than stack top
+            if (stack.isEmpty() || e < stack.peek()) {
+                stack.push(e);
+                counter.put(e, 0L);
+            }
+
+            // increment count if already present
+            if (counter.containsKey(e)) {
+                counter.put(e, counter.get(e) + 1);
+            }
+        }
+
+        return res;
+    }
+
+    public static void main(String[] args) {
+        Scanner sc = new Scanner(System.in);
+        int n = sc.nextInt();
+        int[] arr = new int[n];
+
+        for (int i = 0; i < n; i++) {
+            arr[i] = sc.nextInt();
+        }
+
+        System.out.println(solve(arr));
+        sc.close();
+    }
+}
