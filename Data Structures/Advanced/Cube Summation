@@ -1,0 +1,267 @@
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+class Result {
+
+    public static List<Long> cubeSum(int n, List<String> operations) {
+        Cube cube = new Cube();
+        List<Long> outputs = new LinkedList<>();
+        for (String operation : operations) {
+            OperationType.doOperation(operation.split(" "), cube, outputs);
+        }
+        return outputs;
+    }
+}
+
+public class Solution {
+    public static void main(String[] args) throws IOException {
+        BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(System.in));
+        BufferedWriter bufferedWriter = new BufferedWriter(new FileWriter(System.getenv("OUTPUT_PATH")));
+
+        int T = Integer.parseInt(bufferedReader.readLine().trim());
+
+        IntStream.range(0, T).forEach(TItr -> {
+            try {
+                String[] firstMultipleInput = bufferedReader.readLine().replaceAll("\\s+$", "").split(" ");
+
+                int matSize = Integer.parseInt(firstMultipleInput[0]);
+
+                int m = Integer.parseInt(firstMultipleInput[1]);
+
+                List<String> ops = IntStream.range(0, m).mapToObj(i -> {
+                    try {
+                        return bufferedReader.readLine();
+                    } catch (IOException ex) {
+                        throw new RuntimeException(ex);
+                    }
+                })
+                    .collect(Collectors.toList());
+
+                List<Long> res = Result.cubeSum(matSize, ops);
+
+                bufferedWriter.write(
+                    res.stream()
+                        .map(Object::toString)
+                        .collect(Collectors.joining("\n"))
+                    + "\n"
+                );
+            } catch (IOException ex) {
+                throw new RuntimeException(ex);
+            }
+        });
+
+        bufferedReader.close();
+        bufferedWriter.close();
+    }
+}
+
+class Cube extends NodeSet<Plane> {
+
+    public Cube() {
+        super(new TreeSet<>());
+    }
+
+    public void setValue(int x, int y, int z, int value) {
+        IndexedNode<Plane> planeNode;
+        planeNode = super.getNode(x);
+        planeNode.getData().setValue(y, z, value);
+    }
+
+    public long sumValues(int x1, int y1, int z1, int x2, int y2, int z2) {
+        long sum = 0L;
+        for (IndexedNode<Plane> planeNode : getSubset(x1, x2)) {
+            sum += planeNode.getData().sumValues(y1, z1, y2, z2);
+        }
+        return sum;
+    }
+
+    @Override
+    public IndexedNode<Plane> setNewNode(int position) {
+        Plane newPlane = new Plane();
+        IndexedNode<Plane> newNode = new IndexedNode<>(position, newPlane);
+        getNodeSet().add(newNode);
+        return newNode;
+    }
+}
+
+interface HasIndex {
+    public int getIndex();
+}
+
+class Indexed implements HasIndex, Comparable<HasIndex> {
+    private final int index;
+
+    public Indexed(int index) {
+        this.index = index;
+    }
+
+    @Override
+    public int getIndex() {
+        return this.index;
+    }
+
+    @Override
+    public int compareTo(HasIndex o) {
+        return Integer.compare(getIndex(), o.getIndex());
+    }
+}
+
+class IndexedNode<T> extends Indexed {
+    private T data;
+
+    public IndexedNode(int index, T data) {
+        super(index);
+        this.data = data;
+    }
+
+    public T getData() {
+        return data;
+    }
+
+    public void setData(T data) {
+        this.data = data;
+    }
+}
+
+class Line extends NodeSet<Integer> {
+
+    Line() {
+        super(new TreeSet<>());
+    }
+
+    public long sumValues(int z1, int z2) {
+        long sum = 0L;
+        for (IndexedNode<Integer> valueNode : getSubset(z1, z2)) {
+            sum += valueNode.getData();
+        }
+        return sum;
+    }
+
+    @Override
+    public IndexedNode<Integer> setNewNode(int position) {
+        IndexedNode<Integer> newNode = new IndexedNode<>(position, 0);
+        getNodeSet().add(newNode);
+        return newNode;
+    }
+
+    public void setValue(int z, int value) {
+        IndexedNode<Integer> node = super.getNode(z);
+        node.setData(value);
+    }
+}
+
+abstract class NodeSet<T> {
+
+    private final TreeSet<IndexedNode<T>> nodes;
+
+    NodeSet(TreeSet<IndexedNode<T>> nodes) {
+        assert nodes != null;
+        this.nodes = nodes;
+    }
+
+    public TreeSet<IndexedNode<T>> getNodeSet() {
+        return this.nodes;
+    }
+
+    public SortedSet<IndexedNode<T>> getSubset(int start, int end) {
+        IndexedNode<T> startNode = new IndexedNode<>(start, null);
+        IndexedNode<T> endNode = new IndexedNode<>(end + 1, null);
+        return getNodeSet().subSet(startNode, endNode);
+    }
+
+    public IndexedNode<T> getNode(int position) {
+        IndexedNode<T> node = new IndexedNode<>(position, null);
+
+        if (!getNodeSet().contains(node)) {
+            node = setNewNode(position);
+        } else {
+            node = getSubset(position, position + 1).first();
+        }
+        return node;
+    }
+
+    public abstract IndexedNode<T> setNewNode(int position);
+}
+
+enum OperationType {
+
+    QUERY("QUERY") {
+        @Override
+        protected void evaluate(String[] inputs, Cube cube, List<Long> outputs) {
+
+            int x1 = Integer.parseInt(inputs[1]);
+            int y1 = Integer.parseInt(inputs[2]);
+            int z1 = Integer.parseInt(inputs[3]);
+            int x2 = Integer.parseInt(inputs[4]);
+            int y2 = Integer.parseInt(inputs[5]);
+            int z2 = Integer.parseInt(inputs[6]);
+            outputs.add(cube.sumValues(x1, y1, z1, x2, y2, z2));
+        }
+    },
+
+    UPDATE("UPDATE") {
+        @Override
+        protected void evaluate(String[] inputs, Cube cube, List<Long> outputs) {
+            int x = Integer.parseInt(inputs[1]);
+            int y = Integer.parseInt(inputs[2]);
+            int z = Integer.parseInt(inputs[3]);
+            int value = Integer.parseInt(inputs[4]);
+            cube.setValue(x, y, z, value);
+        }
+    };
+
+    private final String text;
+
+    OperationType(String text) {
+        this.text = text;
+    }
+
+    public static void doOperation(String[] inputs, Cube cube, List<Long> outputs) {
+        String type = inputs[0];
+        for (OperationType t : OperationType.values()) {
+            if (type.toUpperCase().equals(t.text)) {
+                t.evaluate(inputs, cube, outputs);
+                return;
+            }
+        }
+        throw new RuntimeException("Operation \"" + type + "\" not found");
+    }
+
+    protected abstract void evaluate(String[] inputs, Cube cube, List<Long> outputs);
+}
+
+class Plane extends NodeSet<Line> {
+    public Plane() {
+        super(new TreeSet<>());
+    }
+
+    public long sumValues(int y1, int z1, int y2, int z2) {
+        long sum = 0L;
+        for (IndexedNode<Line> planeNode : getSubset(y1, y2)) {
+            sum += planeNode.getData().sumValues(z1, z2);
+        }
+        return sum;
+    }
+
+    public void setValue(int y, int z, int value) {
+        Line line = super.getNode(y).getData();
+        line.setValue(z, value);
+    }
+
+    @Override
+    public IndexedNode<Line> setNewNode(int position) {
+        Line line = new Line();
+        IndexedNode<Line> newNode = new IndexedNode<>(position, line);
+        this.getNodeSet().add(newNode);
+        return newNode;
+    }
+}
