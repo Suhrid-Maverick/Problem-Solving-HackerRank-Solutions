@@ -1,0 +1,91 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static final int MAXN = 1000001;
+    static long[] BIT = new long[MAXN];
+    static long val = 0;
+    static int[] X = {48576, 48640, 49152, 65536, 131072, 262144, 524288};
+
+    static void update(int idx, long v) {
+        for (int i = idx; i < MAXN; i += i & -i) {
+            BIT[i] += v;
+        }
+    }
+
+    static long query(int idx) {
+        long res = 0;
+        for (int i = idx; i > 0; i -= i & -i) {
+            res += BIT[i];
+        }
+        return res;
+    }
+
+    static void UUU(int pos, int M, int plus) {
+        for (int i = 0; i < 50; i++) {
+            int x = pos;
+            int cnt = 999;
+            while (x < MAXN) {
+                update(x, M);
+                x += x & -x;
+                if (x > MAXN && x != 1048576) {
+                    x -= MAXN - 1;
+                    cnt--;
+                }
+            }
+            val += (long) cnt * M;
+            pos += plus;
+            if (pos > 1000000) pos -= 1000000;
+        }
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        StringBuilder sb = new StringBuilder();
+
+        int Q = fs.nextInt();
+        while (Q-- > 0) {
+            String s = fs.next();
+            if (s.equals("U")) {
+                int pos = fs.nextInt();
+                int M = fs.nextInt();
+                int plus = fs.nextInt();
+                UUU(pos, M, plus);
+            } else {
+                if (val != 0) {
+                    for (int i = 0; i < 7; i++) {
+                        update(X[i], val);
+                    }
+                }
+                int pos1 = fs.nextInt();
+                int pos2 = fs.nextInt();
+                sb.append(query(pos2) - query(pos1 - 1)).append('\n');
+                val = 0;
+            }
+        }
+        System.out.print(sb);
+    }
+}
