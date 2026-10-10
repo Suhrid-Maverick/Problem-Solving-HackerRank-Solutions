@@ -1,0 +1,158 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+
+    static boolean debug = false;
+
+    static class City {
+        int position;
+        int population;
+        int index;
+    }
+
+    static void setValueTree(int n, long[] tree, int index, int value) {
+        while (index < n + 1) {
+            tree[index] += (long) value;
+            index += (index & -index);
+        }
+    }
+
+    static void createFenwickTree(int n, long[] tree, int[] elements) {
+        tree[0] = 0;
+        for (int i = 1; i < n + 1; i++) {
+            setValueTree(n, tree, i, elements[i - 1]);
+        }
+    }
+
+    static long computeSumTree(long[] tree, int index) {
+        long sum = 0;
+        while (index > 0) {
+            sum += tree[index];
+            index -= (index & -index);
+        }
+        return sum;
+    }
+
+    static long computeSumInRangeTree(long[] tree, int index1, int index2) {
+        return computeSumTree(tree, index2 + 1) - computeSumTree(tree, index1);
+    }
+
+    static void updateTree(int n, long[] tree, int index, int value, int[] elements) {
+        int diff = value - elements[index];
+        elements[index] = value;
+        setValueTree(n, tree, index + 1, diff);
+    }
+
+    static long computeCableLength(int n, City[] cities, long[] cityNbTree,
+                                   long[] distanceTree, int[] cityNumber, int[] sortedPositions) {
+        long totalCable = 0;
+
+        for (int i = 0; i < n - 1; i++) {
+            City city = cities[i];
+            int index = city.index;
+            long position = (long) city.position;
+            long population = (long) city.population;
+            long leftCable, rightCable;
+
+            leftCable = computeSumTree(cityNbTree, index) * position
+                    - computeSumTree(distanceTree, index);
+
+            rightCable = computeSumInRangeTree(distanceTree, index + 1, n - 1)
+                    - computeSumInRangeTree(cityNbTree, index + 1, n - 1) * position;
+
+            totalCable += (leftCable + rightCable) * population;
+            totalCable %= 1000000007;
+
+            updateTree(n, distanceTree, index, 0, sortedPositions);
+            updateTree(n, cityNbTree, index, 0, cityNumber);
+        }
+        return totalCable;
+    }
+
+    static long findCableLengthNeeded(int n, City[] cities) {
+        Arrays.sort(cities, (c1, c2) -> Integer.compare(c1.position, c2.position));
+
+        int[] sortedPositions = new int[n];
+        for (int i = 0; i < n; i++) {
+            cities[i].index = i;
+            sortedPositions[i] = cities[i].position;
+        }
+
+        Arrays.sort(cities, (c1, c2) -> Integer.compare(c2.population, c1.population));
+
+        int[] cityNumber = new int[n];
+        Arrays.fill(cityNumber, 1);
+
+        int size = n + 1;
+        long[] cityNumberFenwickTree = new long[size];
+        long[] distanceFenwickTree = new long[size];
+
+        createFenwickTree(n, cityNumberFenwickTree, cityNumber);
+        createFenwickTree(n, distanceFenwickTree, sortedPositions);
+
+        return computeCableLength(n, cities, cityNumberFenwickTree,
+                distanceFenwickTree, cityNumber, sortedPositions);
+    }
+
+    public static void main(String[] args) throws IOException {
+        if (!debug) {
+            Scanner sc = new Scanner(System.in);
+            int t = sc.nextInt();
+            StringBuilder sb = new StringBuilder();
+
+            for (int i = 0; i < t; i++) {
+                int n = sc.nextInt();
+                City[] cities = new City[n];
+                for (int j = 0; j < n; j++) cities[j] = new City();
+                for (int j = 0; j < n; j++) cities[j].position = sc.nextInt();
+                for (int j = 0; j < n; j++) cities[j].population = sc.nextInt();
+
+                sb.append(findCableLengthNeeded(n, cities)).append("\n");
+            }
+
+            System.out.print(sb);
+            sc.close();
+        } else {
+            int t = 8;
+            int[] nn = {5, 3, 3, 1, 7, 3, 10, 3};
+            int[][] pos = {
+                {126, 271, 288, 619, 563},
+                {715, 97, 157},
+                {314, 786, 354},
+                {113},
+                {653, 541, 987, 334, 240, 736, 261},
+                {501, 390, 310},
+                {467, 475, 778, 819, 791, 190, 862, 727, 718, 676},
+                {943, 875, 364}
+            };
+            int[][] pop = {
+                {9352, 3412, 3492, 8140, 3245},
+                {716, 9032, 8121},
+                {6584, 7638, 7547},
+                {5913},
+                {2660, 8685, 9432, 5153, 7814, 3017, 1356},
+                {7552, 1251, 8215},
+                {2294, 5248, 3678, 7856, 342, 7778, 6240, 1509, 1243, 1434},
+                {7809, 6994, 3366}
+            };
+            long[] expectedResult = {19567292, 10655214, 7206632, 0, 54106123, 3064537, 65403059, 8626357};
+
+            for (int i = 0; i < t; i++) {
+                int n = nn[i];
+                City[] cities = new City[n];
+                for (int j = 0; j < n; j++) cities[j] = new City();
+                for (int j = 0; j < n; j++) cities[j].position = pos[i][j];
+                for (int j = 0; j < n; j++) cities[j].population = pop[i][j];
+
+                long total = findCableLengthNeeded(n, cities);
+                if (total != expectedResult[i]) {
+                    System.out.println("Test case " + i + " FAILED: got " + total
+                            + ", expected " + expectedResult[i]);
+                } else {
+                    System.out.println("Test case " + i + " OK: " + total);
+                }
+            }
+        }
+    }
+}
