@@ -1,0 +1,176 @@
+import java.io.*;
+import java.util.*;
+
+public class Solution {
+    static final int inf = 1000000000;
+    static final int logN = 18;
+    static final int N = 100005;
+
+    static int[] start = new int[N], e = new int[N], head = new int[N];
+    static int time;
+    static int[] depth = new int[N];
+    static int[][] lca = new int[N][logN + 1];
+    static int[] sum = new int[N];
+    static int n, m;
+    static ArrayList<Integer>[] v;
+
+    static int[] segMax = new int[4 * N], segLazy = new int[4 * N];
+
+    static void update(int k, int bas, int son, int x, int y, int t) {
+        if (bas > y || son < x) return;
+        if (x <= bas && son <= y) {
+            segLazy[k] += t;
+            segMax[k] += t;
+            return;
+        }
+        int orta = (bas + son) >> 1;
+        update(2 * k, bas, orta, x, y, t);
+        update(2 * k + 1, orta + 1, son, x, y, t);
+        segMax[k] = Math.max(segMax[2 * k], segMax[2 * k + 1]) + segLazy[k];
+    }
+
+    static int query(int k, int bas, int son, int x, int y) {
+        if (bas > y || son < x) return -inf;
+        if (x <= bas && son <= y) return segMax[k];
+        int orta = (bas + son) >> 1;
+        return Math.max(query(2 * k, bas, orta, x, y),
+                        query(2 * k + 1, orta + 1, son, x, y)) + segLazy[k];
+    }
+
+    static int dfs(int node, int last) {
+        lca[node][0] = last;
+        for (int it : v[node]) {
+            if (it != last) {
+                depth[it] = depth[node] + 1;
+                sum[node] += dfs(it, node);
+            }
+        }
+        return ++sum[node];
+    }
+
+    static void dfs2(int node, int last, int s) {
+        int temp = 0;
+        start[node] = ++time;
+        head[node] = s;
+        for (int it : v[node]) {
+            if (it != last && sum[it] > sum[temp]) temp = it;
+        }
+        if (temp != 0) dfs2(temp, node, s);
+        for (int it : v[node]) {
+            if (it != last && it != temp) dfs2(it, node, it);
+        }
+        e[node] = time;
+    }
+
+    static int LCA(int x, int y) {
+        if (depth[x] < depth[y]) { int t = x; x = y; y = t; }
+        int diff = depth[x] - depth[y];
+        for (int i = 0; i <= logN; i++) {
+            if ((diff & (1 << i)) != 0) x = lca[x][i];
+        }
+        if (x == y) return x;
+        for (int i = logN; i >= 0; i--) {
+            if (lca[x][i] != lca[y][i]) {
+                x = lca[x][i];
+                y = lca[y][i];
+            }
+        }
+        return lca[x][0];
+    }
+
+    static int que(int x, int y) {
+        int mx = -inf;
+        while (depth[x] >= depth[y]) {
+            mx = Math.max(mx, query(1, 1, n, Math.max(start[head[x]], start[y]), start[x]));
+            x = lca[head[x]][0];
+        }
+        return mx;
+    }
+
+    static int solve(int x, int y) {
+        int l = LCA(x, y);
+        return Math.max(que(x, l), que(y, l));
+    }
+
+    static void run() throws IOException {
+        FastReader in = new FastReader(System.in);
+        n = in.nextInt();
+
+        v = new ArrayList[n + 1];
+        for (int i = 0; i <= n; i++) v[i] = new ArrayList<>();
+
+        for (int i = 2; i <= n; i++) {
+            int x = in.nextInt();
+            int y = in.nextInt();
+            v[x].add(y);
+            v[y].add(x);
+        }
+
+        depth[1] = 1;
+        dfs(1, 0);
+        dfs2(1, 0, 1);
+
+        for (int j = 1; j <= logN; j++) {
+            for (int i = 1; i <= n; i++) {
+                lca[i][j] = lca[lca[i][j - 1]][j - 1];
+            }
+        }
+
+        m = in.nextInt();
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= m; i++) {
+            String s = in.next();
+            int x = in.nextInt();
+            int y = in.nextInt();
+            if (s.equals("add")) {
+                update(1, 1, n, start[x], e[x], y);
+            } else {
+                sb.append(solve(x, y)).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    public static void main(String[] args) throws Exception {
+        Thread t = new Thread(null, () -> {
+            try { run(); } catch (Exception ex) { ex.printStackTrace(); }
+        }, "main", 1 << 26);
+        t.start();
+        t.join();
+    }
+
+    static class FastReader {
+        InputStream in;
+        byte[] buf = new byte[1 << 16];
+        int idx, len;
+
+        FastReader(InputStream in) { this.in = in; }
+
+        int read() throws IOException {
+            if (idx >= len) {
+                len = in.read(buf);
+                idx = 0;
+                if (len <= 0) return -1;
+            }
+            return buf[idx++];
+        }
+
+        int nextInt() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            int sign = 1;
+            if (c == '-') { sign = -1; c = read(); }
+            int val = 0;
+            while (c > ' ') { val = val * 10 + c - '0'; c = read(); }
+            return val * sign;
+        }
+
+        String next() throws IOException {
+            int c = read();
+            while (c <= ' ') c = read();
+            StringBuilder sb = new StringBuilder();
+            while (c > ' ') { sb.append((char) c); c = read(); }
+            return sb.toString();
+        }
+    }
+}
