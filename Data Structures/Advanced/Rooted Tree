@@ -1,0 +1,199 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static final int mod = 1000000007;
+    static final int MAXN = 100005;
+    static int[] head, nxt, to;
+    static int[] dep = new int[MAXN];
+    static int[] par = new int[MAXN];
+    static int _tm;
+    static int[] tin = new int[MAXN];
+    static int[] tout = new int[MAXN];
+    static int n;
+    static int[][] L = new int[MAXN][18];
+    static long[] bit1, bit2, bit3;
+
+    static long modpow(long a, long b) {
+        long r = 1;
+        a %= mod;
+        if (a < 0) a += mod;
+        while (b > 0) {
+            if ((b & 1) == 1) r = r * a % mod;
+            a = a * a % mod;
+            b >>= 1;
+        }
+        return r;
+    }
+
+    static void dfs(int root) {
+        int[] stNode  = new int[2 * n + 5];
+        int[] stPar   = new int[2 * n + 5];
+        int[] stDep   = new int[2 * n + 5];
+        int[] stState = new int[2 * n + 5];
+        int top = 0;
+        stNode[top] = root; stPar[top] = -1; stDep[top] = 0; stState[top] = 0; top++;
+        while (top > 0) {
+            top--;
+            int c = stNode[top], p = stPar[top], d = stDep[top], st = stState[top];
+            if (st == 0) {
+                par[c] = p;
+                dep[c] = d;
+                _tm++;
+                tin[c] = _tm;
+                // push exit marker
+                stNode[top] = c; stPar[top] = p; stDep[top] = d; stState[top] = 1; top++;
+                // push children
+                for (int e = head[c]; e != -1; e = nxt[e]) {
+                    int u = to[e];
+                    if (u != p) {
+                        stNode[top] = u; stPar[top] = c; stDep[top] = d + 1; stState[top] = 0; top++;
+                    }
+                }
+            } else {
+                _tm++;
+                tout[c] = _tm;
+            }
+        }
+    }
+
+    static void processLca() {
+        int N = n;
+        for (int i = 0; i < n; i++)
+            for (int j = 0; (1 << j) < N; j++)
+                L[i][j] = -1;
+        for (int i = 0; i < N; i++)
+            L[i][0] = par[i];
+        for (int j = 1; (1 << j) < N; j++)
+            for (int i = 0; i < N; i++)
+                if (L[i][j - 1] != -1)
+                    L[i][j] = L[L[i][j - 1]][j - 1];
+    }
+
+    static int lca(int p, int q) {
+        if (dep[p] < dep[q]) { int t = p; p = q; q = t; }
+        int log = 1;
+        while ((1 << log) <= dep[p]) log++;
+        log--;
+        for (int i = log; i >= 0; i--)
+            if (dep[p] - (1 << i) >= dep[q])
+                p = L[p][i];
+        if (p == q) return p;
+        for (int i = log; i >= 0; i--)
+            if (L[p][i] != -1 && L[p][i] != L[q][i]) {
+                p = L[p][i];
+                q = L[q][i];
+            }
+        return par[p];
+    }
+
+    static void update(long[] bit, int idx, long val) {
+        for (int i = idx; i <= _tm; i += i & -i) bit[i] += val;
+    }
+
+    static long query(long[] bit, int idx) {
+        long res = 0;
+        for (int i = idx; i > 0; i -= i & -i) res += bit[i];
+        return res % mod;
+    }
+
+    static long QQQ(int x) {
+        long c = dep[x];
+        long res = (query(bit1, tin[x]) * c) % mod;
+        res += (query(bit2, tin[x]) * (((long) c * c) % mod));
+        res %= mod;
+        res += query(bit3, tin[x]);
+        return res % mod;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        n = fs.nextInt();
+        int e = fs.nextInt();
+        int r = fs.nextInt() - 1;
+
+        head = new int[n];
+        Arrays.fill(head, -1);
+        int maxEdges = Math.max(1, 2 * (n - 1));
+        nxt = new int[maxEdges + 5];
+        to  = new int[maxEdges + 5];
+        int ec = 0;
+        for (int i = 0; i < n - 1; i++) {
+            int x = fs.nextInt() - 1;
+            int y = fs.nextInt() - 1;
+            to[ec] = y; nxt[ec] = head[x]; head[x] = ec++;
+            to[ec] = x; nxt[ec] = head[y]; head[y] = ec++;
+        }
+
+        dfs(r);
+        processLca();
+
+        bit1 = new long[2 * n + 5];
+        bit2 = new long[2 * n + 5];
+        bit3 = new long[2 * n + 5];
+
+        StringBuilder sb = new StringBuilder();
+        long inv2 = modpow(2, mod - 2);
+
+        while (e-- > 0) {
+            String s = fs.next();
+            if (s.charAt(0) == 'U') {
+                int T = fs.nextInt() - 1;
+                int V = fs.nextInt();
+                int K = fs.nextInt();
+                long k = ((long) K * inv2) % mod;
+                long p = dep[T];
+                long val;
+
+                val = ((long) V - 2L * p * k + k) % mod;
+                val = (val + mod) % mod;
+                update(bit1, tin[T], val);
+                update(bit1, tout[T] + 1, -val);
+
+                val = k;
+                update(bit2, tin[T], val);
+                update(bit2, tout[T] + 1, -val);
+
+                val = (p * p) % mod;
+                val = (val * k) % mod;
+                val -= p * (((long) V + k) % mod) % mod;
+                val %= mod;
+                val += mod + V;
+                val %= mod;
+                update(bit3, tin[T], val);
+                update(bit3, tout[T] + 1, -val);
+            } else {
+                int A = fs.nextInt() - 1;
+                int B = fs.nextInt() - 1;
+                long ans;
+                int l = lca(A, B);
+                ans = QQQ(A) + QQQ(B) - QQQ(l);
+                if (par[l] != -1) ans -= QQQ(par[l]);
+                ans %= mod;
+                ans += mod;
+                ans %= mod;
+                sb.append(ans).append('\n');
+            }
+        }
+        System.out.print(sb);
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
