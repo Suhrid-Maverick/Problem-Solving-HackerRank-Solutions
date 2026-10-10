@@ -1,0 +1,187 @@
+import java.io.*;
+import java.util.*;
+
+public class Main {
+    static int n, m;
+    static final int INF = 1000000000;
+    static int[] ST;
+
+    static void update(int node, int l, int r, int idx, int val) {
+        if (l == r) {
+            ST[node] = val;
+            return;
+        }
+        int mid = (l + r) / 2;
+        if (idx <= mid) update(node * 2, l, mid, idx, val);
+        else update(node * 2 + 1, mid + 1, r, idx, val);
+        ST[node] = Math.min(ST[node * 2], ST[node * 2 + 1]);
+    }
+
+    static int query(int node, int l, int r, int ql, int qr) {
+        if (ql > r || qr < l) return INF;
+        if (ql <= l && r <= qr) return ST[node];
+        int mid = (l + r) / 2;
+        return Math.min(query(node * 2, l, mid, ql, qr),
+                        query(node * 2 + 1, mid + 1, r, ql, qr));
+    }
+
+    static int UP(int node, int k, int[][] lca, int logN) {
+        for (int i = logN; i >= 0; i--) {
+            if ((k & (1 << i)) != 0) {
+                node = lca[i][node];
+            }
+        }
+        return node;
+    }
+
+    public static void main(String[] args) throws IOException {
+        FastScanner fs = new FastScanner();
+        n = fs.nextInt();
+        m = fs.nextInt();
+
+        List<Integer>[] v = new List[n + 1];
+        for (int i = 1; i <= n; i++) v[i] = new ArrayList<>();
+        for (int i = 2; i <= n; i++) {
+            int x = fs.nextInt();
+            v[x].add(i);
+        }
+
+        int[] start = new int[n + 1];
+        int[] depth = new int[n + 1];
+        int[] parent = new int[n + 1];
+        int[] d = new int[n + 1];
+        int[] stack = new int[n + 1];
+        int top = 0;
+        stack[top++] = 1;
+        parent[1] = 0;
+        depth[0] = 0;
+        int timer = 0;
+
+        while (top > 0) {
+            int u = stack[--top];
+            start[u] = ++timer;
+            d[timer] = depth[u];
+            for (int c : v[u]) {
+                parent[c] = u;
+                depth[c] = depth[u] + 1;
+                stack[top++] = c;
+            }
+        }
+
+        int[] order = new int[n + 1];
+        for (int i = 1; i <= n; i++) order[start[i]] = i;
+
+        int[] dist = new int[n + 1];
+        int[] finish = new int[n + 1];
+        Arrays.fill(dist, INF);
+
+        for (int pos = n; pos >= 1; pos--) {
+            int u = order[pos];
+            finish[u] = start[u];
+            if (v[u].isEmpty()) {
+                dist[u] = 0;
+            } else {
+                for (int c : v[u]) {
+                    dist[u] = Math.min(dist[u], dist[c] + 1);
+                    finish[u] = Math.max(finish[u], finish[c]);
+                }
+            }
+        }
+
+        List<Integer>[] g = new List[n + 1];
+        for (int i = 0; i <= n; i++) g[i] = new ArrayList<>();
+        int cur = 0;
+        for (int u = 1; u <= n; u++) {
+            g[dist[u]].add(u);
+            if (dist[u] == 0) cur++;
+        }
+
+        int logN = 18;
+        int[][] lca = new int[logN + 1][n + 1];
+        for (int i = 1; i <= n; i++) lca[0][i] = parent[i];
+        for (int i = 1; i <= logN; i++) {
+            for (int j = 1; j <= n; j++) {
+                lca[i][j] = lca[i - 1][lca[i - 1][j]];
+            }
+        }
+
+        ST = new int[4 * n + 5];
+        Arrays.fill(ST, INF);
+
+        for (int u = 1; u <= n; u++) {
+            if (dist[u] == 0) {
+                update(1, 1, n, start[u], depth[u]);
+            } else {
+                update(1, 1, n, start[u], INF);
+            }
+        }
+
+        int[] ans = new int[n + 1];
+        ans[1] = n;
+
+        PriorityQueue<int[]> pq = new PriorityQueue<>(
+                (a, b) -> a[0] != b[0] ? b[0] - a[0] : b[1] - a[1]);
+        List<Integer> del = new ArrayList<>();
+
+        for (int i = 2; i <= n; i++) {
+            int all = cur;
+            for (int node : g[i]) {
+                pq.add(new int[]{depth[node], node});
+            }
+            del.clear();
+
+            while (!pq.isEmpty()) {
+                int[] topPair = pq.poll();
+                int node = topPair[1];
+                int minDepth = query(1, 1, n, start[node], finish[node]);
+                if (minDepth - depth[node] < i) continue;
+
+                update(1, 1, n, start[node], depth[node]);
+                all++;
+                del.add(node);
+
+                int up = UP(node, i, lca, logN);
+                if (up != 0) {
+                    pq.add(new int[]{depth[up], up});
+                }
+            }
+
+            ans[i] = all;
+            for (int node : del) {
+                update(1, 1, n, start[node], INF);
+            }
+        }
+
+        long total = 0;
+        final int MOD = 1000000007;
+        for (int i = 0; i < m; i++) {
+            int x = fs.nextInt();
+            int y = fs.nextInt();
+            y = Math.min(n, y);
+            total = (total + (long) ans[y] * x) % MOD;
+        }
+        System.out.println(total);
+    }
+
+    static class FastScanner {
+        BufferedReader br;
+        StringTokenizer st;
+
+        FastScanner() {
+            br = new BufferedReader(new InputStreamReader(System.in));
+        }
+
+        String next() throws IOException {
+            while (st == null || !st.hasMoreTokens()) {
+                String line = br.readLine();
+                if (line == null) return null;
+                st = new StringTokenizer(line);
+            }
+            return st.nextToken();
+        }
+
+        int nextInt() throws IOException {
+            return Integer.parseInt(next());
+        }
+    }
+}
